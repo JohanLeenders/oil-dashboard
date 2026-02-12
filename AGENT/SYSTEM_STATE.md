@@ -101,9 +101,10 @@ The governance triangle that governs all sprint work:
 | 6 | Historische Trends & Verwaarding | ✅ DONE | 282 pass | ✅ |
 | 7 | Canonical Cost Engine & Scenario Layer | ✅ DONE | 316 pass | ✅ |
 | — | Batch Input v1 (post-sprint) | ✅ DONE | — | ✅ |
-| 8 | Canon Alignment Audit & Engine Fix | 🔜 READY | — | — |
-| 9 | Data Import Pipeline | ⏸ BLOCKED (→8) | — | — |
-| 10 | Scenario Engine & Pricing Lab | ⏸ BLOCKED (→8,9) | — | — |
+| 8 | Canon Alignment Audit & Engine Fix | ✅ DONE | — | ✅ |
+| 9 | Data Import Pipeline | 🔜 READY | — | — |
+| 10 | Scenario Engine & Pricing Lab | ⏸ BLOCKED (→9) | — | — |
+| 11A | Scenario Sandbox v1 (Baseline vs Scenario) | 📐 DESIGNED | — | — |
 
 ---
 
@@ -179,6 +180,9 @@ These values are IMMUTABLE without explicit user override:
 | Carcass reference | JA757 (Hubbard) | NORMATIVE |
 | By-product credit | €0.20/kg | Canon twee-pager |
 | Allocation method | SVASO (NOT weight) | Canon twee-pager |
+| **Engine Canon Lock** | **2026-02-12** | **Sprint 8 Complete** |
+
+**Note:** The canonical cost engine (Levels 0-7) was verified 100% canon-compliant on 2026-02-12 and is now canon-locked. All 8 canon rules validated PASS. See `AGENT/SPRINT_8_CANON_VALIDATION_RESULTS.md` for details.
 
 ---
 

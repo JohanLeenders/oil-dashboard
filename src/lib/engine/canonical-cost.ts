@@ -435,11 +435,19 @@ export interface PrimalCutInput {
   std_market_price_per_kg: number;
 }
 
-/** @deprecated Use ByProductPhysical instead */
+/**
+ * ⚠️ DEPRECATED — NOT CANON CONFORM
+ *
+ * @deprecated Use ByProductPhysical instead (canonical type without nrv_price_per_kg)
+ *
+ * CANON VIOLATION: Has nrv_price_per_kg field which allows variable pricing
+ * per by-product. Canon requires flat €0.20/kg for ALL by-products.
+ */
 export interface ByProductInput {
   id: string;
   type: 'blood' | 'feathers' | 'offal' | 'cat3_waste' | 'other';
   weight_kg: number;
+  /** @deprecated CANON VIOLATION: should use flat BY_PRODUCT_RATE_PER_KG instead */
   nrv_price_per_kg: number;
 }
 
@@ -1403,7 +1411,19 @@ export function calculateNRV(
 // ============================================================================
 
 /**
+ * ⚠️ DEPRECATED — NOT CANON CONFORM — DO NOT USE
+ *
  * @deprecated Use calculateJointCostPool + calculateByProductCredit instead.
+ *
+ * This function violates canon by using VARIABLE NRV per by-product instead of
+ * the canonical flat €0.20/kg rate. It exists only for backward compatibility
+ * with the cost-waterfall demo page.
+ *
+ * CANON VIOLATION: Uses bp.nrv_price_per_kg (variable) instead of BY_PRODUCT_RATE_PER_KG (flat €0.20).
+ *
+ * For canon-compliant calculations, use:
+ * 1. calculateJointCostPool() → Level 1
+ * 2. calculateByProductCredit() → Level 2 (flat €0.20/kg)
  *
  * Legacy adapter: wraps the new 2-level calculation into the old GrillerCostResult shape.
  * Uses the old variable NRV approach for backward compatibility with existing tests.
@@ -1483,7 +1503,19 @@ export function calculateGrillerCost(
 }
 
 /**
+ * ⚠️ DEPRECATED — NOT CANON CONFORM — DO NOT USE
+ *
  * @deprecated Use calculateSVASOAllocation instead.
+ *
+ * This function violates canon by allowing ANY part_code (including back_carcass)
+ * to be treated as a joint product. The canon requires EXACTLY 3 joint products:
+ * breast_cap, legs, wings.
+ *
+ * CANON VIOLATION: Does NOT enforce JOINT_PRODUCT_CODES. Allows back_carcass
+ * to enter SVASO allocation, which is forbidden by canon.
+ *
+ * For canon-compliant calculations, use:
+ * - calculateSVASOAllocation() → Level 3 (enforces 3 joint products only)
  *
  * Legacy adapter: accepts any part_code (including back_carcass) for backward compat.
  */
@@ -1585,7 +1617,20 @@ export function calculatePrimalAllocation(
   };
 }
 
-/** @deprecated Use new Level 5/6 flow */
+/**
+ * ⚠️ DEPRECATED — NOT CANON CONFORM — DO NOT USE
+ *
+ * @deprecated Use new Level 4/5/6 flow (Mini-SVASO + ABC + Full SKU)
+ *
+ * This function uses outdated secondary processing logic that may not align
+ * with the canonical 8-level cost model. It predates the separation of
+ * Mini-SVASO (Level 4) and ABC costs (Level 5).
+ *
+ * For canon-compliant calculations, use:
+ * 1. calculateMiniSVASO() → Level 4
+ * 2. calculateABCCosts() → Level 5
+ * 3. calculateFullSKUCost() → Level 6
+ */
 export function calculateSecondaryProcessingCost(
   input_part_code: string,
   input_cost_per_kg: number,
