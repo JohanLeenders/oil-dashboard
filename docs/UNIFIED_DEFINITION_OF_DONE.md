@@ -1,6 +1,6 @@
 # UNIFIED_DEFINITION_OF_DONE.md — OIL Dashboard
 
-**Version:** 1.0.0
+**Version:** 1.1.0
 **Status:** ACTIVE
 **Last Updated:** 2026-02-12
 **Applies to:** All sprints (8–10+), all agents (Desktop + CLI)
@@ -21,9 +21,10 @@ No sprint may be marked DONE unless every required gate passes.
 |---|------|---------------|-------------|
 | C1 | **TypeScript compiles** | `npm run build` exits 0, zero type errors | Validator Agent |
 | C2 | **All tests pass** | `npm test` (vitest) exits 0, zero failures | Validator Agent |
-| C3 | **No new `any` types** | No new `as any` without documented reason in code comment | Builder Agent |
+| C3 | **Type safety protected** | Existing `as any` count must not increase. Target = 0 unless explicitly approved by user. Any remaining `as any` must include rationale comment | Builder Agent |
 | C4 | **Lint clean** | `npm run lint` exits 0, zero errors (warnings acceptable) | Validator Agent |
-| C5 | **No regressions** | Existing test count ≥ previous sprint's count | Validator Agent |
+| C5 | **No silent regressions** | No failing tests. No removal of business-logic tests without explanation. If coverage tooling exists, coverage must not decrease | Validator Agent |
+| C6 | **Observability** | Server actions must log structured errors (message + code + details). No empty `{}` error objects allowed | Builder Agent |
 
 ---
 
@@ -32,7 +33,7 @@ No sprint may be marked DONE unless every required gate passes.
 | # | Gate | Pass Criteria | Verified By |
 |---|------|---------------|-------------|
 | B1 | **Canon alignment** | Changes consistent with AGENT_RULES.md and CANON_Poultry_Cost_Accounting.md | Builder Agent |
-| B2 | **Locked values untouched** | THT (70/90), DSI (14/28), cherry-picker (30%), SVASO method unchanged | Validator Agent |
+| B2 | **Locked values protected** | Locked thresholds (THT 70/90, DSI 14/28, cherry-picker 30%, SVASO method) may not change unless explicitly permitted in the active sprint specification and approved by user GO | Validator Agent |
 | B3 | **Append-only preserved** | No UPDATE/DELETE on batch_yields or batch_costs tables | Validator Agent |
 | B4 | **Engine purity** | `src/lib/engine/` contains only pure functions, no DB calls, no UI | Builder Agent |
 | B5 | **SVASO not weight** | Cost allocation uses market value proportion, never weight | Builder Agent |
@@ -64,7 +65,7 @@ No sprint may be marked DONE unless every required gate passes.
 
 | # | Gate | Pass Criteria | Verified By |
 |---|------|---------------|-------------|
-| O1 | **Session Start Checklist followed** | ORCHESTRATOR_START_PROTOCOL.md checklist completed at session start | Orchestrator |
+| O1 | **Session Start Verified** | Orchestrator must explicitly report completion of the ORCHESTRATOR_START_PROTOCOL.md checklist in the session report | Orchestrator |
 | O2 | **STOP-PER-SPRINT respected** | Sprint marked DONE, agent STOPs, user asked GO/NO-GO | Orchestrator |
 | O3 | **No file ownership conflicts** | No two agents edited the same file tree concurrently | Orchestrator |
 | O4 | **Report delivered** | Standard Output Template used (Status, Changes, Validation, Risks, GO/NO-GO) | Orchestrator |
@@ -106,13 +107,14 @@ Copy this for each sprint completion:
 ### Code Gates
 - [ ] C1: npm run build — PASS
 - [ ] C2: npm test — PASS ([X] tests)
-- [ ] C3: No new `as any` without reason
+- [ ] C3: `as any` count ≤ [previous count] (target: 0)
 - [ ] C4: npm run lint — PASS
-- [ ] C5: Test count ≥ [previous count]
+- [ ] C5: No silent regressions (no test removals, no coverage decrease)
+- [ ] C6: Server actions log structured errors (no empty `{}`)
 
 ### Business Logic Gates
 - [ ] B1: Canon alignment verified
-- [ ] B2: Locked values untouched
+- [ ] B2: Locked values protected (only changeable if sprint spec + user GO)
 - [ ] B3: Append-only preserved
 - [ ] B4: Engine purity maintained
 - [ ] B5: SVASO not weight
@@ -129,7 +131,7 @@ Copy this for each sprint completion:
 - [ ] S4: DATA_CONTRACTS.md updated
 
 ### Orchestration Gates
-- [ ] O1: Session Start Checklist followed
+- [ ] O1: Session Start Checklist verified (reported in session report)
 - [ ] O2: STOP-PER-SPRINT respected
 - [ ] O3: No file ownership conflicts
 - [ ] O4: Report delivered
