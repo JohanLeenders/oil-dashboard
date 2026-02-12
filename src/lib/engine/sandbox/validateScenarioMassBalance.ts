@@ -8,17 +8,14 @@ import type { MergedInput, MassBalanceCheck } from './types';
 
 /**
  * Tighter mass balance tolerance for scenario sandbox.
- * Uses 0.1% tolerance OR max 10kg absolute (whichever is more restrictive).
+ * Uses EXACTLY 0.1% relative tolerance (0.001).
+ *
+ * Rule: abs(totalParts - grillerWeight) / grillerWeight <= 0.001
  *
  * Note: This is stricter than canonical engine's DEFAULT_VALIDATION_CONFIG (2%)
  * because scenarios require precise yield control for accurate what-if analysis.
  */
-export const SANDBOX_MASS_BALANCE_TOLERANCE = {
-  /** Percentage tolerance (0.1%) */
-  pct: 0.1,
-  /** Absolute maximum tolerance in kg */
-  max_kg: 10,
-};
+export const SANDBOX_MASS_BALANCE_TOLERANCE = 0.001;
 
 /**
  * Validates that scenario yields respect mass balance.
@@ -33,11 +30,12 @@ export function validateScenarioMassBalance(merged: MergedInput): MassBalanceChe
   const parts_total_kg = merged.all_parts.reduce((sum, p) => sum + p.weight_kg, 0);
   const delta_kg = Math.abs(parts_total_kg - griller_kg);
 
-  // Use tighter sandbox tolerance (0.1% OR max 10kg, whichever is more restrictive)
-  const pct_tolerance_kg = griller_kg * (SANDBOX_MASS_BALANCE_TOLERANCE.pct / 100);
-  const tolerance_kg = Math.min(pct_tolerance_kg, SANDBOX_MASS_BALANCE_TOLERANCE.max_kg);
+  // Calculate relative error: abs(totalParts - grillerWeight) / grillerWeight
+  const relative_error = griller_kg > 0 ? delta_kg / griller_kg : 0;
+  const tolerance_kg = griller_kg * SANDBOX_MASS_BALANCE_TOLERANCE;
 
-  if (delta_kg > tolerance_kg) {
+  // Validation: relative_error must be <= SANDBOX_MASS_BALANCE_TOLERANCE (0.001)
+  if (relative_error > SANDBOX_MASS_BALANCE_TOLERANCE) {
     return {
       valid: false,
       error: `Massabalans geschonden: onderdelen wegen ${parts_total_kg.toFixed(2)} kg, ` +
