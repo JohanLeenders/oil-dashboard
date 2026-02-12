@@ -20,11 +20,15 @@ import { runScenarioSandbox } from '@/lib/engine/scenario-sandbox';
 import { createScenario } from '@/lib/actions/scenarios';
 import { mapBatchToBaseline } from '@/lib/sandbox/mapBatchToBaseline';
 import { exportScenarioCSV } from '@/lib/sandbox/exportScenarioCSV';
+import type { ProcessChain } from '@/lib/engine/chain';
+import { applyProcessChainLayer, type ScenarioResultWithChain } from '@/lib/sandbox/applyProcessChainLayer';
 import { InputOverridesForm } from './InputOverridesForm';
 import { ResultsDisplay } from './ResultsDisplay';
 import { ScenarioList } from './ScenarioList';
 import { SaveScenarioDialog } from './SaveScenarioDialog';
 import { Toast, type ToastType } from './Toast';
+import { ProcessChainEditor } from './ProcessChainEditor';
+import { ChainResultsDisplay } from './ChainResultsDisplay';
 
 interface SandboxClientProps {
   batchId: string;
@@ -42,8 +46,14 @@ export function SandboxClient({
   const [yieldOverrides, setYieldOverrides] = useState<YieldOverride[]>([]);
   const [priceOverrides, setPriceOverrides] = useState<PriceOverride[]>([]);
 
+  // State for process chain (Sprint 11B)
+  const [processChainEnabled, setProcessChainEnabled] = useState(false);
+  const [processChain, setProcessChain] = useState<ProcessChain | null>(null);
+  const [chainIsValid, setChainIsValid] = useState(true);
+  const [chainValidationErrors, setChainValidationErrors] = useState<string[]>([]);
+
   // State for scenario execution
-  const [scenarioResult, setScenarioResult] = useState<ScenarioResult | null>(null);
+  const [scenarioResult, setScenarioResult] = useState<ScenarioResultWithChain | null>(null);
   const [isRunning, setIsRunning] = useState(false);
   const [currentScenarioName, setCurrentScenarioName] = useState<string>('Unsaved Scenario');
 
@@ -59,6 +69,15 @@ export function SandboxClient({
 
   // Handle running the scenario
   const handleRunScenario = () => {
+    // Block if chain is enabled but invalid
+    if (processChainEnabled && !chainIsValid) {
+      setToast({
+        message: `Chain validation failed: ${chainValidationErrors.join(', ')}`,
+        type: 'error',
+      });
+      return;
+    }
+
     setIsRunning(true);
 
     try {
@@ -69,13 +88,23 @@ export function SandboxClient({
         live_price_per_kg: livePriceOverride ?? undefined,
         yield_overrides: yieldOverrides.length > 0 ? yieldOverrides : undefined,
         price_overrides: priceOverrides.length > 0 ? priceOverrides : undefined,
+        process_chain: processChainEnabled && processChain ? processChain : undefined,
       };
 
-      const result = runScenarioSandbox(baseline, input);
+      const baselineResult = runScenarioSandbox(baseline, input);
+
+      // If chain enabled, apply chain layer
+      const result = processChainEnabled && processChain
+        ? applyProcessChainLayer(baseline, input, baselineResult)
+        : baselineResult;
+
       setScenarioResult(result);
 
       if (result.success) {
-        setToast({ message: 'Scenario computed successfully', type: 'success' });
+        const msg = processChainEnabled
+          ? 'Scenario with chain computed successfully'
+          : 'Scenario computed successfully';
+        setToast({ message: msg, type: 'success' });
       } else {
         setToast({ message: result.error || 'Scenario failed', type: 'error' });
       }
@@ -99,6 +128,7 @@ export function SandboxClient({
       live_price_per_kg: livePriceOverride ?? undefined,
       yield_overrides: yieldOverrides.length > 0 ? yieldOverrides : undefined,
       price_overrides: priceOverrides.length > 0 ? priceOverrides : undefined,
+      process_chain: processChainEnabled && processChain ? processChain : undefined,
     };
 
     const result = await createScenario({
@@ -123,11 +153,21 @@ export function SandboxClient({
   // Handle loading a saved scenario
   const handleLoadScenario = (scenario: SandboxScenario) => {
     const inputs = scenario.inputs_json as unknown as ScenarioInput;
-    const result = scenario.result_json as unknown as ScenarioResult;
+    const result = scenario.result_json as unknown as ScenarioResultWithChain;
 
     setLivePriceOverride(inputs.live_price_per_kg ?? null);
     setYieldOverrides(inputs.yield_overrides ?? []);
     setPriceOverrides(inputs.price_overrides ?? []);
+
+    // Load process chain if present
+    if (inputs.process_chain) {
+      setProcessChainEnabled(true);
+      setProcessChain(inputs.process_chain);
+    } else {
+      setProcessChainEnabled(false);
+      setProcessChain(null);
+    }
+
     setScenarioResult(result);
     setCurrentScenarioName(scenario.name);
     setToast({ message: `Loaded scenario: ${scenario.name}`, type: 'success' });
@@ -138,6 +178,10 @@ export function SandboxClient({
     setLivePriceOverride(null);
     setYieldOverrides([]);
     setPriceOverrides([]);
+    setProcessChainEnabled(false);
+    setProcessChain(null);
+    setChainIsValid(true);
+    setChainValidationErrors([]);
     setScenarioResult(null);
     setCurrentScenarioName('Unsaved Scenario');
   };
@@ -243,6 +287,20 @@ export function SandboxClient({
             onPriceOverridesChange={setPriceOverrides}
           />
 
+          {/* Process Chain Editor (Sprint 11B.2) */}
+          <ProcessChainEditor
+            enabled={processChainEnabled}
+            chain={processChain}
+            onChange={(chain) => {
+              setProcessChain(chain);
+              setProcessChainEnabled(chain !== null);
+            }}
+            onValidationChange={(isValid, errors) => {
+              setChainIsValid(isValid);
+              setChainValidationErrors(errors);
+            }}
+          />
+
           {/* Run scenario button */}
           <div className="flex gap-2">
             <button
@@ -268,6 +326,11 @@ export function SandboxClient({
               deltas={scenarioResult.deltas}
               meta={scenarioResult.meta}
             />
+          )}
+
+          {/* Chain layer results (Sprint 11B.2) */}
+          {scenarioResult && scenarioResult.chain_layer && (
+            <ChainResultsDisplay chainResult={scenarioResult.chain_layer.chain_execution} />
           )}
 
           {/* Error display */}

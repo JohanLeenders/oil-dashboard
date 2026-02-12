@@ -15,6 +15,7 @@ import type {
   FullSKUCostResult,
   NRVAssessment,
 } from '../canonical-cost';
+import type { ProcessChain } from '../chain';
 
 // ============================================================================
 // TYPES: SCENARIO INPUTS
@@ -38,6 +39,9 @@ export interface ScenarioInput {
 
   /** Override shadow prices (€/kg) for SVASO allocation */
   price_overrides?: PriceOverride[];
+
+  /** Process chain for multi-step transformations (Sprint 11B) */
+  process_chain?: ProcessChain;
 }
 
 export interface YieldOverride {
