@@ -890,3 +890,22 @@ export interface CustomerTrendOverTimeView {
   data_type: 'HISTORICAL_TREND';
   carcass_reference: string;
 }
+
+// ============================================================================
+// SPRINT 11A TYPES — Scenario Sandbox & What-If Analysis
+// ============================================================================
+
+/**
+ * Sprint 11A: Saved scenario simulations
+ * Stores complete what-if analysis results with input overrides
+ */
+export interface SandboxScenario {
+  id: string;
+  batch_id: string;
+  name: string;
+  description: string | null;
+  inputs_json: Record<string, unknown>;  // ScenarioInput
+  result_json: Record<string, unknown> | null;  // ScenarioResult
+  created_at: string;
+  updated_at: string;
+}
