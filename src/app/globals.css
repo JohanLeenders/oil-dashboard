@@ -1,0 +1,171 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Oranjehoen Brand Colors */
+:root {
+  --color-oranje-500: #f97316;
+  --color-oranje-600: #ea580c;
+  --color-status-green: #22c55e;
+  --color-status-yellow: #eab308;
+  --color-status-orange: #f97316;
+  --color-status-red: #ef4444;
+}
+
+/* Base styles */
+@layer base {
+  body {
+    @apply text-gray-900;
+  }
+
+  h1 {
+    @apply text-2xl font-bold tracking-tight;
+  }
+
+  h2 {
+    @apply text-xl font-semibold;
+  }
+
+  h3 {
+    @apply text-lg font-medium;
+  }
+}
+
+/* Component utilities */
+@layer components {
+  /* KPI Tile */
+  .kpi-tile {
+    @apply rounded-lg border bg-white p-6 shadow-sm;
+  }
+
+  .kpi-tile-value {
+    @apply text-3xl font-bold tabular-nums;
+  }
+
+  .kpi-tile-label {
+    @apply text-sm text-gray-500;
+  }
+
+  /* Status badges */
+  .badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium;
+  }
+
+  .badge-green {
+    @apply bg-green-100 text-green-800;
+  }
+
+  .badge-orange {
+    @apply bg-orange-100 text-orange-800;
+  }
+
+  .badge-red {
+    @apply bg-red-100 text-red-800;
+  }
+
+  .badge-gray {
+    @apply bg-gray-100 text-gray-800;
+  }
+
+  /* THT Thermometer */
+  .tht-bar {
+    @apply h-3 rounded-full overflow-hidden bg-gray-200;
+  }
+
+  .tht-bar-fill {
+    @apply h-full transition-all duration-300;
+  }
+
+  .tht-green {
+    @apply bg-status-green;
+  }
+
+  .tht-orange {
+    @apply bg-status-orange;
+  }
+
+  .tht-red {
+    @apply bg-status-red;
+  }
+
+  /* Data table */
+  .data-table {
+    @apply w-full divide-y divide-gray-200;
+  }
+
+  .data-table th {
+    @apply px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500;
+  }
+
+  .data-table td {
+    @apply px-4 py-3 text-sm;
+  }
+
+  .data-table tbody tr {
+    @apply hover:bg-gray-50;
+  }
+
+  /* Cards */
+  .card {
+    @apply rounded-lg border bg-white shadow-sm;
+  }
+
+  .card-header {
+    @apply border-b px-6 py-4;
+  }
+
+  .card-body {
+    @apply p-6;
+  }
+
+  /* Navigation */
+  .nav-link {
+    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100;
+  }
+
+  .nav-link-active {
+    @apply bg-oranje-50 text-oranje-600;
+  }
+}
+
+/* Utility extensions */
+@layer utilities {
+  /* Tabular numbers for data */
+  .tabular-nums {
+    font-variant-numeric: tabular-nums;
+  }
+
+  /* Truncate with ellipsis */
+  .truncate-2 {
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  /* Status colors as bg */
+  .bg-status-green {
+    background-color: var(--color-status-green);
+  }
+
+  .bg-status-orange {
+    background-color: var(--color-status-orange);
+  }
+
+  .bg-status-red {
+    background-color: var(--color-status-red);
+  }
+
+  /* Oranje brand utilities */
+  .bg-oranje-50 {
+    background-color: #fff7ed;
+  }
+
+  .text-oranje-600 {
+    color: #ea580c;
+  }
+
+  .border-oranje-500 {
+    border-color: #f97316;
+  }
+}

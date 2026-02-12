@@ -1,0 +1,4 @@
+INSERT INTO technical_definitions (definition_type, key, value, source_document, source_section, notes) VALUES
+('sku_mapping', 'storteboom_plu_mapping', '{"status": "VERIFIED", "source": "Storteboom invoices/pakbonnen", "verified_skus": ["540457", "528073", "540617", "514298", "392940", "392865"]}', 'Hoofdstuk 6 TRD', '6.1', 'PLU codes verified against actual invoices'),
+('yield_target', 'hubbard_ja757', '{"breast_cap_min": 34.8, "breast_cap_max": 36.9, "leg_quarter_min": 42.0, "leg_quarter_max": 44.8, "wings_min": 10.6, "wings_max": 10.8, "back_carcass_min": 7.0, "back_carcass_max": 8.2}', 'Hubbard JA757 Spec Sheet', 'Cut-Up Yields', 'Target yields for commercial breed'),
+('threshold', 'tht_colors', '{"green_max_pct": 70, "orange_max_pct": 90, "source": "Blueprint Spec"}', 'OIL Blueprint', 'THT Status', 'THT color thresholds - LOCKED');

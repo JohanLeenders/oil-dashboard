@@ -1,0 +1,17 @@
+INSERT INTO market_benchmarks (product_id, price_per_kg, price_source, valid_from) VALUES
+((SELECT id FROM products WHERE sku_code = 'OH-FILET-VAC-001'), 9.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-FILET-BULK-001'), 9.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-HAAS-VAC-001'), 11.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-DIJ-VAC-001'), 7.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-DIJ-BULK-001'), 7.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-DRUM-001'), 7.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-DRUM-BULK-001'), 6.80, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-DRUMVL-VAC-001'), 8.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-VLEUGEL-001'), 5.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-DIJANA-001'), 2.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-NAAKT-001'), 2.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-HELE-001'), 6.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-LEVER-001'), 4.00, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-MAAG-001'), 3.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-HART-001'), 4.50, 'initial_setup', CURRENT_DATE),
+((SELECT id FROM products WHERE sku_code = 'OH-HALS-001'), 2.00, 'initial_setup', CURRENT_DATE);

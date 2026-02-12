@@ -1,0 +1,22 @@
+CREATE TABLE sales_transactions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  customer_id UUID NOT NULL REFERENCES customers(id),
+  product_id UUID NOT NULL REFERENCES products(id),
+  batch_id UUID REFERENCES production_batches(id),
+  invoice_number VARCHAR(50) NOT NULL,
+  invoice_date DATE NOT NULL,
+  quantity_kg DECIMAL(10,3) NOT NULL,
+  quantity_pieces INTEGER,
+  unit_price DECIMAL(10,2) NOT NULL,
+  line_total DECIMAL(12,2) GENERATED ALWAYS AS (quantity_kg * unit_price) STORED,
+  allocated_cost DECIMAL(12,2),
+  gross_margin DECIMAL(12,2),
+  margin_pct DECIMAL(5,2),
+  batch_ref_source VARCHAR(50),
+  is_credit BOOLEAN DEFAULT false,
+  credits_transaction_id UUID REFERENCES sales_transactions(id),
+  credit_reason TEXT,
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  synced_from VARCHAR(50),
+  CONSTRAINT chk_quantity_positive CHECK (quantity_kg > 0)
+);

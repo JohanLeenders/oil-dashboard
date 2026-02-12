@@ -1,0 +1,1 @@
+CREATE INDEX idx_batches_slaughter_date ON production_batches(slaughter_date);
