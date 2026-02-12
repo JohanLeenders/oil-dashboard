@@ -70,6 +70,26 @@ interface SankeyLinkType {
   width?: number;
 }
 
+/**
+ * Type definitions for Visx Sankey output
+ * These match the runtime shape from @visx/sankey but aren't exported by the library
+ */
+interface VisxSankeyNode {
+  name: string;
+  x0: number;
+  x1: number;
+  y0: number;
+  y1: number;
+  value: number;
+}
+
+interface VisxSankeyLink {
+  source: VisxSankeyNode;
+  target: VisxSankeyNode;
+  value: number;
+  width: number;
+}
+
 export function MassBalanceSankey({
   massBalance,
   width = 800,
@@ -158,15 +178,18 @@ export function MassBalanceSankey({
                     const originalLink = sankeyData.links[i];
                     const linkType = originalLink?.type || 'main';
 
+                    // Type assertion: Visx generates nodes/links matching our interface
+                    const visxLink = link as unknown as VisxSankeyLink;
+
                     return (
                       <path
                         key={`link-${i}`}
-                        d={sankeyLinkHorizontal()(link as any) || ''}
+                        d={sankeyLinkHorizontal()(visxLink) || ''}
                         fill="none"
                         stroke={LINK_COLORS[linkType] || LINK_COLORS.main}
-                        strokeWidth={Math.max(1, (link as any).width || 1)}
+                        strokeWidth={Math.max(1, visxLink.width || 1)}
                         strokeOpacity={0.7}
-                        onMouseMove={(e) => handleLinkHover(e, link as any)}
+                        onMouseMove={(e) => handleLinkHover(e, visxLink)}
                         onMouseLeave={hideTooltip}
                         style={{ cursor: 'pointer' }}
                       />
@@ -175,33 +198,34 @@ export function MassBalanceSankey({
 
                   {/* Nodes */}
                   {graph.nodes.map((node, i) => {
-                    const typedNode = node as any;
-                    const nodeWidth = (typedNode.x1 || 0) - (typedNode.x0 || 0);
-                    const nodeHeight = Math.max(1, (typedNode.y1 || 0) - (typedNode.y0 || 0));
+                    // Type assertion: Visx generates nodes matching our interface
+                    const visxNode = node as unknown as VisxSankeyNode;
+                    const nodeWidth = visxNode.x1 - visxNode.x0;
+                    const nodeHeight = Math.max(1, visxNode.y1 - visxNode.y0);
 
                     return (
                       <Group key={`node-${i}`}>
                         <rect
-                          x={typedNode.x0 || 0}
-                          y={typedNode.y0 || 0}
+                          x={visxNode.x0}
+                          y={visxNode.y0}
                           width={nodeWidth}
                           height={nodeHeight}
-                          fill={NODE_COLORS[typedNode.name] || '#94a3b8'}
+                          fill={NODE_COLORS[visxNode.name] || '#94a3b8'}
                           rx={2}
-                          onMouseMove={(e) => handleNodeHover(e, typedNode)}
+                          onMouseMove={(e) => handleNodeHover(e, visxNode)}
                           onMouseLeave={hideTooltip}
                           style={{ cursor: 'pointer' }}
                         />
                         {/* Node label */}
                         <text
-                          x={(typedNode.x0 || 0) < innerWidth / 2 ? (typedNode.x1 || 0) + 6 : (typedNode.x0 || 0) - 6}
-                          y={((typedNode.y0 || 0) + (typedNode.y1 || 0)) / 2}
+                          x={visxNode.x0 < innerWidth / 2 ? visxNode.x1 + 6 : visxNode.x0 - 6}
+                          y={(visxNode.y0 + visxNode.y1) / 2}
                           dy="0.35em"
-                          textAnchor={(typedNode.x0 || 0) < innerWidth / 2 ? 'start' : 'end'}
+                          textAnchor={visxNode.x0 < innerWidth / 2 ? 'start' : 'end'}
                           fontSize={11}
                           fill="#374151"
                         >
-                          {typedNode.name}
+                          {visxNode.name}
                         </text>
                       </Group>
                     );

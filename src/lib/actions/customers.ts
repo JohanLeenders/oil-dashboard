@@ -25,6 +25,61 @@ import {
   type CustomerSalesLine,
   type CustomerProfitabilityComplete,
 } from '@/lib/engine/customer-profitability';
+import { logSupabaseError } from '@/lib/utils/errors';
+
+// ============================================================================
+// TYPE DEFINITIONS FOR SUPABASE QUERY RESPONSES
+// ============================================================================
+
+/**
+ * Type for sales_transactions with product join
+ * Matches Supabase query: .select('..., product:products(category)')
+ *
+ * Note: category is typed as ProductCategory to match engine expectations.
+ * The database stores this as a string enum matching ProductCategory values.
+ */
+interface SalesWithProduct {
+  customer_id: string | null;
+  quantity_kg: number;
+  line_total: number;
+  product: {
+    category: import('@/types/database').ProductCategory;
+  } | null;
+}
+
+/**
+ * Type for sales_transactions with product join for profitability analysis
+ * Matches Supabase query with additional fields for cost allocation
+ */
+interface ProfitabilitySalesLine {
+  customer_id: string | null;
+  invoice_date: string;
+  quantity_kg: number;
+  line_total: number;
+  allocated_cost: number | null;
+  product: {
+    category: import('@/types/database').ProductCategory;
+  } | null;
+}
+
+/**
+ * Type for customer detail sales with full product info
+ * Used in getCustomerProfitabilityDetail
+ */
+interface DetailSalesLine {
+  id: string;
+  invoice_number: string;
+  invoice_date: string;
+  quantity_kg: number;
+  unit_price: number;
+  line_total: number;
+  allocated_cost: number | null;
+  gross_margin: number | null;
+  product: {
+    category: import('@/types/database').ProductCategory;
+    description: string;
+  } | null;
+}
 
 // ============================================================================
 // CUSTOMER LIST WITH ANALYSIS
@@ -70,16 +125,19 @@ export async function getCustomersWithAnalysis(): Promise<CustomerWithAnalysis[]
     .eq('is_credit', false);
 
   if (salesError) {
-    console.error('Error fetching sales:', salesError);
+    logSupabaseError(salesError, 'Error fetching sales');
   }
 
   // 3. Aggregeer per klant/categorie
   const customerMixMap = new Map<string, CustomerProductMix[]>();
 
-  for (const sale of salesData || []) {
+  // Type assertion: salesData matches SalesWithProduct[] based on select query
+  const typedSalesData = salesData as SalesWithProduct[] | null;
+
+  for (const sale of typedSalesData || []) {
     if (!sale.customer_id || !sale.product) continue;
 
-    const category = (sale.product as any).category;
+    const category = sale.product.category;
     if (!category) continue;
 
     const mix = customerMixMap.get(sale.customer_id) || [];
@@ -163,8 +221,11 @@ export async function getCustomerDetail(customerId: string): Promise<CustomerWit
   const productMix: CustomerProductMix[] = [];
   const categoryMap = new Map<string, CustomerProductMix>();
 
-  for (const sale of salesData || []) {
-    const category = (sale.product as any)?.category;
+  // Type assertion: salesData matches SalesWithProduct[] based on select query
+  const typedSalesData = salesData as SalesWithProduct[] | null;
+
+  for (const sale of typedSalesData || []) {
+    const category = sale.product?.category;
     if (!category) continue;
 
     const existing = categoryMap.get(category);
@@ -305,9 +366,11 @@ export async function getCustomerProfitabilityDetail(
   // 4. Build sales lines for profitability analysis
   const salesLines: CustomerSalesLine[] = [];
 
-  for (const sale of salesData || []) {
-    const product = sale.product as any;
-    const category = product?.category;
+  // Type assertion: salesData matches DetailSalesLine[] based on select query
+  const typedSalesData = salesData as DetailSalesLine[] | null;
+
+  for (const sale of typedSalesData || []) {
+    const category = sale.product?.category;
     if (!category) continue;
 
     // Aggregate for cherry-picker
@@ -351,12 +414,11 @@ export async function getCustomerProfitabilityDetail(
   const combined = combineCustomerAnalysis(profitability, cherryPickerAnalysis);
 
   // 6. Format recent sales
-  const recentSales = (salesData || []).slice(0, 20).map(sale => {
-    const product = sale.product as any;
+  const recentSales = (typedSalesData || []).slice(0, 20).map(sale => {
     return {
       invoice_number: sale.invoice_number,
       invoice_date: sale.invoice_date,
-      category: product?.category || 'unknown',
+      category: sale.product?.category || 'unknown',
       quantity_kg: sale.quantity_kg,
       revenue: sale.line_total,
       allocated_cost: sale.allocated_cost,
@@ -427,10 +489,12 @@ export async function getCustomerProfitabilitySummaries(): Promise<CustomerProfi
   const customerSalesMap = new Map<string, CustomerSalesLine[]>();
   const customerMixMap = new Map<string, CustomerProductMix[]>();
 
-  for (const sale of salesData || []) {
+  // Type assertion: salesData matches ProfitabilitySalesLine[] based on select query
+  const typedSalesData = salesData as ProfitabilitySalesLine[] | null;
+
+  for (const sale of typedSalesData || []) {
     if (!sale.customer_id) continue;
-    const product = sale.product as any;
-    const category = product?.category;
+    const category = sale.product?.category;
     if (!category) continue;
 
     // Sales lines

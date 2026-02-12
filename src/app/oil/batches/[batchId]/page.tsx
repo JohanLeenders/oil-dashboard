@@ -23,6 +23,12 @@ interface PageProps {
   params: Promise<{ batchId: string }>;
 }
 
+/**
+ * Type for data_status field used by DataStatusBadge component
+ * Matches the accepted values from StatusBadge component
+ */
+type DataStatus = 'COMPLETE' | 'NEEDS_REVIEW' | 'HAS_CORRECTIONS';
+
 export default async function BatchDetailPage({ params }: PageProps) {
   const { batchId } = await params;
   const detail = await getBatchDetail(batchId);
@@ -60,7 +66,7 @@ export default async function BatchDetailPage({ params }: PageProps) {
           >
             Kostprijs (NRV)
           </Link>
-          <DataStatusBadge status={validation.data_status as any} />
+          <DataStatusBadge status={validation.data_status as DataStatus} />
         </div>
       </div>
 
