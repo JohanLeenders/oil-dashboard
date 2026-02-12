@@ -1,8 +1,8 @@
 # SPRINT_QUEUE.md — Oranjehoen Commercial Dashboard Sprint Backlog
 
-**Version:** 3.0.0
+**Version:** 3.1.0
 **Status:** ACTIVE — AUTHORITATIVE
-**Last Updated:** 2026-02-11
+**Last Updated:** 2026-02-12
 **Source of Truth:** AGENT/SPRINT_*.md contracts
 
 ---
@@ -129,6 +129,27 @@
 
 ---
 
+### Sprint 11A — Scenario Sandbox v1 (Baseline vs Scenario)
+**Status:** DESIGNED (wacht op Sprint 7 — DONE; Sprint 8 aanbevolen)
+**Contract:** AGENT/SPRINT_11A_Scenario_Sandbox_v1.md
+**Goal:** Batch-level what-if sandbox: baseline vs scenario side-by-side.
+
+**Scope:**
+- Batch selecteren als baseline → actuele kostenwaterval (L0-L7)
+- Override: yields (kg), live cost (€/kg), shadow prices (€/kg)
+- Volledige SVASO-herallocatie bij prijswijziging
+- Joint cost pool herberekening bij live-kostwijziging
+- Massabalans-guardrail (hard block)
+- Herberekening op "Run Scenario" knop (niet real-time)
+- Opslaan in DB + CSV export
+- Scenario-disclaimer op alle sandbox-pagina's
+
+**Depends On:** Sprint 7 (DONE). Sprint 8 aanbevolen maar niet blokkerend.
+
+**STOP after completion** — review nodig.
+
+---
+
 ## DEPENDENCIES
 
 | Sprint | Depends On |
@@ -143,6 +164,7 @@
 | **Sprint 8** | Sprint 7 + Canon twee-pager |
 | **Sprint 9** | Sprint 8 (correcte engine) + Voorbeeld-bestanden |
 | **Sprint 10** | Sprint 8 + Sprint 9 (echte data) |
+| **Sprint 11A** | Sprint 7 (DONE); Sprint 8 aanbevolen |
 
 ---
 
