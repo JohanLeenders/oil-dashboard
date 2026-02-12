@@ -13,10 +13,11 @@ specialized agents as "fresh context notebooks" to prevent drift.
 - Priority: This file is the operational contract for orchestration.
 - Canon priority order (highest to lowest):
   1) AGENT_RULES.md (non-negotiable canon/business rails)
-  2) ORCHESTRATOR_START_PROTOCOL.md (this file: how we operate)
-  3) SYSTEM_STATE.md (current status / truth snapshot)
-  4) SPRINT docs + SPRINT_QUEUE.md (deliverables & dependencies)
-  5) Everything else
+  2) UNIFIED_DEFINITION_OF_DONE.md (definition of completion)
+  3) ORCHESTRATOR_START_PROTOCOL.md (this file: how we operate)
+  4) SYSTEM_STATE.md (current status / truth snapshot)
+  5) SPRINT docs + SPRINT_QUEUE.md (deliverables & dependencies)
+  6) Everything else
 
 ## Non-Negotiable Rails
 

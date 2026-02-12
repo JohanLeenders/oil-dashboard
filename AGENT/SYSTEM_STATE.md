@@ -1,8 +1,8 @@
 # SYSTEM_STATE.md — Oranjehoen Commercial Dashboard
 
-**Version:** 1.1.0
+**Version:** 1.2.0
 **Last Updated:** 2026-02-12
-**Updated By:** Orchestration Protocol Adoption
+**Updated By:** Governance Triangle Completion
 
 ---
 
@@ -13,6 +13,18 @@ Before any sprint work, follow the **Session Start Checklist** in:
 > **[docs/ORCHESTRATOR_START_PROTOCOL.md](../docs/ORCHESTRATOR_START_PROTOCOL.md)**
 
 This protocol applies to both Claude Desktop and Claude CLI. It defines canon priority order, non-negotiable rails, agent roles, and the mandatory validation gates.
+
+---
+
+## Governance Contracts
+
+The governance triangle that governs all sprint work:
+
+| Contract | File | Purpose |
+|----------|------|---------|
+| **Canon** | [AGENT_RULES.md](./AGENT_RULES.md) | Non-negotiable business logic rails |
+| **Orchestration** | [docs/ORCHESTRATOR_START_PROTOCOL.md](../docs/ORCHESTRATOR_START_PROTOCOL.md) | How sessions start and operate |
+| **Completion** | [docs/UNIFIED_DEFINITION_OF_DONE.md](../docs/UNIFIED_DEFINITION_OF_DONE.md) | When a sprint is DONE |
 
 ---
 
