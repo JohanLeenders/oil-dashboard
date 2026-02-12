@@ -18,10 +18,13 @@ import type {
 } from '@/lib/engine/scenario-sandbox';
 import { runScenarioSandbox } from '@/lib/engine/scenario-sandbox';
 import { createScenario } from '@/lib/actions/scenarios';
+import { mapBatchToBaseline } from '@/lib/sandbox/mapBatchToBaseline';
+import { exportScenarioCSV } from '@/lib/sandbox/exportScenarioCSV';
 import { InputOverridesForm } from './InputOverridesForm';
 import { ResultsDisplay } from './ResultsDisplay';
 import { ScenarioList } from './ScenarioList';
 import { SaveScenarioDialog } from './SaveScenarioDialog';
+import { Toast, type ToastType } from './Toast';
 
 interface SandboxClientProps {
   batchId: string;
@@ -48,30 +51,11 @@ export function SandboxClient({
   const [savedScenarios, setSavedScenarios] = useState<SandboxScenario[]>(initialScenarios);
   const [showSaveDialog, setShowSaveDialog] = useState(false);
 
-  // Prepare baseline data for engine
-  // NOTE: This is a simplified version - you'll need to map batchDetail to BaselineBatchData format
-  const baseline: BaselineBatchData = {
-    batch_id: batchId,
-    batch_ref: batchDetail.batch.batch_ref,
-    live_weight_kg: batchDetail.batch.live_weight_kg || 0,
-    bird_count: batchDetail.batch.bird_count || 0,
-    griller_weight_kg: batchDetail.batch.griller_weight_kg || 0,
-    griller_yield_pct: batchDetail.batch.griller_yield_pct || 0,
-    live_price_per_kg: 2.60, // TODO: Get from actual batch data
-    transport_cost_eur: 91.68, // TODO: Get from actual batch data
-    catching_fee_eur: 50.00, // TODO: Get from actual batch data
-    slaughter_fee_per_head: 0.276, // TODO: Get from actual batch data
-    doa_count: 0,
-    doa_threshold_pct: 0.02,
-    joint_products: [], // TODO: Map from batchDetail.yields
-    by_products: [], // TODO: Map from batchDetail
-    waterfall: {
-      l0_landed_cost: {} as any,
-      l1_joint_cost_pool: {} as any,
-      l2_net_joint_cost: {} as any,
-      l3_svaso_allocation: {} as any,
-    },
-  };
+  // Toast notifications
+  const [toast, setToast] = useState<{ message: string; type: ToastType } | null>(null);
+
+  // Map batch detail to baseline data using canonical mapper
+  const baseline: BaselineBatchData = mapBatchToBaseline(batchDetail);
 
   // Handle running the scenario
   const handleRunScenario = () => {
@@ -89,9 +73,15 @@ export function SandboxClient({
 
       const result = runScenarioSandbox(baseline, input);
       setScenarioResult(result);
+
+      if (result.success) {
+        setToast({ message: 'Scenario computed successfully', type: 'success' });
+      } else {
+        setToast({ message: result.error || 'Scenario failed', type: 'error' });
+      }
     } catch (error) {
       console.error('Error running scenario:', error);
-      // TODO: Show error toast
+      setToast({ message: 'Error running scenario', type: 'error' });
     } finally {
       setIsRunning(false);
     }
@@ -123,9 +113,9 @@ export function SandboxClient({
       setSavedScenarios([result.data, ...savedScenarios]);
       setCurrentScenarioName(name);
       setShowSaveDialog(false);
-      // TODO: Show success toast
+      setToast({ message: 'Scenario saved successfully', type: 'success' });
     } else {
-      // TODO: Show error toast
+      setToast({ message: result.error || 'Failed to save scenario', type: 'error' });
       console.error('Error saving scenario:', result.error);
     }
   };
@@ -140,6 +130,7 @@ export function SandboxClient({
     setPriceOverrides(inputs.price_overrides ?? []);
     setScenarioResult(result);
     setCurrentScenarioName(scenario.name);
+    setToast({ message: `Loaded scenario: ${scenario.name}`, type: 'success' });
   };
 
   // Reset to baseline
@@ -149,6 +140,18 @@ export function SandboxClient({
     setPriceOverrides([]);
     setScenarioResult(null);
     setCurrentScenarioName('Unsaved Scenario');
+  };
+
+  // Handle exporting to CSV
+  const handleExportCSV = () => {
+    if (!scenarioResult) return;
+    try {
+      exportScenarioCSV(scenarioResult, currentScenarioName, batchDetail.batch.batch_ref);
+      setToast({ message: 'CSV exported successfully', type: 'success' });
+    } catch (error) {
+      console.error('Error exporting CSV:', error);
+      setToast({ message: 'Failed to export CSV', type: 'error' });
+    }
   };
 
   return (
@@ -269,17 +272,43 @@ export function SandboxClient({
 
           {/* Error display */}
           {scenarioResult && !scenarioResult.success && (
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-              <p className="text-sm font-medium text-red-900">Scenario Failed</p>
-              <p className="text-sm text-red-700 mt-1">{scenarioResult.error}</p>
+            <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
+              <div className="flex items-start gap-3">
+                <svg className="w-6 h-6 text-red-600 mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+                <div className="flex-1">
+                  <p className="text-sm font-semibold text-red-900">Scenario Failed</p>
+                  <p className="text-sm text-red-800 mt-1">{scenarioResult.error}</p>
+                  {scenarioResult.meta.mass_balance_check && !scenarioResult.meta.mass_balance_check.valid && (
+                    <div className="mt-3 p-3 bg-red-100 rounded">
+                      <p className="text-xs font-medium text-red-900 mb-1">Mass Balance Details:</p>
+                      <div className="text-xs text-red-800 space-y-1">
+                        <div>Parts Total: {scenarioResult.meta.mass_balance_check.parts_total_kg.toFixed(2)} kg</div>
+                        <div>Griller Weight: {scenarioResult.meta.mass_balance_check.griller_kg.toFixed(2)} kg</div>
+                        <div>Delta: {scenarioResult.meta.mass_balance_check.delta_kg.toFixed(2)} kg (exceeds tolerance of {scenarioResult.meta.mass_balance_check.tolerance_kg.toFixed(2)} kg)</div>
+                        <div className="mt-2 pt-2 border-t border-red-300">
+                          <strong>Fix:</strong> Adjust yield overrides to ensure parts sum to {scenarioResult.meta.mass_balance_check.griller_kg.toFixed(2)} kg ±{scenarioResult.meta.mass_balance_check.tolerance_kg.toFixed(2)} kg
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Save scenario button (only show if scenario has been run successfully) */}
+      {/* Save/Export buttons (only show if scenario has been run successfully) */}
       {scenarioResult && scenarioResult.success && (
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-3">
+          <button
+            onClick={handleExportCSV}
+            className="px-4 py-2 bg-gray-600 text-white text-sm font-medium rounded-lg hover:bg-gray-700 transition-colors"
+          >
+            Export CSV
+          </button>
           <button
             onClick={() => setShowSaveDialog(true)}
             className="px-4 py-2 bg-green-600 text-white text-sm font-medium rounded-lg hover:bg-green-700 transition-colors"
@@ -294,6 +323,15 @@ export function SandboxClient({
         <SaveScenarioDialog
           onSave={handleSaveScenario}
           onCancel={() => setShowSaveDialog(false)}
+        />
+      )}
+
+      {/* Toast notifications */}
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
         />
       )}
     </div>
