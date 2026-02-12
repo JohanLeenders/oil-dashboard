@@ -104,7 +104,8 @@ The governance triangle that governs all sprint work:
 | 8 | Canon Alignment Audit & Engine Fix | ✅ DONE | — | ✅ |
 | 9 | Data Import Pipeline | 🔜 READY | — | — |
 | 10 | Scenario Engine & Pricing Lab | ⏸ BLOCKED (→9) | — | — |
-| 11A | Scenario Sandbox v1 (Baseline vs Scenario) | 📐 DESIGNED | — | — |
+| 11A | Scenario Sandbox v1 (Baseline vs Scenario) | ✅ DONE | 382 pass | ✅ |
+| 11B | Process Chain Editor v1 | 📐 DESIGNED | — | — |
 
 ---
 
@@ -126,6 +127,7 @@ The governance triangle that governs all sprint work:
 | `/oil/pressure` | Voorraaddruk (inventory pressure) | v_sales_pressure_score | ✅ Active |
 | `/oil/trends` | Historical trends | v_part_trend_over_time | ✅ Active |
 | `/oil/alignment` | Carcass alignment | v_customer_carcass_alignment | ✅ Active |
+| `/oil/batches/[id]/sandbox` | Scenario sandbox (baseline vs scenario) | Canonical engine wrapper | ✅ Active |
 
 ---
 

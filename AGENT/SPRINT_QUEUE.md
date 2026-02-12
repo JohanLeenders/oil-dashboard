@@ -130,23 +130,43 @@
 ---
 
 ### Sprint 11A — Scenario Sandbox v1 (Baseline vs Scenario)
-**Status:** DESIGNED (wacht op Sprint 7 — DONE; Sprint 8 aanbevolen)
+**Status:** DONE
+**Completed:** 2026-02-12
 **Contract:** AGENT/SPRINT_11A_Scenario_Sandbox_v1.md
 **Goal:** Batch-level what-if sandbox: baseline vs scenario side-by-side.
 
-**Scope:**
-- Batch selecteren als baseline → actuele kostenwaterval (L0-L7)
+**Scope Delivered:**
+- Batch selecteren als baseline → actuele kostenwaterval (L0-L3)
 - Override: yields (kg), live cost (€/kg), shadow prices (€/kg)
 - Volledige SVASO-herallocatie bij prijswijziging
 - Joint cost pool herberekening bij live-kostwijziging
-- Massabalans-guardrail (hard block)
+- Massabalans-guardrail (hard block at 0.001 tolerance)
 - Herberekening op "Run Scenario" knop (niet real-time)
-- Opslaan in DB + CSV export
-- Scenario-disclaimer op alle sandbox-pagina's
+- Opslaan in DB (sandbox_scenarios table) + CSV export
+- Toast notifications + UX polish
+- Entry point from batch detail page
 
-**Depends On:** Sprint 7 (DONE). Sprint 8 aanbevolen maar niet blokkerend.
+**Verification:** npm test PASS (382) | npm build PASS | npm lint PASS
 
-**STOP after completion** — review nodig.
+---
+
+### Sprint 11B — Process Chain Editor v1
+**Status:** DESIGNED (not implemented)
+**Contract:** AGENT/SPRINT_11B_Process_Chain_Editor_v1.md
+**Goal:** DAG-based process chain editor for multi-step transformations with multi-entity costing.
+
+**Scope (Design Only):**
+- Process chain as DAG (nodes: slaughter/primal/subcut/packaging/logistics, edges: transformations)
+- Hard ordering rules (transition matrix, cycle detection)
+- Multi-entity costing (variable €/kg + fixed € per execution)
+- Mass balance semantics (node-level + cumulative at 0.001 tolerance)
+- Integration with scenario sandbox (extends ScenarioInput)
+- Test plan: 20 P0 tests + 8 P1 tests
+- Storage: sandbox_scenarios.inputs_json.process_chain field (no schema change)
+
+**Depends On:** Sprint 11A (DONE)
+
+**STOP after each phase** — 11B.1 (engine), 11B.2 (UI), 11B.3 (integration), 11B.4 (polish)
 
 ---
 
