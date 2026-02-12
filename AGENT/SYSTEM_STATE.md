@@ -180,7 +180,7 @@ These values are IMMUTABLE without explicit user override:
 | Carcass reference | JA757 (Hubbard) | NORMATIVE |
 | By-product credit | €0.20/kg | Canon twee-pager |
 | Allocation method | SVASO (NOT weight) | Canon twee-pager |
-| **Engine Canon Lock** | **2026-02-12** | **Sprint 8 Complete** |
+| **Engine Canon Lock** | **2026-02-12** | **Sprint 8 Complete (3543059)** |
 
 **Note:** The canonical cost engine (Levels 0-7) was verified 100% canon-compliant on 2026-02-12 and is now canon-locked. All 8 canon rules validated PASS. See `AGENT/SPRINT_8_CANON_VALIDATION_RESULTS.md` for details.
 
