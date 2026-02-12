@@ -40,8 +40,8 @@ Enable scenario-based experimentation with custom processing chains that model t
 ### What the User CAN Do (v1)
 
 **Chain Building**:
-- ✅ Drag nodes from a palette onto a canvas
-- ✅ Connect nodes with directed edges (input → output)
+- ✅ Add nodes from a palette using a form/list-based builder
+- ✅ Connect nodes with directed edges (input → output) via dropdown selectors
 - ✅ Configure node properties:
   - Node type (slaughter, primal_cut, sub_cut, packaging, logistics)
   - Entity (internal, external contractor A/B/C)
@@ -63,8 +63,9 @@ Enable scenario-based experimentation with custom processing chains that model t
 
 ### What is DEFERRED (Future Sprints)
 
+⏸️ **Drag-and-drop canvas**: v1 uses form/list-based builder; visual canvas deferred to v2+
 ⏸️ **Templates/Presets**: No predefined chain templates (user builds from scratch)
-⏸️ **Auto-layout**: Manual positioning only (no automatic graph layout algorithms)
+⏸️ **Auto-layout**: Manual positioning deferred (not needed for form-based v1)
 ⏸️ **Undo/Redo**: No action history (delete and rebuild instead)
 ⏸️ **Collaborative editing**: Single-user only
 ⏸️ **Chain-to-chain comparison**: Compare single chain to baseline only
@@ -107,8 +108,8 @@ interface ProcessNode {
   id: string;  // UUID
   type: NodeType;
 
-  // Visual layout (for canvas)
-  position: { x: number; y: number };
+  // Visual layout (for canvas — v2+, optional in v1)
+  position?: { x: number; y: number };
 
   // Processing definition
   label: string;  // User-friendly name
@@ -122,7 +123,8 @@ interface ProcessNode {
   fixed_cost_per_execution: number;  // € flat fee per node execution
 
   // Mass balance
-  total_loss_pct: number;  // % lost in this step (e.g., 2% evaporation, trim waste)
+  // NOTE: loss_pct is DERIVED (read-only): loss_pct = 100 - Σ(output.yield_pct)
+  // No editable total_loss_pct field — loss is the residual after accounting for all outputs
 
   // Validation metadata
   is_valid: boolean;
@@ -145,13 +147,15 @@ type Entity =
 
 interface PartReference {
   part_code: string;  // References anatomical part or sub-cut
-  required_kg: number | 'all';  // How much needed (or 'all' from upstream)
+  required_kg: number | null;  // How much needed, or null = use all available from upstream
+  // JSON-safe: no string sentinel 'all' — null is explicit and type-safe
 }
 
 interface PartOutput {
   part_code: string;  // Output part code
   yield_pct: number;  // % of input that becomes this output (0-100)
   is_by_product: boolean;  // True if waste/offal/etc
+  processable_byproduct?: boolean;  // If true, this by-product can be further processed (default: false)
 }
 
 interface ProcessEdge {
@@ -161,7 +165,7 @@ interface ProcessEdge {
 
   // Flow specification
   part_code: string;  // Which part flows along this edge
-  flow_kg: number | 'all';  // How much (computed during execution)
+  flow_kg: number | null;  // Computed during execution; null before execution
 
   // Validation
   is_valid: boolean;
@@ -178,40 +182,36 @@ interface ProcessEdge {
     {
       "id": "node-001",
       "type": "primal_cut",
-      "position": { "x": 100, "y": 100 },
       "label": "Primal Cut (Internal)",
       "entity": "internal",
       "inputs": [
-        { "part_code": "griller", "required_kg": "all" }
+        { "part_code": "griller", "required_kg": null }
       ],
       "outputs": [
         { "part_code": "breast_cap", "yield_pct": 35.0, "is_by_product": false },
         { "part_code": "legs", "yield_pct": 43.0, "is_by_product": false },
         { "part_code": "wings", "yield_pct": 10.4, "is_by_product": false },
-        { "part_code": "back", "yield_pct": 11.6, "is_by_product": true }
+        { "part_code": "back", "yield_pct": 11.6, "is_by_product": true, "processable_byproduct": false }
       ],
       "variable_cost_per_kg": 0.15,
       "fixed_cost_per_execution": 50.00,
-      "total_loss_pct": 0.0,
       "is_valid": true,
       "validation_errors": []
     },
     {
       "id": "node-002",
       "type": "sub_cut",
-      "position": { "x": 300, "y": 100 },
       "label": "Filet Cut (Contractor A)",
       "entity": "contractor_a",
       "inputs": [
-        { "part_code": "breast_cap", "required_kg": "all" }
+        { "part_code": "breast_cap", "required_kg": null }
       ],
       "outputs": [
         { "part_code": "filet", "yield_pct": 85.0, "is_by_product": false },
-        { "part_code": "breast_rest", "yield_pct": 13.0, "is_by_product": true }
+        { "part_code": "breast_rest", "yield_pct": 13.0, "is_by_product": true, "processable_byproduct": false }
       ],
       "variable_cost_per_kg": 0.50,
       "fixed_cost_per_execution": 25.00,
-      "total_loss_pct": 2.0,
       "is_valid": true,
       "validation_errors": []
     }
@@ -222,7 +222,7 @@ interface ProcessEdge {
       "source_node_id": "node-001",
       "target_node_id": "node-002",
       "part_code": "breast_cap",
-      "flow_kg": "all",
+      "flow_kg": null,
       "is_valid": true,
       "validation_errors": []
     }
@@ -276,10 +276,17 @@ interface ProcessEdge {
 ❌ Cannot create cycles (detected via topological sort)
 ❌ Cannot have multiple slaughter nodes
 ❌ Cannot have disconnected subgraphs (all nodes must trace to baseline input)
+❌ Cannot exceed MAX_CHAIN_DEPTH = 10 (prevents excessively deep chains)
+❌ Cannot process by-products downstream unless marked `processable_byproduct: true` (default: false)
 
 ### Validation Strategy
 
 **When**: On every node/edge add, before scenario execution
+
+**Constants**:
+```typescript
+const MAX_CHAIN_DEPTH = 10;  // Maximum number of nodes in longest path
+```
 
 **Algorithm**:
 ```typescript
@@ -289,7 +296,13 @@ function validateChain(chain: ProcessChain): ValidationResult {
     return { valid: false, error: 'Cycle detected in process chain' };
   }
 
-  // 2. Ordering rules validation
+  // 2. Chain depth validation
+  const maxDepth = calculateMaxDepth(chain);
+  if (maxDepth > MAX_CHAIN_DEPTH) {
+    return { valid: false, error: `Chain depth ${maxDepth} exceeds limit of ${MAX_CHAIN_DEPTH}` };
+  }
+
+  // 3. Ordering rules validation
   for (const edge of chain.edges) {
     const source = chain.nodes.find(n => n.id === edge.source_node_id);
     const target = chain.nodes.find(n => n.id === edge.target_node_id);
@@ -299,13 +312,23 @@ function validateChain(chain: ProcessChain): ValidationResult {
     }
   }
 
-  // 3. Mass balance validation (see section 6)
+  // 4. By-product processing validation
+  for (const edge of chain.edges) {
+    const source = chain.nodes.find(n => n.id === edge.source_node_id);
+    const output = source?.outputs.find(o => o.part_code === edge.part_code);
+
+    if (output?.is_by_product && !output?.processable_byproduct) {
+      return { valid: false, error: `Cannot process by-product ${edge.part_code} (not marked as processable)` };
+    }
+  }
+
+  // 5. Mass balance validation (see section 6)
   const mbResult = validateChainMassBalance(chain, baselineData);
   if (!mbResult.valid) {
     return mbResult;
   }
 
-  // 4. Connectivity validation
+  // 6. Connectivity validation
   if (hasDisconnectedNodes(chain)) {
     return { valid: false, error: 'Chain has disconnected nodes' };
   }
@@ -315,6 +338,11 @@ function validateChain(chain: ProcessChain): ValidationResult {
 ```
 
 **Enforcement**: Hard-block scenario execution if `validateChain()` fails
+
+**Partial Chains (v1)**:
+- ✅ Chains need NOT model all parts — unmodeled parts retain canonical L3 costs and pass through unchanged
+- ✅ Example: If chain only models breast_cap → filet, then legs/wings use canonical SVASO allocation
+- ✅ Baseline griller weight remains the master; chain modifies only the specified paths
 
 ---
 
@@ -334,18 +362,22 @@ function validateChain(chain: ProcessChain): ValidationResult {
 
 ```typescript
 function computeNodeCost(node: ProcessNode, input_kg: number): NodeCostResult {
-  // Compute output kg after losses
-  const output_kg = input_kg * (1 - node.total_loss_pct / 100);
+  // Compute total output yield (loss is derived as residual)
+  const total_output_yield_pct = node.outputs.reduce((sum, o) => sum + o.yield_pct, 0);
+  const loss_pct = 100 - total_output_yield_pct;  // DERIVED (read-only)
+  const output_kg = input_kg * (total_output_yield_pct / 100);
 
   // Apply costs
   const variable_cost_eur = output_kg * node.variable_cost_per_kg;
   const fixed_cost_eur = node.fixed_cost_per_execution;
   const total_node_cost_eur = variable_cost_eur + fixed_cost_eur;
 
-  // Allocate to outputs based on yield %
+  // CRITICAL: Allocate to outputs based on their share of TOTAL_OUTPUT_YIELD (not /100)
+  // This ensures costs are allocated by actual output kg, not input kg
   const output_allocations = node.outputs.map(output => {
-    const output_weight_kg = output_kg * (output.yield_pct / 100);
-    const allocated_cost_eur = total_node_cost_eur * (output.yield_pct / 100);
+    const output_share = output.yield_pct / total_output_yield_pct;  // FIX: denominator is total_output_yield_pct
+    const output_weight_kg = input_kg * (output.yield_pct / 100);
+    const allocated_cost_eur = total_node_cost_eur * output_share;
     const cost_per_kg = output_weight_kg > 0 ? allocated_cost_eur / output_weight_kg : 0;
 
     return {
@@ -356,9 +388,18 @@ function computeNodeCost(node: ProcessNode, input_kg: number): NodeCostResult {
     };
   });
 
+  // RECONCILIATION INVARIANT: Σ(allocated_cost_eur) MUST equal total_node_cost_eur (within rounding tolerance)
+  const total_allocated = output_allocations.reduce((sum, o) => sum + o.allocated_cost_eur, 0);
+  const allocation_error = Math.abs(total_allocated - total_node_cost_eur);
+  if (allocation_error > 0.01) {  // 1 cent tolerance for rounding
+    throw new Error(`Cost allocation reconciliation failed: allocated ${total_allocated.toFixed(2)} vs expected ${total_node_cost_eur.toFixed(2)}`);
+  }
+
   return {
     input_kg,
     output_kg,
+    loss_kg: input_kg * (loss_pct / 100),
+    loss_pct,  // DERIVED field for display
     variable_cost_eur,
     fixed_cost_eur,
     total_cost_eur: total_node_cost_eur,
@@ -374,39 +415,53 @@ function computeNodeCost(node: ProcessNode, input_kg: number): NodeCostResult {
 **Alternative Considered**: Allocate only to primary outputs (not by-products)
 **Rejected**: Inconsistent with SVASO philosophy (all costs must be allocated)
 
-**Example**:
+**Example (Corrected)**:
 - Input: 100 kg breast_cap
-- Node: Filet cut (85% filet, 13% rest, 2% loss)
+- Node: Filet cut (85% filet, 13% rest, 2% loss derived)
+- Total output yield: 85% + 13% = 98%
+- Loss (derived): 100% - 98% = 2%
+- Output kg: 100 × 0.98 = 98 kg
 - Variable cost: €0.50/kg × 98 kg output = €49.00
 - Fixed cost: €25.00
 - Total node cost: €74.00
 
-**Allocation**:
-- Filet: 85% yield → 83.3 kg → €62.90 (€74 × 85%) → €0.755/kg
-- Rest: 13% yield → 12.7 kg → €9.62 (€74 × 13%) → €0.757/kg
-- Loss: 2% → 2 kg → absorbed into costs (not allocated separately)
+**Allocation (by output share of total output yield)**:
+- Filet share: 85 / 98 = 0.8673 (86.73%)
+- Rest share: 13 / 98 = 0.1327 (13.27%)
+- Filet: 85 kg → €64.18 (€74 × 0.8673) → €0.7550/kg
+- Rest: 13 kg → €9.82 (€74 × 0.1327) → €0.7554/kg
+- Loss: 2 kg → absorbed into costs (not allocated separately)
+- Reconciliation: €64.18 + €9.82 = €74.00 ✅
 
-### Roll-Up into L4-L7 Views
+### Roll-Up into L4+ Chain Layer
 
-**WITHOUT Modifying Canonical Engine**:
+**CRITICAL SEMANTIC DISTINCTION**:
 
-The chain engine produces intermediate cost allocations that are **mapped** to canonical L4-L7 structures:
+Chain outputs are **NOT SVASO-allocated** and must **NOT** be mapped into canonical L4 Mini-SVASO structures.
 
-**L4 (Mini-SVASO)**:
-- Chain outputs for sub-cuts → map to `MiniSVASOResult`
-- Use chain-computed costs as allocated costs (bypass canonical Mini-SVASO calculation)
+Instead, the chain produces an **additive "processing layer" (L4+ chain layer)** with its own semantics:
 
-**L5 (ABC Costs)**:
-- Chain nodes with entity='internal' → map to ABC cost drivers
-- Use chain fixed costs as activity costs
+**Cost Method Discriminant**:
+```typescript
+interface ChainCostResult {
+  cost_method: 'chain_yield_proportional';  // Explicit discriminant (NOT 'svaso')
+  // ... chain-specific fields
+}
+```
 
-**L6 (Full SKU Cost)**:
-- Chain outputs at packaging nodes → map to `FullSKUCostResult`
-- Use cumulative chain cost as SKU cost
+**L0-L3 Remain Canonical**:
+- Baseline waterfall (L0 Landed Cost, L1 Joint Cost Pool, L2 Net Joint Cost, L3 SVASO Allocation) is computed using canonical engine
+- Chain does NOT modify L0-L3 calculations
 
-**L7 (NRV Assessment)**:
-- Chain final outputs → map to `NRVAssessment`
-- Use chain cost as cost basis for NRV test
+**L4+ Chain Layer Semantics**:
+- Chain execution produces its own costing layer with yield-proportional allocation
+- Chain costs are cumulative: node costs roll up along paths
+- Chain outputs have `cost_method: 'chain_yield_proportional'` to prevent confusion with SVASO
+- Chain results are displayed separately from canonical L0-L3 waterfall
+
+**NO Mapping to Canonical L4-L7**:
+- Chain does NOT produce `MiniSVASOResult`, `ABCCostResult`, `FullSKUCostResult`, or `NRVAssessment`
+- Chain produces its own result structure with explicit `cost_method` discriminant
 
 **Implementation Strategy**:
 ```typescript
@@ -415,27 +470,25 @@ function computeChainWaterfall(
   chain: ProcessChain
 ): ChainWaterfallResult {
   // 1. Execute chain (topological order)
-  const nodeResults = executeChain(chain, baseline);
-
-  // 2. Map to canonical structures (WITHOUT calling canonical functions)
-  const l4_mini_svaso = mapToMiniSVASO(nodeResults);
-  const l5_abc_costs = mapToABCCosts(nodeResults);
-  const l6_full_sku_costs = mapToFullSKUCosts(nodeResults);
-  const l7_nrv_assessments = mapToNRVAssessments(nodeResults);
+  const chainResults = executeChain(chain, baseline);
 
   return {
-    chain_execution: nodeResults,
-    waterfall: {
-      // L0-L3 from baseline (unchanged)
+    // L0-L3 from baseline (unchanged, canonical)
+    baseline_waterfall: {
       l0_landed_cost: baseline.waterfall.l0_landed_cost,
       l1_joint_cost_pool: baseline.waterfall.l1_joint_cost_pool,
       l2_net_joint_cost: baseline.waterfall.l2_net_joint_cost,
       l3_svaso_allocation: baseline.waterfall.l3_svaso_allocation,
-      // L4-L7 from chain
-      l4_mini_svaso,
-      l5_abc_costs,
-      l6_full_sku_costs,
-      l7_nrv_assessments,
+    },
+
+    // L4+ chain layer (separate, NOT canonical L4-L7)
+    chain_layer: {
+      cost_method: 'chain_yield_proportional',  // DISCRIMINANT
+      node_results: chainResults.node_results,
+      final_outputs: chainResults.final_outputs,
+      total_chain_cost_eur: chainResults.total_chain_cost_eur,
+      total_chain_variable_cost_eur: chainResults.total_chain_variable_cost_eur,
+      total_chain_fixed_cost_eur: chainResults.total_chain_fixed_cost_eur,
     },
   };
 }
@@ -447,28 +500,40 @@ function computeChainWaterfall(
 
 ### Node-Level Mass Conservation Rule
 
-**INVARIANT**: For every node, `Σ(outputs) + loss% = 100%` of processed input
+**INVARIANT**: For every node, `Σ(output.yield_pct) ≤ 100%`
 
-**Formula**:
+**Loss is DERIVED (read-only)**:
 ```
-input_kg × (1 - total_loss_pct/100) = Σ(output_i.yield_pct/100 × input_kg)
-
-Rearranged:
-Σ(output_i.yield_pct) + total_loss_pct = 100
+loss_pct = 100 - Σ(output_i.yield_pct)
 ```
 
 **Validation**:
 ```typescript
 function validateNodeMassBalance(node: ProcessNode): boolean {
   const total_output_yield = node.outputs.reduce((sum, o) => sum + o.yield_pct, 0);
-  const total_accounted = total_output_yield + node.total_loss_pct;
 
-  const tolerance = 0.1; // 0.1% tolerance
-  return Math.abs(total_accounted - 100.0) <= tolerance;
+  // Outputs cannot exceed 100%
+  if (total_output_yield > 100.0) {
+    return false;
+  }
+
+  // Tolerance check: total should be close to 100% (within 0.1%)
+  const tolerance = 0.1;  // 0.1% tolerance (matches SANDBOX_MASS_BALANCE_TOLERANCE * 100)
+  const total_accounted = total_output_yield;
+
+  // Allow up to 100%, warn if significantly less (suggests unintended loss)
+  if (total_accounted < 90.0) {
+    // Warning: large loss (>10%) — may be intentional, but flag for review
+    console.warn(`Node ${node.id} has large loss: ${100 - total_accounted}%`);
+  }
+
+  return total_output_yield <= 100.0;
 }
 ```
 
-**Enforcement**: Hard-block node save if validation fails
+**Enforcement**: Hard-block node save if `Σ(outputs) > 100%`
+
+**Display**: Show derived `loss_pct` as read-only field in UI
 
 ### Cumulative Yield/Loss Propagation
 
@@ -479,12 +544,14 @@ baseline_griller_kg × cumulative_yield_factor = final_output_kg + cumulative_lo
 
 **Cumulative Yield Factor**: Product of all node yields along path
 
-**Example**:
+**Example (Corrected)**:
 - Start: 1728 kg griller
-- Node 1 (primal cut): 35% breast_cap → 604.8 kg (0% loss)
-- Node 2 (filet cut): 85% filet, 2% loss → 514.1 kg filet (17.7 kg loss)
-- Cumulative yield: 35% × 85% = 29.75%
-- Final check: 1728 × 0.2975 = 514.08 kg ✅ (matches 514.1 within rounding)
+- Node 1 (primal cut): 35% breast_cap → 604.8 kg (total output 100%, loss 0%)
+- Node 2 (filet cut): outputs = 85% filet + 13% rest = 98% total output, loss (derived) = 2%
+- Cumulative yield for filet path: 35% × 85% = 29.75%
+- Final filet output: 1728 × 0.2975 = 514.08 kg
+- Cumulative loss: 1728 × 0.35 × 0.02 = 12.096 kg (from node 2)
+- Final check: 514.08 kg filet + (1728 × 0.35 × 0.13) = 514.08 + 78.624 = 592.7 kg from breast path ✅
 
 ### Handling By-Products vs Cut-Up vs Waste
 
@@ -504,28 +571,33 @@ function validateChainMassBalance(
   chain: ProcessChain,
   baseline: BaselineBatchData
 ): MassBalanceValidation {
-  // 1. Node-level validation (each node sums to 100%)
+  // 1. Node-level validation (outputs ≤ 100%)
   for (const node of chain.nodes) {
     if (!validateNodeMassBalance(node)) {
-      return { valid: false, error: `Node ${node.id} mass balance violated` };
+      return { valid: false, error: `Node ${node.id} outputs exceed 100%` };
     }
   }
 
   // 2. Path-level validation (trace each path from baseline to outputs)
   const paths = findAllPaths(chain, baseline);
   for (const path of paths) {
-    const cumulative_yield = path.nodes.reduce((y, node) =>
-      y * (1 - node.total_loss_pct / 100), 1.0
-    );
+    // Compute cumulative yield (product of all output yields along path)
+    const cumulative_yield = path.nodes.reduce((y, node, idx) => {
+      const output = node.outputs.find(o => o.part_code === path.part_codes[idx]);
+      return y * (output.yield_pct / 100);
+    }, 1.0);
 
     const expected_output = baseline.griller_weight_kg * cumulative_yield;
     const actual_output = path.final_output_kg;
 
-    const relative_error = Math.abs(expected_output - actual_output) / expected_output;
+    const relative_error = expected_output > 0
+      ? Math.abs(expected_output - actual_output) / expected_output
+      : 0;
+
     if (relative_error > 0.001) { // 0.1% tolerance (matches SANDBOX_MASS_BALANCE_TOLERANCE)
       return {
         valid: false,
-        error: `Path ${path.id} cumulative mass balance violated (${relative_error * 100}% error)`
+        error: `Path ${path.id} cumulative mass balance violated (${(relative_error * 100).toFixed(2)}% error)`
       };
     }
   }
@@ -534,7 +606,7 @@ function validateChainMassBalance(
 }
 ```
 
-**Tolerance**: Use same `SANDBOX_MASS_BALANCE_TOLERANCE = 0.001` (0.1%) for node-level checks
+**Tolerance**: Use same `SANDBOX_MASS_BALANCE_TOLERANCE = 0.001` (0.1%) for cumulative path checks
 
 **Hard-Block**: Scenario execution fails if any mass balance check fails
 
@@ -556,18 +628,40 @@ runScenarioSandbox(baseline, input)
 **Extended Flow (11B)**:
 ```
 runScenarioSandbox(baseline, input)
-  → mergeOverrides
+  → mergeOverrides (respects yield_overrides for primal splits)
   → validateScenarioMassBalance (baseline level)
-  → compute L0-L3 (unchanged)
+  → compute L0-L3 (unchanged, canonical)
   → IF input.process_chain exists:
       → validateChain(input.process_chain)
       → executeChain(input.process_chain, baseline)
-      → compute L4-L7 from chain
+      → produce chain_layer with cost_method='chain_yield_proportional'
     ELSE:
-      → L4-L7 remain undefined (backward compatible)
-  → computeDeltas (extended for L4-L7)
+      → chain_layer remains undefined (backward compatible)
+  → computeDeltas (extended for chain_layer)
   → return result
 ```
+
+**Yield Override Relationship (SI-2)**:
+
+**RULE (v1)**: Chain primal_cut yields are **derived from** `ScenarioInput.yield_overrides`.
+
+- If `input.yield_overrides` specifies breast_cap/legs/wings yields, these are used as primal split
+- Chain **cannot independently override** primal split yields
+- Chain nodes that reference primal outputs (breast_cap, legs, wings) receive the merged yields from baseline + overrides
+- Chain only controls **downstream transformations** (sub_cut, packaging, logistics)
+
+**Example**:
+```typescript
+// Scenario input has:
+input.yield_overrides = [
+  { part_code: 'breast_cap', weight_kg: 620 }  // Override from baseline 604 kg
+];
+
+// Chain primal_cut node MUST use 620 kg breast_cap as input (not baseline 604 kg)
+// Chain cannot have a separate yield override for primal split
+```
+
+**Validation**: Hard-block if chain attempts to override primal yields that conflict with `yield_overrides`
 
 ### Modified ScenarioInput Interface
 
@@ -588,7 +682,7 @@ interface ScenarioInput {
 }
 ```
 
-### Delta Computation Beyond L0-L3
+### Delta Computation for Chain Layer
 
 **Interface Extension**:
 ```typescript
@@ -598,27 +692,36 @@ interface DeltaResult {
   l0_landed_cost_delta_pct: number;
   // ... (existing fields)
 
-  // NEW: L4-L7 deltas (11B)
-  l4_deltas?: L4DeltaResult[];  // Per sub-cut
-  l5_deltas?: L5DeltaResult[];  // Per ABC activity
-  l6_deltas?: L6DeltaResult[];  // Per SKU
-  l7_deltas?: L7DeltaResult[];  // Per NRV assessment
+  // NEW: Chain layer deltas (11B)
+  chain_deltas?: ChainDeltaResult;  // Only if process_chain exists
 }
 
-interface L4DeltaResult {
-  sub_cut_code: string;
-  baseline_cost_per_kg: number | null;  // null if not in baseline
+interface ChainDeltaResult {
+  cost_method: 'chain_yield_proportional';  // DISCRIMINANT
+
+  // Total chain cost delta
+  baseline_chain_cost_eur: number | null;  // null if baseline has no chain
+  scenario_chain_cost_eur: number;
+  delta_chain_cost_eur: number;
+  delta_chain_cost_pct: number;
+
+  // Per-output deltas
+  output_deltas: ChainOutputDelta[];
+}
+
+interface ChainOutputDelta {
+  part_code: string;
+  baseline_cost_per_kg: number | null;  // null if not in baseline chain
   scenario_cost_per_kg: number;
   delta_cost_per_kg: number;
-  delta_cost_per_kg_pct: number;
+  delta_cost_per_kg_pct: number | null;  // null if baseline was null
 }
-
-// Similar for L5, L6, L7
 ```
 
 **Computation Strategy**:
-- If baseline has L4-L7 → compare scenario chain L4-L7 vs baseline L4-L7
-- If baseline does NOT have L4-L7 → show scenario L4-L7 as "new" (no deltas)
+- Chain deltas compare **chain layer only**, NOT against canonical L4-L7
+- If baseline has no chain → all deltas are "new" (baseline = null)
+- If baseline has chain → compare scenario chain vs baseline chain
 
 ### Chain Execution Engine
 
@@ -635,8 +738,10 @@ interface ChainExecutionResult {
   success: boolean;
   error: string | null;
 
+  cost_method: 'chain_yield_proportional';  // DISCRIMINANT
+
   node_results: NodeExecutionResult[];  // Per-node costs and outputs
-  final_outputs: FinalOutput[];         // Terminal outputs (for L6/L7)
+  final_outputs: FinalOutput[];         // Terminal outputs
 
   total_chain_cost_eur: number;
   total_chain_variable_cost_eur: number;
@@ -650,6 +755,7 @@ interface NodeExecutionResult {
   input_kg: number;
   output_kg: number;
   loss_kg: number;
+  loss_pct: number;  // DERIVED: 100 - Σ(output.yield_pct)
   variable_cost_eur: number;
   fixed_cost_eur: number;
   total_cost_eur: number;
@@ -662,6 +768,7 @@ interface NodeOutputAllocation {
   allocated_cost_eur: number;
   cost_per_kg: number;
   is_by_product: boolean;
+  processable_byproduct: boolean;
 }
 ```
 
@@ -824,11 +931,11 @@ Before starting implementation of Sprint 11B.1, the following MUST be true:
 - Chain execution engine (executeChain)
 - P0 tests (mass balance, ordering, fixed costs, identity)
 
-**Phase 11B.2: UI - Canvas & Nodes**
-- Drag-and-drop canvas component
-- Node palette
-- Node property editor
-- Edge creation/deletion
+**Phase 11B.2: UI - Form/List Builder**
+- Form/list-based chain builder component
+- Node palette (list view with "Add Node" button)
+- Node property editor (modal or inline form)
+- Edge creation via dropdown selectors (source → target)
 
 **Phase 11B.3: Integration & Export**
 - Integrate chain with runScenarioSandbox
