@@ -17,12 +17,15 @@ import {
   partName,
   PAGE,
   BASELINE,
+  INPUTS,
+  RESULTS,
   PRESETS,
   CHAIN,
   TOASTS,
   ERRORS,
   BUTTONS,
   SCENARIO_LIST,
+  MASS_BALANCE,
 } from '../sandboxLabels';
 
 describe('sandboxLabels formatting', () => {
@@ -118,5 +121,49 @@ describe('sandboxLabels formatting', () => {
     expect(ERRORS.deltaExceedsTolerance('1,50', '0,32')).toContain('1,50');
     expect(ERRORS.fixInstruction('320,00', '0,32')).toContain('320,00');
     expect(ERRORS.invalidTransition('Slacht', 'Logistiek')).toContain('Slacht');
+  });
+});
+
+describe('MASS_BALANCE labels', () => {
+  it('has all required keys', () => {
+    expect(MASS_BALANCE.label).toBe('Massabalans');
+    expect(MASS_BALANCE.ok).toBe('Klopt');
+    expect(MASS_BALANCE.warning).toBeTruthy();
+  });
+
+  it('formats total correctly', () => {
+    expect(MASS_BALANCE.total('2.980,0', '3.000,0')).toContain('2.980,0');
+    expect(MASS_BALANCE.total('2.980,0', '3.000,0')).toContain('3.000,0');
+  });
+});
+
+describe('inline explanation labels', () => {
+  it('BASELINE has explanation', () => {
+    expect(BASELINE.explanation).toBeTruthy();
+  });
+
+  it('INPUTS has yield toggle labels', () => {
+    expect(INPUTS.yieldToggleKg).toBe('kg');
+    expect(INPUTS.yieldTogglePct).toBe('%');
+  });
+
+  it('INPUTS has pct mode helper', () => {
+    expect(INPUTS.yieldModePctHelper('3.000')).toContain('3.000');
+  });
+
+  it('INPUTS has auto-redistribute labels', () => {
+    expect(INPUTS.autoRedistribute).toBe('Auto-verdelen');
+    expect(INPUTS.autoRedistributeHelper).toBeTruthy();
+    expect(INPUTS.autoRedistributeApplied('5,0')).toContain('5,0');
+  });
+
+  it('RESULTS has explanation', () => {
+    expect(RESULTS.explanation).toBeTruthy();
+  });
+
+  it('CHAIN has template labels', () => {
+    expect(CHAIN.templateHeading).toBeTruthy();
+    expect(CHAIN.templateStandard).toBeTruthy();
+    expect(CHAIN.templateLoaded('test')).toContain('test');
   });
 });

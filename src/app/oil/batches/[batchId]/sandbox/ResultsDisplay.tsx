@@ -68,6 +68,11 @@ export function ResultsDisplay({
         </div>
       </div>
 
+      {/* Uitleg blok */}
+      <div className="bg-blue-50 border border-blue-100 rounded-lg p-3">
+        <p className="text-xs text-blue-800">{RESULTS.explanation}</p>
+      </div>
+
       {/* Deltas */}
       <div className="bg-white border border-blue-200 rounded-lg p-4">
         <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.deltaAnalysis}</h4>

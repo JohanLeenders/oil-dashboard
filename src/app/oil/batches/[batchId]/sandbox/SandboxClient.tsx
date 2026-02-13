@@ -257,6 +257,7 @@ export function SandboxClient({
         <h3 className="text-lg font-semibold text-gray-900">
           {BASELINE.heading}
         </h3>
+        <p className="text-xs text-gray-500 mt-1">{BASELINE.explanation}</p>
         <p className="text-sm text-gray-600">
           Batch {batchDetail.batch.batch_ref}
         </p>

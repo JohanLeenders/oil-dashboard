@@ -38,6 +38,8 @@ export const BASELINE = {
   l1: 'Gezamenlijke Kostenpool (L1)',
   l2: 'Netto Gezamenlijke Kosten (L2)',
   l3: 'SVASO Verdeling (L3)',
+  // Inline uitleg
+  explanation: 'Dit zijn de werkelijke productiecijfers van deze batch. Ze worden niet gewijzigd door het scenario.',
 } as const;
 
 // ============================================================================
@@ -54,6 +56,14 @@ export const INPUTS = {
   priceHelper: 'Schaduwprijzen worden gebruikt voor SVASO-verdeling (Sales Value at Split-Off)',
   show: 'Tonen',
   hide: 'Verbergen',
+  // Inline uitleg
+  explanation: 'Pas hieronder de scenario-invoer aan. Alleen gewijzigde waarden worden meegenomen in de berekening.',
+  yieldToggleKg: 'kg',
+  yieldTogglePct: '%',
+  yieldModePctHelper: (grillerKg: string) => `Percentage van grillergewicht (${grillerKg} kg). Totaal moet optellen tot 100% (±0,1%).`,
+  autoRedistribute: 'Auto-verdelen',
+  autoRedistributeHelper: 'Verdeel het verschil automatisch over rugkarkas',
+  autoRedistributeApplied: (deltaKg: string) => `${deltaKg} kg herverdeeld naar rugkarkas`,
 } as const;
 
 // ============================================================================
@@ -122,6 +132,10 @@ export const RESULTS = {
   computed: 'Berekend',
   engine: 'Engine',
   kFactorEfficiency: 'k-factor (efficiëntie)',
+  // Inline uitleg
+  explanation: 'De k-factor is de verhouding tussen gezamenlijke kosten en totale marktwaarde (SVASO). ' +
+    'Verschuivingen tonen hoe de kostenverdeling verandert ten opzichte van de actuele batch.',
+  shadowPriceWarning: 'Let op: schaduwprijzen staan op standaardwaarden — geen actuele marktdata geladen.',
 } as const;
 
 // ============================================================================
@@ -190,6 +204,11 @@ export const CHAIN = {
   // Chain description (replaces English "Multi-step transformation costs...")
   chainDescription: 'Verwerkingskosten verdeeld naar uitvoerverhouding (niet SVASO)',
   error: 'Fout',
+  // Templates
+  templateHeading: 'Begin met een sjabloon:',
+  templateStandard: 'Standaard Uitsnij (intern)',
+  templateStandardDesc: 'Eén verwerkingsstap: griller → borst, poten, vleugels, rugkarkas (intern)',
+  templateLoaded: (name: string) => `Sjabloon geladen: ${name}`,
 } as const;
 
 // ============================================================================
@@ -302,6 +321,18 @@ export const ERRORS = {
     `Verschil: ${deltaKg} kg (overschrijdt tolerantie van ${toleranceKg} kg)`,
   fixInstruction: (grillerKg: string, toleranceKg: string) =>
     `Pas opbrengsten aan zodat het totaal uitkomt op ${grillerKg} kg ±${toleranceKg} kg`,
+} as const;
+
+// ============================================================================
+// MASS BALANCE INDICATOR (live feedback during editing)
+// ============================================================================
+
+export const MASS_BALANCE = {
+  label: 'Massabalans',
+  ok: 'Klopt',
+  warning: 'Let op — buiten tolerantie',
+  total: (currentKg: string, targetKg: string) => `${currentKg} / ${targetKg} kg`,
+  delta: (deltaKg: string, deltaPct: string) => `Verschil: ${deltaKg} kg (${deltaPct})`,
 } as const;
 
 // ============================================================================

@@ -10,8 +10,9 @@
 
 import { useState } from 'react';
 import type { ProcessChain, ProcessNode, ProcessEdge, NodeType, Entity } from '@/lib/engine/chain';
-import { validateProcessChain } from '@/lib/engine/chain';
+import { validateProcessChain, ALLOWED_TRANSITIONS } from '@/lib/engine/chain';
 import { CHAIN, NODE_TYPES, ENTITY_TYPES, partName } from '@/lib/ui/sandboxLabels';
+import { CHAIN_TEMPLATES } from '@/lib/ui/chainTemplates';
 
 interface ProcessChainEditorProps {
   enabled: boolean;
@@ -28,6 +29,9 @@ export function ProcessChainEditor({
 }: ProcessChainEditorProps) {
   const [selectedNodeId, setSelectedNodeId] = useState<string | null>(null);
   const [validationErrors, setValidationErrors] = useState<string[]>([]);
+  const [newEdgeSource, setNewEdgeSource] = useState<string>('');
+  const [newEdgeTarget, setNewEdgeTarget] = useState<string>('');
+  const [newEdgePartCode, setNewEdgePartCode] = useState<string>('');
 
   // Handle toggle
   const handleToggle = (isEnabled: boolean) => {
@@ -161,6 +165,39 @@ export function ProcessChainEditor({
     }
   };
 
+  // Load a template chain
+  const handleLoadTemplate = (templateId: string) => {
+    const template = CHAIN_TEMPLATES.find(t => t.id === templateId);
+    if (!template) return;
+
+    // Deep clone + fresh timestamps
+    const clonedChain: ProcessChain = {
+      ...template.chain,
+      nodes: template.chain.nodes.map(n => ({
+        ...n,
+        id: `node-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+        outputs: n.outputs.map(o => ({ ...o })),
+        inputs: n.inputs.map(i => ({ ...i })),
+      })),
+      edges: [], // Templates with edges would need ID remapping
+      created_at: new Date().toISOString(),
+      last_modified: new Date().toISOString(),
+    };
+
+    onChange(clonedChain);
+
+    // Validate immediately
+    const result = validateProcessChain(clonedChain);
+    if (result.valid) {
+      onValidationChange(true, []);
+      setValidationErrors([]);
+    } else {
+      const errors = result.error ? [result.error] : [];
+      setValidationErrors(errors);
+      onValidationChange(false, errors);
+    }
+  };
+
   // Auto-validate on change
   useState(() => {
     if (chain) {
@@ -212,6 +249,29 @@ export function ProcessChainEditor({
           </button>
         </div>
       </div>
+
+      {/* Template loader — shown when chain has no nodes */}
+      {(!chain?.nodes || chain.nodes.length === 0) && (
+        <div className="bg-gray-50 border border-dashed border-gray-300 rounded-lg p-4">
+          <p className="text-xs font-medium text-gray-700 mb-2">{CHAIN.templateHeading}</p>
+          <div className="flex flex-wrap gap-2">
+            {CHAIN_TEMPLATES.map(template => (
+              <button
+                key={template.id}
+                onClick={() => handleLoadTemplate(template.id)}
+                className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-lg hover:border-blue-400 hover:bg-blue-50 text-left text-xs transition-colors"
+                title={template.description}
+              >
+                <span className="text-base">🏭</span>
+                <div>
+                  <p className="font-medium text-gray-900">{template.label}</p>
+                  <p className="text-gray-500">{template.description}</p>
+                </div>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Validation Panel */}
       {validationErrors.length > 0 && (
@@ -505,13 +565,79 @@ export function ProcessChainEditor({
           )}
         </div>
 
-        {/* Simple edge adder */}
+        {/* Edge creator form — only when 2+ nodes exist */}
         {chain && chain.nodes.length >= 2 && (
-          <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
-            <p className="text-xs font-medium text-gray-700 mb-2">{CHAIN.addEdge}</p>
-            <p className="text-xs text-gray-500 italic">
-              {CHAIN.noEdgesYet}
-            </p>
+          <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200 space-y-2">
+            <p className="text-xs font-medium text-gray-700">{CHAIN.addEdge}</p>
+            <div className="grid grid-cols-3 gap-2">
+              {/* Source node dropdown */}
+              <select
+                value={newEdgeSource}
+                onChange={(e) => {
+                  setNewEdgeSource(e.target.value);
+                  setNewEdgeTarget(''); // Reset target when source changes
+                }}
+                className="px-2 py-1 border border-gray-300 rounded text-xs"
+              >
+                <option value="">{CHAIN.edgeFrom}...</option>
+                {chain.nodes.map(node => (
+                  <option key={node.id} value={node.id}>{node.label}</option>
+                ))}
+              </select>
+
+              {/* Target node dropdown — filtered by ALLOWED_TRANSITIONS */}
+              <select
+                value={newEdgeTarget}
+                onChange={(e) => setNewEdgeTarget(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded text-xs"
+                disabled={!newEdgeSource}
+              >
+                <option value="">{CHAIN.edgeTo}...</option>
+                {chain.nodes
+                  .filter(node => {
+                    if (node.id === newEdgeSource) return false; // Can't connect to self
+                    const sourceNode = chain.nodes.find(n => n.id === newEdgeSource);
+                    if (!sourceNode) return false;
+                    return ALLOWED_TRANSITIONS[sourceNode.type]?.includes(node.type) ?? false;
+                  })
+                  .map(node => (
+                    <option key={node.id} value={node.id}>{node.label}</option>
+                  ))}
+              </select>
+
+              {/* Part code dropdown — from source node outputs */}
+              <select
+                value={newEdgePartCode}
+                onChange={(e) => setNewEdgePartCode(e.target.value)}
+                className="px-2 py-1 border border-gray-300 rounded text-xs"
+                disabled={!newEdgeSource}
+              >
+                <option value="">{CHAIN.edgePart}...</option>
+                {chain.nodes
+                  .find(n => n.id === newEdgeSource)
+                  ?.outputs.map(output => (
+                    <option key={output.part_code} value={output.part_code}>
+                      {partName(output.part_code)}
+                    </option>
+                  ))}
+              </select>
+            </div>
+
+            <button
+              type="button"
+              onClick={() => {
+                if (newEdgeSource && newEdgeTarget && newEdgePartCode) {
+                  handleAddEdge(newEdgeSource, newEdgeTarget, newEdgePartCode);
+                  setNewEdgeSource('');
+                  setNewEdgeTarget('');
+                  setNewEdgePartCode('');
+                }
+              }}
+              disabled={!newEdgeSource || !newEdgeTarget || !newEdgePartCode}
+              className="w-full px-3 py-1.5 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+            >
+              {CHAIN.addEdge}
+            </button>
           </div>
         )}
       </div>
