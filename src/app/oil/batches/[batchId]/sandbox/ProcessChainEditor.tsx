@@ -1,15 +1,17 @@
 'use client';
 
 /**
- * Process Chain Editor — Sprint 11B.2
+ * Process Chain Editor — Sprint 12.2
  *
  * Form-based process chain builder for scenario sandbox.
+ * All UI text from sandboxLabels (NL).
  * NO drag-and-drop canvas (deferred to v2+).
  */
 
 import { useState } from 'react';
 import type { ProcessChain, ProcessNode, ProcessEdge, NodeType, Entity } from '@/lib/engine/chain';
 import { validateProcessChain } from '@/lib/engine/chain';
+import { CHAIN, NODE_TYPES, ENTITY_TYPES, partName } from '@/lib/ui/sandboxLabels';
 
 interface ProcessChainEditorProps {
   enabled: boolean;
@@ -53,7 +55,7 @@ export function ProcessChainEditor({
     const newNode: ProcessNode = {
       id: `node-${Date.now()}`,
       type: 'primal_cut',
-      label: 'New Node',
+      label: CHAIN.newNodeLabel,
       entity: 'internal',
       inputs: [{ part_code: 'griller', required_kg: null }],
       outputs: [{ part_code: 'output', yield_pct: 100, is_by_product: false }],
@@ -171,16 +173,16 @@ export function ProcessChainEditor({
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <div>
-            <h4 className="text-sm font-semibold text-gray-900">Process Chain (Sandbox)</h4>
+            <h4 className="text-sm font-semibold text-gray-900">{CHAIN.chainDisabledTitle}</h4>
             <p className="text-xs text-gray-600 mt-1">
-              Enable to model custom processing chains with multi-step transformations
+              {CHAIN.chainDisabledDescription}
             </p>
           </div>
           <button
             onClick={() => handleToggle(true)}
             className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors"
           >
-            Enable Chain
+            {CHAIN.enable}
           </button>
         </div>
       </div>
@@ -196,7 +198,7 @@ export function ProcessChainEditor({
         <div className="flex items-center justify-between">
           <div>
             <h4 className="text-sm font-semibold text-blue-900">
-              Process Chain Editor (v1 — Form-based)
+              {CHAIN.heading}
             </h4>
             <p className="text-xs text-blue-700 mt-1">
               cost_method: <span className="font-mono">chain_yield_proportional</span>
@@ -206,7 +208,7 @@ export function ProcessChainEditor({
             onClick={() => handleToggle(false)}
             className="px-4 py-2 bg-gray-200 text-gray-700 text-sm font-medium rounded-lg hover:bg-gray-300 transition-colors"
           >
-            Disable Chain
+            {CHAIN.disable}
           </button>
         </div>
       </div>
@@ -214,7 +216,7 @@ export function ProcessChainEditor({
       {/* Validation Panel */}
       {validationErrors.length > 0 && (
         <div className="bg-red-50 border border-red-300 rounded-lg p-4">
-          <h5 className="text-sm font-semibold text-red-900 mb-2">Validation Errors</h5>
+          <h5 className="text-sm font-semibold text-red-900 mb-2">{CHAIN.validationErrors}</h5>
           <ul className="text-xs text-red-800 space-y-1">
             {validationErrors.map((error, idx) => (
               <li key={idx}>• {error}</li>
@@ -228,12 +230,12 @@ export function ProcessChainEditor({
         {/* LEFT: Nodes List */}
         <div className="space-y-3">
           <div className="flex items-center justify-between">
-            <h5 className="text-sm font-semibold text-gray-900">Nodes ({chain?.nodes.length || 0})</h5>
+            <h5 className="text-sm font-semibold text-gray-900">{CHAIN.nodes} ({chain?.nodes.length || 0})</h5>
             <button
               onClick={handleAddNode}
               className="px-3 py-1 bg-green-600 text-white text-xs font-medium rounded hover:bg-green-700 transition-colors"
             >
-              + Add Node
+              {CHAIN.addNode}
             </button>
           </div>
 
@@ -256,11 +258,11 @@ export function ProcessChainEditor({
                     <div className="flex-1">
                       <p className="text-sm font-medium text-gray-900">{node.label}</p>
                       <p className="text-xs text-gray-600 mt-1">
-                        Type: <span className="font-mono">{node.type}</span> | Entity:{' '}
-                        {node.entity}
+                        {CHAIN.nodeType}: <span className="font-mono">{NODE_TYPES[node.type] ?? node.type}</span> | {CHAIN.entity}:{' '}
+                        {ENTITY_TYPES[node.entity] ?? node.entity}
                       </p>
                       <p className="text-xs text-gray-500 mt-1">
-                        Loss: {derivedLoss.toFixed(1)}% (derived)
+                        {CHAIN.lossDerived}: {derivedLoss.toFixed(1)}%
                       </p>
                     </div>
                     <button
@@ -270,7 +272,7 @@ export function ProcessChainEditor({
                       }}
                       className="ml-2 px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded hover:bg-red-200 transition-colors"
                     >
-                      Remove
+                      {CHAIN.remove}
                     </button>
                   </div>
                 </div>
@@ -278,7 +280,7 @@ export function ProcessChainEditor({
             })}
 
             {(!chain?.nodes || chain.nodes.length === 0) && (
-              <p className="text-sm text-gray-500 italic">No nodes yet. Click &ldquo;Add Node&rdquo; to start.</p>
+              <p className="text-sm text-gray-500 italic">{CHAIN.noNodesYet}</p>
             )}
           </div>
         </div>
@@ -287,11 +289,11 @@ export function ProcessChainEditor({
         <div className="bg-white border border-gray-200 rounded-lg p-4">
           {selectedNode ? (
             <div className="space-y-4">
-              <h5 className="text-sm font-semibold text-gray-900">Edit Node</h5>
+              <h5 className="text-sm font-semibold text-gray-900">{CHAIN.editNode}</h5>
 
               {/* Label */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Label</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{CHAIN.label}</label>
                 <input
                   type="text"
                   value={selectedNode.label}
@@ -302,7 +304,7 @@ export function ProcessChainEditor({
 
               {/* Node Type */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Node Type</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{CHAIN.nodeType}</label>
                 <select
                   value={selectedNode.type}
                   onChange={(e) =>
@@ -310,18 +312,15 @@ export function ProcessChainEditor({
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                 >
-                  <option value="slaughter">slaughter</option>
-                  <option value="primal_cut">primal_cut</option>
-                  <option value="sub_cut">sub_cut</option>
-                  <option value="packaging">packaging</option>
-                  <option value="logistics">logistics</option>
-                  <option value="external_service">external_service</option>
+                  {Object.entries(NODE_TYPES).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </div>
 
               {/* Entity */}
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Entity</label>
+                <label className="block text-xs font-medium text-gray-700 mb-1">{CHAIN.entity}</label>
                 <select
                   value={selectedNode.entity}
                   onChange={(e) =>
@@ -329,10 +328,9 @@ export function ProcessChainEditor({
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
                 >
-                  <option value="internal">internal</option>
-                  <option value="contractor_a">contractor_a</option>
-                  <option value="contractor_b">contractor_b</option>
-                  <option value="contractor_c">contractor_c</option>
+                  {Object.entries(ENTITY_TYPES).map(([value, label]) => (
+                    <option key={value} value={value}>{label}</option>
+                  ))}
                 </select>
               </div>
 
@@ -340,7 +338,7 @@ export function ProcessChainEditor({
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Variable (€/kg)
+                    {CHAIN.variableCost}
                   </label>
                   <input
                     type="number"
@@ -356,7 +354,7 @@ export function ProcessChainEditor({
                 </div>
                 <div>
                   <label className="block text-xs font-medium text-gray-700 mb-1">
-                    Fixed (€)
+                    {CHAIN.fixedCost}
                   </label>
                   <input
                     type="number"
@@ -375,7 +373,7 @@ export function ProcessChainEditor({
               {/* Input (single input only) */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">
-                  Input Part Code
+                  {CHAIN.inputPartCode}
                 </label>
                 <input
                   type="text"
@@ -386,14 +384,14 @@ export function ProcessChainEditor({
                     })
                   }
                   className="w-full px-3 py-2 border border-gray-300 rounded text-sm"
-                  placeholder="e.g., griller, breast_cap"
+                  placeholder="griller, breast_cap"
                 />
               </div>
 
               {/* Outputs */}
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-2">
-                  Outputs (Σ yields ≤ 100%)
+                  {CHAIN.outputsHeading}
                 </label>
                 <div className="space-y-2">
                   {selectedNode.outputs.map((output, idx) => (
@@ -407,7 +405,6 @@ export function ProcessChainEditor({
                           handleUpdateNode(selectedNode.id, { outputs: newOutputs });
                         }}
                         className="col-span-5 px-2 py-1 border border-gray-300 rounded text-xs"
-                        placeholder="Part code"
                       />
                       <input
                         type="number"
@@ -438,7 +435,7 @@ export function ProcessChainEditor({
                           }}
                           className="mr-1"
                         />
-                        <span className="text-gray-700">By-prod</span>
+                        <span className="text-gray-700">{CHAIN.byProduct}</span>
                       </label>
                       <button
                         onClick={() => {
@@ -462,12 +459,12 @@ export function ProcessChainEditor({
                   }}
                   className="mt-2 px-3 py-1 bg-gray-200 text-gray-700 text-xs font-medium rounded hover:bg-gray-300"
                 >
-                  + Add Output
+                  {CHAIN.addOutput}
                 </button>
               </div>
             </div>
           ) : (
-            <p className="text-sm text-gray-500 italic">Select a node to edit its properties</p>
+            <p className="text-sm text-gray-500 italic">{CHAIN.selectNodeHint}</p>
           )}
         </div>
       </div>
@@ -475,7 +472,7 @@ export function ProcessChainEditor({
       {/* Edges Section */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
         <h5 className="text-sm font-semibold text-gray-900 mb-3">
-          Edges ({chain?.edges.length || 0})
+          {CHAIN.edges} ({chain?.edges.length || 0})
         </h5>
 
         <div className="space-y-2">
@@ -489,35 +486,31 @@ export function ProcessChainEditor({
                 className="flex items-center justify-between p-2 bg-gray-50 border border-gray-200 rounded"
               >
                 <p className="text-xs text-gray-700">
-                  <span className="font-medium">{sourceNode?.label || 'Unknown'}</span> →{' '}
-                  <span className="font-medium">{targetNode?.label || 'Unknown'}</span>
-                  <span className="text-gray-500 ml-2">({edge.part_code})</span>
+                  <span className="font-medium">{sourceNode?.label || '?'}</span> →{' '}
+                  <span className="font-medium">{targetNode?.label || '?'}</span>
+                  <span className="text-gray-500 ml-2">({partName(edge.part_code)})</span>
                 </p>
                 <button
                   onClick={() => handleRemoveEdge(edge.id)}
                   className="px-2 py-1 bg-red-100 text-red-700 text-xs font-medium rounded hover:bg-red-200"
                 >
-                  Remove
+                  {CHAIN.remove}
                 </button>
               </div>
             );
           })}
 
           {(!chain?.edges || chain.edges.length === 0) && (
-            <p className="text-sm text-gray-500 italic">No edges yet. Add edges to connect nodes.</p>
+            <p className="text-sm text-gray-500 italic">{CHAIN.noEdgesYet}</p>
           )}
         </div>
 
         {/* Simple edge adder */}
         {chain && chain.nodes.length >= 2 && (
           <div className="mt-4 p-3 bg-gray-50 rounded border border-gray-200">
-            <p className="text-xs font-medium text-gray-700 mb-2">Add Edge (Simple)</p>
-            <p className="text-xs text-gray-600 mb-2">
-              Connect nodes by selecting source → target. Part code must exist in source outputs.
-            </p>
-            {/* Simplified: User would need to use a more sophisticated UI here */}
+            <p className="text-xs font-medium text-gray-700 mb-2">{CHAIN.addEdge}</p>
             <p className="text-xs text-gray-500 italic">
-              Use &ldquo;Add Edge&rdquo; functionality (to be enhanced in full implementation)
+              {CHAIN.noEdgesYet}
             </p>
           </div>
         )}
@@ -528,7 +521,7 @@ export function ProcessChainEditor({
         onClick={handleValidate}
         className="w-full px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
       >
-        Validate Chain
+        {CHAIN.validate}
       </button>
     </div>
   );

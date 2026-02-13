@@ -1,10 +1,10 @@
 'use client';
 
 /**
- * Results Display Component — Sprint 11A.3
+ * Results Display Component — Sprint 12.2
  *
  * Displays baseline vs scenario comparison with deltas.
- * Color-coded indicators for increases/decreases.
+ * All UI text from sandboxLabels (NL). NL number formatting.
  */
 
 import type {
@@ -12,7 +12,11 @@ import type {
   DeltaResult,
   ScenarioMetadata,
 } from '@/lib/engine/scenario-sandbox';
-import { formatDelta, formatDeltaPct, getDeltaColorClass } from '@/lib/engine/scenario-sandbox';
+import { getDeltaColorClass } from '@/lib/engine/scenario-sandbox';
+import {
+  RESULTS, BASELINE, partName,
+  fmtEur, fmtK, fmtDeltaEur, fmtDeltaPct, fmtDeltaPp, fmtKgPrecise, fmtPct,
+} from '@/lib/ui/sandboxLabels';
 
 interface ResultsDisplayProps {
   baseline: WaterfallResult | null;
@@ -35,30 +39,30 @@ export function ResultsDisplay({
     <div className="space-y-4">
       {/* Scenario Waterfall */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Scenario Waterfall</h4>
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.scenarioWaterfall}</h4>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">L0 Landed Cost:</span>
+            <span className="text-gray-600">{BASELINE.l0}</span>
             <span className="font-medium">
-              €{scenario.l0_landed_cost.landed_cost_eur.toFixed(2)}
+              {fmtEur(scenario.l0_landed_cost.landed_cost_eur)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">L1 Joint Cost Pool:</span>
+            <span className="text-gray-600">{BASELINE.l1}</span>
             <span className="font-medium">
-              €{scenario.l1_joint_cost_pool.joint_cost_pool_eur.toFixed(2)}
+              {fmtEur(scenario.l1_joint_cost_pool.joint_cost_pool_eur)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">L2 Net Joint Cost:</span>
+            <span className="text-gray-600">{BASELINE.l2}</span>
             <span className="font-medium">
-              €{scenario.l2_net_joint_cost.net_joint_cost_eur.toFixed(2)}
+              {fmtEur(scenario.l2_net_joint_cost.net_joint_cost_eur)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">L3 k-factor:</span>
+            <span className="text-gray-600">{BASELINE.l3}</span>
             <span className="font-medium">
-              {scenario.l3_svaso_allocation.k_factor.toFixed(3)}
+              {fmtK(scenario.l3_svaso_allocation.k_factor)}
             </span>
           </div>
         </div>
@@ -66,18 +70,18 @@ export function ResultsDisplay({
 
       {/* Deltas */}
       <div className="bg-white border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">Delta Analysis</h4>
+        <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.deltaAnalysis}</h4>
         <div className="space-y-3">
           {/* L0 Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">L0 Landed Cost:</span>
+              <span className="text-sm text-gray-600">{BASELINE.l0}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l0_landed_cost_delta_eur)}`}>
-                  {formatDelta(deltas.l0_landed_cost_delta_eur)} €
+                  {fmtDeltaEur(deltas.l0_landed_cost_delta_eur)}
                 </span>
                 <span className={`text-xs ml-2 ${getDeltaColorClass(deltas.l0_landed_cost_delta_pct)}`}>
-                  ({formatDeltaPct(deltas.l0_landed_cost_delta_pct)})
+                  ({fmtDeltaPct(deltas.l0_landed_cost_delta_pct)})
                 </span>
               </div>
             </div>
@@ -86,13 +90,13 @@ export function ResultsDisplay({
           {/* L1 Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">L1 Joint Cost Pool:</span>
+              <span className="text-sm text-gray-600">{BASELINE.l1}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l1_joint_cost_pool_delta_eur)}`}>
-                  {formatDelta(deltas.l1_joint_cost_pool_delta_eur)} €
+                  {fmtDeltaEur(deltas.l1_joint_cost_pool_delta_eur)}
                 </span>
                 <span className={`text-xs ml-2 ${getDeltaColorClass(deltas.l1_joint_cost_pool_delta_pct)}`}>
-                  ({formatDeltaPct(deltas.l1_joint_cost_pool_delta_pct)})
+                  ({fmtDeltaPct(deltas.l1_joint_cost_pool_delta_pct)})
                 </span>
               </div>
             </div>
@@ -101,13 +105,13 @@ export function ResultsDisplay({
           {/* L2 Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">L2 Net Joint Cost:</span>
+              <span className="text-sm text-gray-600">{BASELINE.l2}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l2_net_joint_cost_delta_eur)}`}>
-                  {formatDelta(deltas.l2_net_joint_cost_delta_eur)} €
+                  {fmtDeltaEur(deltas.l2_net_joint_cost_delta_eur)}
                 </span>
                 <span className={`text-xs ml-2 ${getDeltaColorClass(deltas.l2_net_joint_cost_delta_pct)}`}>
-                  ({formatDeltaPct(deltas.l2_net_joint_cost_delta_pct)})
+                  ({fmtDeltaPct(deltas.l2_net_joint_cost_delta_pct)})
                 </span>
               </div>
             </div>
@@ -116,10 +120,10 @@ export function ResultsDisplay({
           {/* k-factor Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">k-factor (efficiency):</span>
+              <span className="text-sm text-gray-600">{RESULTS.kFactorEfficiency}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l3_k_factor_delta)}`}>
-                  {formatDelta(deltas.l3_k_factor_delta, 4)}
+                  {fmtDeltaEur(deltas.l3_k_factor_delta)}
                 </span>
               </div>
             </div>
@@ -130,28 +134,28 @@ export function ResultsDisplay({
       {/* L3 Allocation Deltas */}
       {deltas.l3_allocations && deltas.l3_allocations.length > 0 && (
         <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">SVASO Allocation Shifts</h4>
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.svasoShifts}</h4>
           <div className="space-y-2">
             {deltas.l3_allocations.map((alloc) => (
               <div key={alloc.part_code} className="border-b border-gray-100 pb-2 last:border-0">
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-sm font-medium text-gray-700">{alloc.part_code}</span>
+                  <span className="text-sm font-medium text-gray-700">{partName(alloc.part_code)}</span>
                   <span className={`text-xs font-medium ${getDeltaColorClass(alloc.delta_pp)}`}>
-                    {formatDelta(alloc.delta_pp, 1)} pp
+                    {fmtDeltaPp(alloc.delta_pp)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-gray-600">
-                  <span>Allocation:</span>
+                  <span>{RESULTS.allocation}:</span>
                   <span>
-                    {alloc.baseline_allocation_pct.toFixed(1)}% → {alloc.scenario_allocation_pct.toFixed(1)}%
+                    {fmtPct(alloc.baseline_allocation_pct)} → {fmtPct(alloc.scenario_allocation_pct)}
                   </span>
                 </div>
                 <div className="flex justify-between items-center text-xs text-gray-600">
-                  <span>Cost/kg:</span>
+                  <span>{RESULTS.costPerKg}:</span>
                   <div className="text-right">
-                    <span>€{alloc.baseline_cost_per_kg.toFixed(2)} → €{alloc.scenario_cost_per_kg.toFixed(2)}</span>
+                    <span>{fmtEur(alloc.baseline_cost_per_kg)} → {fmtEur(alloc.scenario_cost_per_kg)}</span>
                     <span className={`ml-2 ${getDeltaColorClass(alloc.delta_cost_per_kg)}`}>
-                      ({formatDeltaPct(alloc.delta_cost_per_kg_pct)})
+                      ({fmtDeltaPct(alloc.delta_cost_per_kg_pct)})
                     </span>
                   </div>
                 </div>
@@ -175,13 +179,13 @@ export function ResultsDisplay({
           )}
           <div className="flex-1">
             <p className={`text-sm font-medium ${meta.mass_balance_check.valid ? 'text-green-900' : 'text-red-900'}`}>
-              {meta.mass_balance_check.valid ? 'Mass Balance Valid' : 'Mass Balance Violated'}
+              {meta.mass_balance_check.valid ? RESULTS.massBalanceValid : RESULTS.massBalanceViolated}
             </p>
             <p className={`text-xs ${meta.mass_balance_check.valid ? 'text-green-700' : 'text-red-700'}`}>
-              Parts: {meta.mass_balance_check.parts_total_kg.toFixed(2)} kg |
-              Griller: {meta.mass_balance_check.griller_kg.toFixed(2)} kg |
-              Delta: {meta.mass_balance_check.delta_kg.toFixed(2)} kg
-              (Tolerance: ±{meta.mass_balance_check.tolerance_kg.toFixed(2)} kg)
+              {RESULTS.parts}: {fmtKgPrecise(meta.mass_balance_check.parts_total_kg)} |
+              {RESULTS.griller}: {fmtKgPrecise(meta.mass_balance_check.griller_kg)} |
+              {RESULTS.delta}: {fmtKgPrecise(meta.mass_balance_check.delta_kg)}
+              ({RESULTS.tolerance}: ±{fmtKgPrecise(meta.mass_balance_check.tolerance_kg)})
             </p>
           </div>
         </div>
@@ -190,8 +194,8 @@ export function ResultsDisplay({
       {/* Metadata */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
         <p className="text-xs text-gray-600">
-          Computed: {new Date(meta.computed_at).toLocaleString('nl-NL')} |
-          Engine: {meta.engine_version}
+          {RESULTS.computed}: {new Date(meta.computed_at).toLocaleString('nl-NL')} |
+          {RESULTS.engine}: {meta.engine_version}
         </p>
       </div>
     </div>

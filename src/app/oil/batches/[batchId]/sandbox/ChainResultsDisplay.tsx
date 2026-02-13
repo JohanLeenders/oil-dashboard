@@ -1,13 +1,18 @@
 'use client';
 
 /**
- * Chain Results Display — Sprint 11B.2
+ * Chain Results Display — Sprint 12.2
  *
  * Displays chain_layer results separately from canonical L0-L3 waterfall.
  * Shows cost_method badge and per-node/per-output costs.
+ * All UI text from sandboxLabels (NL). Includes UX guard (processingCostNote).
  */
 
 import type { ChainExecutionResult } from '@/lib/engine/chain';
+import {
+  CHAIN, RESULTS, partName,
+  fmtEur, fmtKg, fmtPct, fmtEurKg,
+} from '@/lib/ui/sandboxLabels';
 
 interface ChainResultsDisplayProps {
   chainResult: ChainExecutionResult;
@@ -17,28 +22,28 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
   if (!chainResult.success) {
     return (
       <div className="bg-red-50 border border-red-300 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-red-900 mb-2">Chain Execution Failed</h4>
+        <h4 className="text-sm font-semibold text-red-900 mb-2">{CHAIN.chainExecutionFailed}</h4>
         <p className="text-sm text-red-800">{chainResult.error}</p>
 
         {chainResult.mass_balance_check && !chainResult.mass_balance_check.valid && (
           <div className="mt-3 p-3 bg-red-100 rounded">
-            <p className="text-xs font-medium text-red-900 mb-1">Mass Balance Error:</p>
+            <p className="text-xs font-medium text-red-900 mb-1">{CHAIN.massBalanceError}:</p>
             <div className="text-xs text-red-800 space-y-1">
               <div>
-                Total Input: {chainResult.mass_balance_check.total_input_kg.toFixed(2)} kg
+                {CHAIN.totalInput}: {fmtKg(chainResult.mass_balance_check.total_input_kg)}
               </div>
               <div>
-                Total Output: {chainResult.mass_balance_check.total_output_kg.toFixed(2)} kg
+                {CHAIN.totalOutput}: {fmtKg(chainResult.mass_balance_check.total_output_kg)}
               </div>
               <div>
-                Total Loss: {chainResult.mass_balance_check.total_loss_kg.toFixed(2)} kg
+                {CHAIN.totalLoss}: {fmtKg(chainResult.mass_balance_check.total_loss_kg)}
               </div>
               <div>
-                Relative Error:{' '}
-                {(chainResult.mass_balance_check.relative_error * 100).toFixed(2)}%
+                {CHAIN.relativeError}:{' '}
+                {fmtPct(chainResult.mass_balance_check.relative_error * 100)}
               </div>
               <div>
-                Tolerance: {(chainResult.mass_balance_check.tolerance * 100).toFixed(2)}%
+                {RESULTS.tolerance}: {fmtPct(chainResult.mass_balance_check.tolerance * 100)}
               </div>
             </div>
           </div>
@@ -49,41 +54,46 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
 
   return (
     <div className="space-y-4">
+      {/* UX Guard — chain costs are ADDITIVE to SVASO */}
+      <div className="bg-purple-50 border border-purple-200 rounded-lg p-3">
+        <p className="text-sm text-purple-800">{CHAIN.processingCostNote}</p>
+      </div>
+
       {/* Header with cost_method badge */}
       <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
         <div className="flex items-center justify-between">
           <h4 className="text-sm font-semibold text-purple-900">
-            Chain Layer (L4+ Processing Costs)
+            {CHAIN.chainLayerTitle}
           </h4>
           <span className="px-3 py-1 bg-purple-600 text-white text-xs font-mono rounded">
             {chainResult.cost_method}
           </span>
         </div>
         <p className="text-xs text-purple-700 mt-2">
-          Multi-step transformation costs allocated by yield proportion (NOT SVASO)
+          {CHAIN.chainDescription}
         </p>
       </div>
 
       {/* Summary Totals */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h5 className="text-sm font-semibold text-gray-900 mb-3">Chain Cost Summary</h5>
+        <h5 className="text-sm font-semibold text-gray-900 mb-3">{CHAIN.chainSummary}</h5>
         <div className="grid grid-cols-3 gap-4">
           <div>
-            <p className="text-xs text-gray-600">Total Chain Cost</p>
+            <p className="text-xs text-gray-600">{CHAIN.totalChainCost}</p>
             <p className="text-lg font-semibold text-gray-900">
-              €{chainResult.total_chain_cost_eur.toFixed(2)}
+              {fmtEur(chainResult.total_chain_cost_eur)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-600">Variable Costs</p>
+            <p className="text-xs text-gray-600">{CHAIN.variableCosts}</p>
             <p className="text-lg font-semibold text-gray-900">
-              €{chainResult.total_chain_variable_cost_eur.toFixed(2)}
+              {fmtEur(chainResult.total_chain_variable_cost_eur)}
             </p>
           </div>
           <div>
-            <p className="text-xs text-gray-600">Fixed Costs</p>
+            <p className="text-xs text-gray-600">{CHAIN.fixedCosts}</p>
             <p className="text-lg font-semibold text-gray-900">
-              €{chainResult.total_chain_fixed_cost_eur.toFixed(2)}
+              {fmtEur(chainResult.total_chain_fixed_cost_eur)}
             </p>
           </div>
         </div>
@@ -91,38 +101,38 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
 
       {/* Per-Node Results */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h5 className="text-sm font-semibold text-gray-900 mb-3">Per-Node Breakdown</h5>
+        <h5 className="text-sm font-semibold text-gray-900 mb-3">{CHAIN.perNodeBreakdown}</h5>
         <div className="space-y-3">
           {chainResult.node_results.map((nodeResult) => (
             <div key={nodeResult.node_id} className="p-3 bg-gray-50 rounded border border-gray-200">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-sm font-medium text-gray-900">{nodeResult.node_label}</p>
                 <p className="text-sm font-semibold text-gray-900">
-                  €{nodeResult.total_cost_eur.toFixed(2)}
+                  {fmtEur(nodeResult.total_cost_eur)}
                 </p>
               </div>
 
               <div className="grid grid-cols-4 gap-2 text-xs text-gray-700 mb-2">
                 <div>
-                  <span className="text-gray-500">Input:</span>{' '}
-                  {nodeResult.input_kg.toFixed(1)} kg
+                  <span className="text-gray-500">{CHAIN.input}:</span>{' '}
+                  {fmtKg(nodeResult.input_kg)}
                 </div>
                 <div>
-                  <span className="text-gray-500">Output:</span>{' '}
-                  {nodeResult.output_kg.toFixed(1)} kg
+                  <span className="text-gray-500">{CHAIN.output}:</span>{' '}
+                  {fmtKg(nodeResult.output_kg)}
                 </div>
                 <div>
-                  <span className="text-gray-500">Loss:</span> {nodeResult.loss_pct.toFixed(1)}%
+                  <span className="text-gray-500">{CHAIN.loss}:</span> {fmtPct(nodeResult.loss_pct)}
                 </div>
                 <div>
-                  <span className="text-gray-500">Loss kg:</span>{' '}
-                  {nodeResult.loss_kg.toFixed(1)} kg
+                  <span className="text-gray-500">{CHAIN.lossKg}:</span>{' '}
+                  {fmtKg(nodeResult.loss_kg)}
                 </div>
               </div>
 
               {/* Outputs */}
               <div className="mt-2">
-                <p className="text-xs font-medium text-gray-700 mb-1">Outputs:</p>
+                <p className="text-xs font-medium text-gray-700 mb-1">{CHAIN.outputs}</p>
                 <div className="space-y-1">
                   {nodeResult.outputs.map((output, idx) => (
                     <div
@@ -130,11 +140,10 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
                       className="flex items-center justify-between text-xs text-gray-700"
                     >
                       <span>
-                        {output.part_code} {output.is_by_product && '(by-product)'}
+                        {partName(output.part_code)} {output.is_by_product && `(${CHAIN.byProduct})`}
                       </span>
                       <span>
-                        {output.weight_kg.toFixed(1)} kg × €{output.cost_per_kg.toFixed(2)}/kg = €
-                        {output.allocated_cost_eur.toFixed(2)}
+                        {fmtKg(output.weight_kg)} × {fmtEurKg(output.cost_per_kg)} = {fmtEur(output.allocated_cost_eur)}
                       </span>
                     </div>
                   ))}
@@ -147,7 +156,7 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
 
       {/* Final Outputs */}
       <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h5 className="text-sm font-semibold text-gray-900 mb-3">Final Output Costs</h5>
+        <h5 className="text-sm font-semibold text-gray-900 mb-3">{CHAIN.finalOutputCosts}</h5>
         <div className="space-y-2">
           {chainResult.final_outputs.map((output, idx) => (
             <div
@@ -156,16 +165,16 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
             >
               <div>
                 <p className="text-sm font-medium text-gray-900">
-                  {output.part_code} {output.is_by_product && '(by-product)'}
+                  {partName(output.part_code)} {output.is_by_product && `(${CHAIN.byProduct})`}
                 </p>
-                <p className="text-xs text-gray-600">{output.weight_kg.toFixed(2)} kg</p>
+                <p className="text-xs text-gray-600">{fmtKg(output.weight_kg)}</p>
               </div>
               <div className="text-right">
                 <p className="text-sm font-semibold text-gray-900">
-                  €{output.cost_per_kg.toFixed(2)}/kg
+                  {fmtEurKg(output.cost_per_kg)}
                 </p>
                 <p className="text-xs text-gray-600">
-                  Total: €{output.cumulative_cost_eur.toFixed(2)}
+                  {CHAIN.total}: {fmtEur(output.cumulative_cost_eur)}
                 </p>
               </div>
             </div>
@@ -184,10 +193,10 @@ export function ChainResultsDisplay({ chainResult }: ChainResultsDisplayProps) {
             />
           </svg>
           <div>
-            <p className="text-sm font-medium text-green-900">Mass Balance Valid</p>
+            <p className="text-sm font-medium text-green-900">{RESULTS.massBalanceValid}</p>
             <p className="text-xs text-green-700">
-              Error: {(chainResult.mass_balance_check.relative_error * 100).toFixed(4)}% (tolerance:{' '}
-              {(chainResult.mass_balance_check.tolerance * 100).toFixed(1)}%)
+              {CHAIN.error}: {fmtPct(chainResult.mass_balance_check.relative_error * 100)} ({RESULTS.tolerance}:{' '}
+              {fmtPct(chainResult.mass_balance_check.tolerance * 100)})
             </p>
           </div>
         </div>

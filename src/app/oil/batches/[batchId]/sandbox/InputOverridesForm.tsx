@@ -1,12 +1,10 @@
 'use client';
 
 /**
- * Input Overrides Form — Sprint 11A.3
+ * Input Overrides Form — Sprint 12.2
  *
- * Form for editing scenario input overrides:
- * - Live price per kg
- * - Yield overrides (part weights)
- * - Price overrides (shadow prices for SVASO)
+ * Form for editing scenario input overrides.
+ * All UI text from sandboxLabels (NL).
  */
 
 import { useState } from 'react';
@@ -15,6 +13,7 @@ import type {
   YieldOverride,
   PriceOverride,
 } from '@/lib/engine/scenario-sandbox';
+import { INPUTS, partName } from '@/lib/ui/sandboxLabels';
 
 interface InputOverridesFormProps {
   baseline: BaselineBatchData;
@@ -40,12 +39,12 @@ export function InputOverridesForm({
 
   return (
     <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-      <h4 className="text-sm font-semibold text-gray-900">Input Overrides</h4>
+      <h4 className="text-sm font-semibold text-gray-900">{INPUTS.heading}</h4>
 
       {/* Live Price Override */}
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">
-          Live Price (€/kg)
+          {INPUTS.livePrice}
         </label>
         <input
           type="number"
@@ -56,7 +55,7 @@ export function InputOverridesForm({
           className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <p className="text-xs text-gray-500 mt-1">
-          Baseline: €{baseline.live_price_per_kg.toFixed(2)}/kg
+          {INPUTS.livePriceHelper(baseline.live_price_per_kg.toFixed(2))}
         </p>
       </div>
 
@@ -64,13 +63,13 @@ export function InputOverridesForm({
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-700">
-            Yield Overrides ({yieldOverrides.length})
+            {INPUTS.yieldHeading(yieldOverrides.length)}
           </label>
           <button
             onClick={() => setShowYieldForm(!showYieldForm)}
             className="text-xs text-blue-600 hover:text-blue-700"
           >
-            {showYieldForm ? 'Hide' : 'Show'}
+            {showYieldForm ? INPUTS.hide : INPUTS.show}
           </button>
         </div>
 
@@ -80,7 +79,7 @@ export function InputOverridesForm({
               const override = yieldOverrides.find((yo) => yo.part_code === jp.part_code);
               return (
                 <div key={jp.part_code} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600 w-24">{jp.part_code}:</span>
+                  <span className="text-xs text-gray-600 w-24">{partName(jp.part_code)}:</span>
                   <input
                     type="number"
                     step="0.1"
@@ -103,7 +102,7 @@ export function InputOverridesForm({
               );
             })}
             <p className="text-xs text-gray-500 mt-2">
-              Note: Total must balance to {baseline.griller_weight_kg.toFixed(0)} kg (±0.1%)
+              {INPUTS.yieldHelper(baseline.griller_weight_kg.toFixed(0))}
             </p>
           </div>
         )}
@@ -113,13 +112,13 @@ export function InputOverridesForm({
       <div>
         <div className="flex items-center justify-between mb-2">
           <label className="block text-sm font-medium text-gray-700">
-            Shadow Prices ({priceOverrides.length})
+            {INPUTS.priceHeading(priceOverrides.length)}
           </label>
           <button
             onClick={() => setShowPriceForm(!showPriceForm)}
             className="text-xs text-blue-600 hover:text-blue-700"
           >
-            {showPriceForm ? 'Hide' : 'Show'}
+            {showPriceForm ? INPUTS.hide : INPUTS.show}
           </button>
         </div>
 
@@ -129,7 +128,7 @@ export function InputOverridesForm({
               const override = priceOverrides.find((po) => po.part_code === jp.part_code);
               return (
                 <div key={jp.part_code} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600 w-24">{jp.part_code}:</span>
+                  <span className="text-xs text-gray-600 w-24">{partName(jp.part_code)}:</span>
                   <input
                     type="number"
                     step="0.01"
@@ -152,7 +151,7 @@ export function InputOverridesForm({
               );
             })}
             <p className="text-xs text-gray-500 mt-2">
-              Shadow prices are used for SVASO allocation (Sales Value at Split-Off)
+              {INPUTS.priceHelper}
             </p>
           </div>
         )}

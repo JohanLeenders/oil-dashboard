@@ -1,14 +1,15 @@
 'use client';
 
 /**
- * Scenario List Component — Sprint 11A.3
+ * Scenario List Component — Sprint 12.2
  *
  * Displays list of saved scenarios for the current batch.
- * Allows user to load a saved scenario.
+ * All UI text from sandboxLabels (NL).
  */
 
 import { useState } from 'react';
 import type { SandboxScenario } from '@/types/database';
+import { SCENARIO_LIST } from '@/lib/ui/sandboxLabels';
 
 interface ScenarioListProps {
   scenarios: SandboxScenario[];
@@ -31,13 +32,13 @@ export function ScenarioList({
     <div className="bg-white border border-gray-200 rounded-lg p-4">
       <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-gray-900">
-          Saved Scenarios ({scenarios.length})
+          {SCENARIO_LIST.heading(scenarios.length)}
         </h3>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className="text-xs text-blue-600 hover:text-blue-700"
         >
-          {isExpanded ? 'Hide' : 'Show'}
+          {isExpanded ? SCENARIO_LIST.hide : SCENARIO_LIST.show}
         </button>
       </div>
 
@@ -60,7 +61,7 @@ export function ScenarioList({
                     <p className="text-xs text-gray-600 mt-0.5">{scenario.description}</p>
                   )}
                   <p className="text-xs text-gray-500 mt-1">
-                    Created: {new Date(scenario.created_at).toLocaleString('nl-NL')}
+                    {SCENARIO_LIST.created}: {new Date(scenario.created_at).toLocaleString('nl-NL')}
                   </p>
                 </div>
                 {!isActive && (
@@ -68,12 +69,12 @@ export function ScenarioList({
                     onClick={() => onLoad(scenario)}
                     className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded hover:bg-blue-700 transition-colors"
                   >
-                    Load
+                    {SCENARIO_LIST.load}
                   </button>
                 )}
                 {isActive && (
                   <span className="ml-4 px-3 py-1 bg-blue-600 text-white text-xs font-medium rounded">
-                    Active
+                    {SCENARIO_LIST.active}
                   </span>
                 )}
               </div>

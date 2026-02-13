@@ -18,6 +18,7 @@ import { getBatchDetail, getBatchMassBalance } from '@/lib/actions/batches';
 import { ThtThermometer } from '@/components/ui/ThtThermometer';
 import { DataStatusBadge } from '@/components/ui/StatusBadge';
 import { MassBalanceSankey } from '@/components/charts/MassBalanceSankey';
+import { PAGE } from '@/lib/ui/sandboxLabels';
 
 interface PageProps {
   params: Promise<{ batchId: string }>;
@@ -64,7 +65,7 @@ export default async function BatchDetailPage({ params }: PageProps) {
             href={`/oil/batches/${batch.id}/sandbox`}
             className="px-4 py-2 bg-purple-600 text-white text-sm font-medium rounded-lg hover:bg-purple-700 transition-colors"
           >
-            Sandbox
+            {PAGE.sandboxButton}
           </Link>
           <Link
             href={`/oil/batches/${batch.id}/cost-price`}
