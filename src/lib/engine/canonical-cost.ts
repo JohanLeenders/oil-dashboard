@@ -34,11 +34,64 @@ import Decimal from 'decimal.js';
 // ============================================================================
 
 /**
- * Joint product codes — the ONLY products that participate in SVASO.
+ * Joint product codes — the ONLY products that participate in SVASO
+ * for the default ORANJEHOEN profile (hele kip → uitsnijderij).
  * Per CANON: "Back/carcass is a by-product, NOT a joint product."
  */
 export const JOINT_PRODUCT_CODES = ['breast_cap', 'legs', 'wings'] as const;
 export type JointProductCode = (typeof JOINT_PRODUCT_CODES)[number];
+
+// ============================================================================
+// BATCH PROFILES — Generalised joint-product scope per processor type
+// ============================================================================
+
+/**
+ * BatchProfile defines which products are "joint products" for SVASO allocation.
+ *
+ * ORANJEHOEN (default): hele kip → breast_cap, legs, wings (3 joint products)
+ * External processors (e.g. Cuno Moormann): ontvangen al gesneden delen →
+ *   hun joint products zijn de GEKOCHTE producten (filet_supremes, drumsticks, etc.)
+ *
+ * INVARIANT: Engine wiskunde (k-factor, SVASO, reconciliatie) is IDENTIEK
+ * voor elk profiel. Alleen de SCOPE van wat een "joint product" is verschilt.
+ */
+export interface BatchProfile {
+  /** Unique profile identifier */
+  profile_id: string;
+  /** Display name (NL) */
+  profile_name: string;
+  /** Joint product codes for this profile — determines SVASO scope */
+  joint_product_codes: readonly string[];
+  /** Description of the processing context */
+  description: string;
+}
+
+/** Default profile: Oranjehoen hele kip verwerking */
+export const PROFILE_ORANJEHOEN: BatchProfile = {
+  profile_id: 'oranjehoen',
+  profile_name: 'Oranjehoen (hele kip)',
+  joint_product_codes: JOINT_PRODUCT_CODES,
+  description: 'Hele kip slacht + uitsnij: borstkap, bouten, vleugels als joint products',
+};
+
+/** External processor: Cuno Moormann (ontvangt grillers, snijdt uit) */
+export const PROFILE_CUNO_MOORMANN: BatchProfile = {
+  profile_id: 'cuno_moormann',
+  profile_name: 'Cuno Moormann (extern)',
+  joint_product_codes: ['filet_supremes', 'drumsticks', 'dijfilet_vel', 'platte_vleugels'],
+  description: 'Externe verwerker: ontvangt grillers, snijdt uit tot filet suprêmes, drumsticks, dijfilet met vel, platte vleugels',
+};
+
+/** All registered profiles */
+export const BATCH_PROFILES: readonly BatchProfile[] = [
+  PROFILE_ORANJEHOEN,
+  PROFILE_CUNO_MOORMANN,
+];
+
+/** Get profile by ID, falls back to ORANJEHOEN */
+export function getBatchProfile(profileId: string): BatchProfile {
+  return BATCH_PROFILES.find(p => p.profile_id === profileId) ?? PROFILE_ORANJEHOEN;
+}
 
 /**
  * By-product flat rate per kg.
@@ -133,10 +186,16 @@ export interface ByProductPhysical {
 
 /**
  * Joint product physical data for SVASO allocation (Level 3).
- * HARD RAIL: part_code MUST be one of JOINT_PRODUCT_CODES.
+ * HARD RAIL: part_code MUST be one of the profile's joint_product_codes.
+ *
+ * For default ORANJEHOEN profile: part_code is JointProductCode (breast_cap/legs/wings).
+ * For external profiles: part_code can be any string defined in the profile
+ * (e.g. 'filet_supremes', 'drumsticks' for CUNO_MOORMANN).
+ *
+ * Scope enforcement happens at runtime in assertJointProduct/calculateSVASOAllocation.
  */
 export interface JointProductInput {
-  part_code: JointProductCode;
+  part_code: JointProductCode | string;
   weight_kg: number;
   /** Shadow price per kg — derived, not entered. Used for SVASO allocation. */
   shadow_price_per_kg: number;
@@ -316,7 +375,7 @@ export interface SVASOAllocationResult {
 }
 
 export interface JointProductAllocation {
-  part_code: JointProductCode;
+  part_code: JointProductCode | string;
   weight_kg: number;
   shadow_price_per_kg: number;
   market_value_eur: number;
@@ -336,7 +395,7 @@ export interface JointProductAllocation {
  * Sub-allocates joint product cost to derived cuts.
  */
 export interface MiniSVASOResult {
-  parent_joint_code: JointProductCode;
+  parent_joint_code: JointProductCode | string;
   parent_allocated_cost_eur: number;
   sub_allocations: SubJointAllocation[];
   sum_sub_allocated_cost_eur: number;
@@ -634,12 +693,17 @@ export interface LiveToMeatMultiplierResult {
 /**
  * Validates that a part_code is a joint product.
  * Per CANON: "SVASO accepts ONLY breast_cap, legs, wings. Hard fail on anything else."
+ *
+ * With optional profile parameter, validates against that profile's joint_product_codes.
+ * Without profile (or profile=undefined), uses default ORANJEHOEN scope.
  */
-export function assertJointProduct(part_code: string): asserts part_code is JointProductCode {
-  if (!(JOINT_PRODUCT_CODES as readonly string[]).includes(part_code)) {
+export function assertJointProduct(part_code: string, profile?: BatchProfile): asserts part_code is JointProductCode {
+  const codes = profile ? profile.joint_product_codes : (JOINT_PRODUCT_CODES as readonly string[]);
+  if (!codes.includes(part_code)) {
+    const profileLabel = profile ? profile.profile_name : 'Oranjehoen (default)';
     throw new Error(
-      `SCOPE VIOLATION: "${part_code}" is NOT a joint product. ` +
-      `SVASO accepts ONLY: ${JOINT_PRODUCT_CODES.join(', ')}. ` +
+      `SCOPE VIOLATION: "${part_code}" is NOT a joint product for profile "${profileLabel}". ` +
+      `SVASO accepts ONLY: ${codes.join(', ')}. ` +
       `Back/carcass and other by-products must NOT enter SVASO allocation.`
     );
   }
@@ -647,9 +711,11 @@ export function assertJointProduct(part_code: string): asserts part_code is Join
 
 /**
  * Checks if a part_code is a joint product (non-throwing version).
+ * With optional profile, checks against that profile's scope.
  */
-export function isJointProduct(part_code: string): part_code is JointProductCode {
-  return (JOINT_PRODUCT_CODES as readonly string[]).includes(part_code);
+export function isJointProduct(part_code: string, profile?: BatchProfile): part_code is JointProductCode {
+  const codes = profile ? profile.joint_product_codes : (JOINT_PRODUCT_CODES as readonly string[]);
+  return codes.includes(part_code);
 }
 
 // ============================================================================
@@ -899,27 +965,31 @@ export function calculateByProductCredit(
 /**
  * SVASO Allocation (Level 3)
  *
- * Allocates C_netto_joint over exactly 3 joint products: breast_cap, legs, wings.
+ * Allocates C_netto_joint over joint products defined by the profile scope.
+ * Default (no profile): exactly 3 joint products: breast_cap, legs, wings.
  *
  * HARD RAIL: This function THROWS if any non-joint product is passed.
- * Per CANON: "SVASO accepts ONLY breast_cap, legs, wings. Hard fail on anything else."
+ * Per CANON: "SVASO accepts ONLY joint products per profile. Hard fail on anything else."
  *
  * k-factor = C_netto_joint / TMV
  * allocation_factor_i = MV_i / TMV
  * allocated_cost_i = allocation_factor_i × C_netto_joint
  *
  * Rounding residual applied to last allocation for exact reconciliation.
+ *
+ * WISKUNDE IS IDENTIEK voor elk profiel. Alleen de scope verschilt.
  */
 export function calculateSVASOAllocation(
   batch_id: string,
   netJointCost: NetJointCostResult,
-  jointProducts: JointProductInput[]
+  jointProducts: JointProductInput[],
+  profile?: BatchProfile
 ): SVASOAllocationResult {
   const audit_trail: AuditTrailEntry[] = [];
 
-  // HARD RAIL: Scope enforcement
+  // HARD RAIL: Scope enforcement (profile-aware)
   for (const jp of jointProducts) {
-    assertJointProduct(jp.part_code);
+    assertJointProduct(jp.part_code, profile);
   }
 
   const cost_pool = new Decimal(netJointCost.net_joint_cost_eur);
@@ -1870,6 +1940,12 @@ export function getPartNameDutch(partCode: string): string {
     offal: 'Organen',
     thigh_fillet: 'Dijfilet',
     drum_meat: 'Drumstick vlees',
+    // External processor products (Sprint 13)
+    filet_supremes: 'Filet Suprêmes',
+    drumsticks: 'Drumsticks',
+    dijfilet_vel: 'Dijfilet met vel',
+    platte_vleugels: 'Platte vleugels',
+    karkassen: 'Karkassen',
   };
   return names[partCode] || partCode;
 }

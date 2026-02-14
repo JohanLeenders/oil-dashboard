@@ -18,6 +18,11 @@ import type {
   SkuDefinition,
   NRVInput,
   JointProductCode,
+  BatchProfile,
+} from '@/lib/engine/canonical-cost';
+import {
+  PROFILE_ORANJEHOEN,
+  getBatchProfile,
 } from '@/lib/engine/canonical-cost';
 import type { MassBalanceStatus } from '@/lib/data/demo-batch-v2';
 import { getMassBalanceStatus } from '@/lib/data/demo-batch-v2';
@@ -26,11 +31,26 @@ import { getMassBalanceStatus } from '@/lib/data/demo-batch-v2';
 // BATCH INPUT TYPE — FEITEN (kg + stuks only)
 // ============================================================================
 
+/**
+ * Joint product entry for external profiles.
+ * Stores part_code, weight, shadow price and optional selling price.
+ */
+export interface JointProductEntry {
+  part_code: string;
+  weight_kg: number;
+  shadow_price_per_kg: number;
+  /** Verkoopprijs per kg — voor marge-analyse */
+  selling_price_per_kg?: number;
+}
+
 export interface BatchInputData {
   // Identity
   batch_id: string;
   batch_ref: string;
   date: string;
+
+  // PROFIEL (Sprint 13) — default 'oranjehoen'
+  batch_profile: string;
 
   // SECTIE 1: Basis (Level 0)
   bird_count: number;
@@ -44,9 +64,14 @@ export interface BatchInputData {
   slaughter_cost_total: number;
 
   // SECTIE 3: Joint Products (Level 3 Input) — kg only
+  // Used by ORANJEHOEN profile (fixed 3 products)
   breast_cap_kg: number;
   legs_kg: number;
   wings_kg: number;
+
+  // SECTIE 3b: Dynamic Joint Products (Sprint 13)
+  // Used by external profiles (variable products + selling prices)
+  joint_products: JointProductEntry[];
 
   // SECTIE 4: Sub-cuts (Level 4 Input) — kg only
   filet_kg: number;           // from breast_cap
@@ -107,6 +132,8 @@ export interface BatchDerivedValues {
 // ============================================================================
 
 export function computeDerivedValues(input: BatchInputData): BatchDerivedValues {
+  const isExternal = input.batch_profile !== 'oranjehoen' && input.joint_products.length > 0;
+
   // Sectie 1
   const avg_bird_weight_kg = input.bird_count > 0 ? input.live_weight_kg / input.bird_count : 0;
   const doa_pct = input.bird_count > 0 ? (input.doa_count / input.bird_count) * 100 : 0;
@@ -119,8 +146,10 @@ export function computeDerivedValues(input: BatchInputData): BatchDerivedValues 
     ? input.slaughter_cost_per_bird * input.bird_count
     : input.slaughter_cost_total;
 
-  // Sectie 3
-  const joint_total_kg = input.breast_cap_kg + input.legs_kg + input.wings_kg;
+  // Sectie 3 — use dynamic joint_products for external profiles
+  const joint_total_kg = isExternal
+    ? input.joint_products.reduce((s, jp) => s + jp.weight_kg, 0)
+    : input.breast_cap_kg + input.legs_kg + input.wings_kg;
   const breast_cap_pct = input.griller_weight_kg > 0 ? (input.breast_cap_kg / input.griller_weight_kg) * 100 : 0;
   const legs_pct = input.griller_weight_kg > 0 ? (input.legs_kg / input.griller_weight_kg) * 100 : 0;
   const wings_pct = input.griller_weight_kg > 0 ? (input.wings_kg / input.griller_weight_kg) * 100 : 0;
@@ -220,6 +249,16 @@ export function batchInputToByProducts(input: BatchInputData): ByProductPhysical
 }
 
 export function batchInputToJointProducts(input: BatchInputData): JointProductInput[] {
+  // External profiles: use dynamic joint_products array
+  if (input.batch_profile !== 'oranjehoen' && input.joint_products.length > 0) {
+    return input.joint_products.map(jp => ({
+      part_code: jp.part_code,
+      weight_kg: jp.weight_kg,
+      shadow_price_per_kg: jp.shadow_price_per_kg,
+    }));
+  }
+
+  // Default ORANJEHOEN: fixed 3 joint products from named fields
   return [
     { part_code: 'breast_cap' as JointProductCode, weight_kg: input.breast_cap_kg, shadow_price_per_kg: DEFAULT_SHADOW_PRICES.breast_cap },
     { part_code: 'legs' as JointProductCode, weight_kg: input.legs_kg, shadow_price_per_kg: DEFAULT_SHADOW_PRICES.legs },
@@ -380,6 +419,7 @@ export function createValidatiegolf1Batch(): BatchInputData {
     batch_id: 'VALIDATIE-2025-09-22',
     batch_ref: 'VALIDATIE-2025-09-22',
     date: '2025-09-22',
+    batch_profile: 'oranjehoen',
 
     bird_count: 15855,
     doa_count: 0,
@@ -393,6 +433,8 @@ export function createValidatiegolf1Batch(): BatchInputData {
     breast_cap_kg,
     legs_kg,
     wings_kg,
+
+    joint_products: [], // ORANJEHOEN uses named fields above
 
     filet_kg,
     thigh_fillet_kg,
@@ -410,6 +452,122 @@ export function createValidatiegolf1Batch(): BatchInputData {
   };
 }
 
-// Initialize store with Validatiegolf-1 batch
+// ============================================================================
+// CUNO MOORMANN — PREFILLED EXTERNAL BATCH (Sprint 13)
+// ============================================================================
+
+/**
+ * Cuno Moormann batch: externe verwerker — ECHTE PAKBON DATA
+ *
+ * Bron: Storteboom pakbon PLU 400577 (BLK1Ster OH Naakt vrs 8×1700-1800)
+ * 128 kratten × 8 = ~1024 grillers, netto 1.793,5 kg
+ *
+ * Productieketen:
+ * - Levende kippen: €2,50/kg levend
+ * - Slachtrendement: 72% → levend gewicht = 1.793,5 / 0,72 = 2.490,97 kg
+ * - Slachtkosten: €0,89/kip × 1.024 = €911,36
+ * - Grillers naar Cuno Moormann voor uitsnij
+ *
+ * Uitsnijresultaten (Cuno factuur — snijkosten €2,00/stuk = €2.048 totaal):
+ * - Filet Suprêmes:    621,64 kg (snij €1,29/kg = €801,92)
+ * - Drumsticks:        253,50 kg (snij €1,98/kg = €501,93)
+ * - Dijfilet met vel:  252,00 kg (snij €1,98/kg = €498,96)
+ * - Platte vleugels:    79,27 kg (snij €1,98/kg = €156,95)
+ * - Karkassen:         570,00 kg (by-product, €0,75/kg = €427,50)
+ *
+ * Verkoopprijzen:
+ * - Filet Suprêmes:    €15,35/kg
+ * - Drumsticks:         €8,00/kg
+ * - Dijfilet met vel:  €15,00/kg
+ * - Platte vleugels:    €6,00/kg
+ * - Karkassen: wisselend (niet in marge)
+ *
+ * Massabalans: joint (1.206,41) + by-product (570) = 1.776,41 kg
+ *              vs griller 1.793,5 kg → 17,09 kg verschil (0,95%)
+ *
+ * Verwachte SVASO (shadow = VP):
+ * - TMV = €15.825,79
+ * - k-factor = €7.024,79 / €15.825,79 = 0,444 → PROFITABLE
+ */
+export function createCunoMoormannBatch(): BatchInputData {
+  const griller_kg = 1793.5;
+  const rendement = 0.72;
+  const live_weight_kg = Math.round((griller_kg / rendement) * 100) / 100; // 2490.97
+  const bird_count = 1024; // 128 kratten × 8
+
+  return {
+    batch_id: 'CUNO-2025-11-24',
+    batch_ref: 'CUNO-2025-11-24',
+    date: '2025-11-24',
+    batch_profile: 'cuno_moormann',
+
+    // Basis — echte pakbon: 1024 kippen, terug-gerekend naar levend
+    bird_count,
+    doa_count: 0,
+    live_weight_kg,
+
+    // Griller output = netto pakbon gewicht
+    griller_weight_kg: griller_kg,
+    slaughter_cost_mode: 'per_bird',
+    slaughter_cost_per_bird: 0.89,
+    slaughter_cost_total: 0,
+
+    // ORANJEHOEN fields — niet gebruikt bij external profile
+    breast_cap_kg: 0,
+    legs_kg: 0,
+    wings_kg: 0,
+
+    // Dynamic joint products — echte Cuno uitsnijdata
+    // Shadow prices = verkoopprijzen (voor SVASO allocatie op marktwaarde)
+    joint_products: [
+      {
+        part_code: 'filet_supremes',
+        weight_kg: 621.64,
+        shadow_price_per_kg: 15.35,
+        selling_price_per_kg: 15.35,
+      },
+      {
+        part_code: 'drumsticks',
+        weight_kg: 253.50,
+        shadow_price_per_kg: 8.00,
+        selling_price_per_kg: 8.00,
+      },
+      {
+        part_code: 'dijfilet_vel',
+        weight_kg: 252.00,
+        shadow_price_per_kg: 15.00,
+        selling_price_per_kg: 15.00,
+      },
+      {
+        part_code: 'platte_vleugels',
+        weight_kg: 79.27,
+        shadow_price_per_kg: 6.00,
+        selling_price_per_kg: 6.00,
+      },
+    ],
+
+    // Sub-cuts — niet van toepassing bij externe verwerker
+    filet_kg: 0,
+    thigh_fillet_kg: 0,
+    drum_meat_kg: 0,
+
+    // By-products — karkassen (€0,20/kg standaard credit in engine)
+    blood_kg: 0,
+    feathers_kg: 0,
+    offal_kg: 0,
+    back_carcass_kg: 570,   // karkassen van uitsnij
+    cat3_other_kg: 0,
+
+    // Kosten
+    live_cost_per_kg: 2.50,
+    transport_cost_eur: 0,
+    catching_fee_eur: 0,
+  };
+}
+
+// Initialize store with prefilled batches
 const validatieBatch = createValidatiegolf1Batch();
 saveBatch(validatieBatch);
+
+const cunoBatch = createCunoMoormannBatch();
+saveBatch(cunoBatch);

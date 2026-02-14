@@ -15,6 +15,7 @@
  */
 
 import type { BatchInputData, BatchDerivedValues } from '@/lib/data/batch-input-store';
+import { getPartNameDutch } from '@/lib/engine/canonical-cost';
 import { formatKg, formatPct } from '@/lib/data/demo-batch-v2';
 
 interface Props {
@@ -93,10 +94,25 @@ export function MassBalancePanel({ data, derived }: Props) {
           <div className="flex justify-between text-xs text-gray-500 mb-1">
             <span>Output:</span>
           </div>
-          <div className="flex justify-between pl-2">
-            <span className="text-gray-600">Joint products</span>
-            <span>{formatKg(derived.joint_total_kg)}</span>
-          </div>
+          {data.joint_products.length > 0 ? (
+            <>
+              {data.joint_products.map(jp => (
+                <div key={jp.part_code} className="flex justify-between pl-2 text-xs">
+                  <span className="text-gray-600">{getPartNameDutch(jp.part_code)}</span>
+                  <span>{formatKg(jp.weight_kg)}</span>
+                </div>
+              ))}
+              <div className="flex justify-between pl-2 text-xs font-medium border-t border-gray-100 pt-0.5 mt-0.5">
+                <span className="text-gray-600">Som joint</span>
+                <span>{formatKg(derived.joint_total_kg)}</span>
+              </div>
+            </>
+          ) : (
+            <div className="flex justify-between pl-2">
+              <span className="text-gray-600">Joint products</span>
+              <span>{formatKg(derived.joint_total_kg)}</span>
+            </div>
+          )}
           <div className="flex justify-between pl-2">
             <span className="text-gray-600">Bijproducten</span>
             <span>{formatKg(derived.by_product_total_kg)}</span>

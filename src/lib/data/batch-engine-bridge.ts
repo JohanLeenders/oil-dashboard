@@ -3,6 +3,9 @@
  *
  * Converts BatchInputData → runs Canon Engine → produces CanonWaterfallData.
  * Engine is LOCKED — this file only CALLS engine functions.
+ *
+ * Sprint 13: Profile-aware pipeline routing.
+ * External profiles skip sub-cuts (Level 4) and use profile scope for SVASO.
  */
 
 import {
@@ -14,6 +17,7 @@ import {
   calculateABCCosts,
   calculateFullSKUCost,
   calculateNRV,
+  getBatchProfile,
 } from '@/lib/engine/canonical-cost';
 import type { MiniSVASOResult } from '@/lib/engine/canonical-cost';
 import type { CanonWaterfallData } from '@/components/oil/CostWaterfallShell';
@@ -33,16 +37,20 @@ import {
 /**
  * Run full 7-level Canon pipeline from batch input data.
  * Returns CanonWaterfallData suitable for CostWaterfallShell.
+ *
+ * Profile-aware: external profiles use dynamic joint_products and skip mini-SVASO.
  */
 export function runBatchPipeline(input: BatchInputData): CanonWaterfallData {
   const derived = computeDerivedValues(input);
+  const profile = getBatchProfile(input.batch_profile);
+  const isExternal = input.batch_profile !== 'oranjehoen' && input.joint_products.length > 0;
 
   // Convert batch input to engine types
   const landedCostInput = batchInputToLandedCost(input);
   const slaughterFeeEur = batchInputToSlaughterFee(input);
   const byProducts = batchInputToByProducts(input);
   const jointProducts = batchInputToJointProducts(input);
-  const subCuts = batchInputToSubCuts(input);
+  const subCuts = isExternal ? {} : batchInputToSubCuts(input);
   const abcDrivers = getDefaultABCDrivers();
   const skuDefinition = getDefaultSkuDefinition();
   const nrvInput = getDefaultNRVInput();
@@ -65,19 +73,23 @@ export function runBatchPipeline(input: BatchInputData): CanonWaterfallData {
     byProducts,
   );
 
-  // Level 3: SVASO Allocation
+  // Level 3: SVASO Allocation (profile-aware scope)
   const level3 = calculateSVASOAllocation(
     input.batch_id,
     level2,
     jointProducts,
+    profile,
   );
 
   // Level 4: Mini-SVASO for each joint product
+  // External profiles skip mini-SVASO (products are already final)
   const level4: Record<string, MiniSVASOResult> = {};
-  for (const alloc of level3.allocations) {
-    const partSubCuts = subCuts[alloc.part_code];
-    if (partSubCuts && partSubCuts.length > 0) {
-      level4[alloc.part_code] = calculateMiniSVASO(alloc, partSubCuts);
+  if (!isExternal) {
+    for (const alloc of level3.allocations) {
+      const partSubCuts = subCuts[alloc.part_code];
+      if (partSubCuts && partSubCuts.length > 0) {
+        level4[alloc.part_code] = calculateMiniSVASO(alloc, partSubCuts);
+      }
     }
   }
 

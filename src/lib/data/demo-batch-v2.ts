@@ -86,7 +86,7 @@ export const DEMO_JOINT_PRODUCTS: JointProductInput[] = [
 // LEVEL 4: MINI-SVASO SUB-CUTS
 // ============================================================================
 
-export const DEMO_SUB_CUTS: Record<JointProductCode, SubJointCutInput[]> = {
+export const DEMO_SUB_CUTS: Record<string, SubJointCutInput[]> = {
   breast_cap: [
     {
       parent_joint_code: 'breast_cap',

@@ -170,6 +170,25 @@
 
 ---
 
+### Sprint 13 — Externe Verwerker via SVASO Profielen
+**Status:** READY
+**Contract:** AGENT/SPRINT_13_External_Processor_SVASO_Profile.md
+**Goal:** Externe verwerkers (Cuno Moormann) ondersteunen via BatchProfile concept in bestaande SVASO canon.
+
+**Scope:**
+- BatchProfile type: configureerbare joint product codes per batch
+- Generaliseer assertJointProduct/calculateSVASOAllocation met optioneel profiel
+- Prefilled CUNO-2025-11-24 demo batch (echte pakbon data)
+- Profiel-selector in BatchInputForm + dynamische producttabel
+- MarginAnalysis component (marge per product met kleurcodering)
+- Profiel-aware pipeline routing in bridge
+
+**Depends On:** Batch Input v1 (DONE), Sprint 7 (DONE)
+
+**STOP after each phase** — 13.1 (engine), 13.2 (store), 13.3 (bridge), 13.4 (UI), 13.5 (verificatie)
+
+---
+
 ## DEPENDENCIES
 
 | Sprint | Depends On |
@@ -185,6 +204,7 @@
 | **Sprint 9** | Sprint 8 (correcte engine) + Voorbeeld-bestanden |
 | **Sprint 10** | Sprint 8 + Sprint 9 (echte data) |
 | **Sprint 11A** | Sprint 7 (DONE); Sprint 8 aanbevolen |
+| **Sprint 13** | Batch Input v1 (DONE) + Sprint 7 (DONE) |
 
 ---
 

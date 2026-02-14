@@ -12,12 +12,13 @@
  * Dataflow: BatchInput → Canon Engine → Waterval UI
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { BatchInputData } from '@/lib/data/batch-input-store';
 import { saveBatch } from '@/lib/data/batch-input-store';
 import type { CanonWaterfallData } from '@/components/oil/CostWaterfallShell';
 import { CostWaterfallShell } from '@/components/oil/CostWaterfallShell';
 import { BatchInputForm } from './BatchInputForm';
+import { MarginAnalysis } from './MarginAnalysis';
 
 // We need a client-side version of the pipeline for recalculation
 import { runBatchPipeline } from '@/lib/data/batch-engine-bridge';
@@ -27,28 +28,34 @@ interface Props {
   initialWaterfallData: CanonWaterfallData;
 }
 
-type Tab = 'input' | 'waterfall' | 'scenarios' | 'log';
-
-const TABS: { id: Tab; label: string; enabled: boolean }[] = [
-  { id: 'input', label: 'Input', enabled: true },
-  { id: 'waterfall', label: 'Kostprijswaterval', enabled: true },
-  { id: 'scenarios', label: "Scenario's", enabled: false },
-  { id: 'log', label: 'Log', enabled: false },
-];
+type Tab = 'input' | 'waterfall' | 'marges' | 'scenarios' | 'log';
 
 export function BatchDetailShell({ initialBatchInput, initialWaterfallData }: Props) {
   const [activeTab, setActiveTab] = useState<Tab>('input');
+  const [batchData, setBatchData] = useState<BatchInputData>(initialBatchInput);
   const [waterfallData, setWaterfallData] = useState<CanonWaterfallData>(initialWaterfallData);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saved' | 'recalculated'>('idle');
 
+  const isExternal = batchData.batch_profile !== 'oranjehoen';
+
+  const tabs = useMemo(() => [
+    { id: 'input' as Tab, label: 'Input', enabled: true },
+    { id: 'waterfall' as Tab, label: 'Kostprijswaterval', enabled: true },
+    ...(isExternal ? [{ id: 'marges' as Tab, label: 'Marges', enabled: true }] : []),
+    { id: 'scenarios' as Tab, label: "Scenario's", enabled: false },
+    { id: 'log' as Tab, label: 'Log', enabled: false },
+  ], [isExternal]);
+
   const handleSave = useCallback((data: BatchInputData) => {
     saveBatch(data);
+    setBatchData(data);
     setSaveStatus('saved');
     setTimeout(() => setSaveStatus('idle'), 2000);
   }, []);
 
   const handleSaveAndRecalc = useCallback((data: BatchInputData) => {
     saveBatch(data);
+    setBatchData(data);
     const newWaterfall = runBatchPipeline(data);
     setWaterfallData(newWaterfall);
     setSaveStatus('recalculated');
@@ -60,7 +67,7 @@ export function BatchDetailShell({ initialBatchInput, initialWaterfallData }: Pr
       {/* Tab bar */}
       <div className="border-b border-gray-200 mb-6">
         <nav className="flex gap-0 -mb-px">
-          {TABS.map((tab) => (
+          {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => tab.enabled && setActiveTab(tab.id)}
@@ -102,6 +109,10 @@ export function BatchDetailShell({ initialBatchInput, initialWaterfallData }: Pr
 
       {activeTab === 'waterfall' && (
         <CostWaterfallShell canonData={waterfallData} />
+      )}
+
+      {activeTab === 'marges' && (
+        <MarginAnalysis batch={batchData} waterfallData={waterfallData} />
       )}
 
       {activeTab === 'scenarios' && (

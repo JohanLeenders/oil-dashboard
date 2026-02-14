@@ -100,7 +100,7 @@ export interface CanonWaterfallData {
 
 export interface ScenarioOverrides {
   grillerWeightKg?: number;
-  jointProductWeights?: Partial<Record<JointProductCode, number>>;
+  jointProductWeights?: Record<string, number>;
   subCutWeights?: Record<string, number>;
   sellingPrices?: Record<string, number>;
   abcRates?: Record<string, number>;

@@ -31,6 +31,12 @@ import {
   JOINT_PRODUCT_CODES,
   BY_PRODUCT_RATE_PER_KG,
   SCENARIO_DISCLAIMER,
+  // Profiles (Sprint 13)
+  PROFILE_ORANJEHOEN,
+  PROFILE_CUNO_MOORMANN,
+  BATCH_PROFILES,
+  getBatchProfile,
+  type BatchProfile,
   // Legacy backward compatibility
   calculateGrillerCost,
   calculatePrimalAllocation,
@@ -904,6 +910,197 @@ describe('Legacy Backward Compatibility', () => {
       expect(JA757_CARCASS_SHARES.breast_cap).toBe(35.85);
       expect(JA757_CARCASS_SHARES.leg_quarter).toBe(43.40);
       expect(JA757_CARCASS_SHARES.wings).toBe(10.70);
+    });
+  });
+});
+
+// ============================================================================
+// SPRINT 13: BATCH PROFILES — External Processor Support
+// ============================================================================
+
+describe('Sprint 13: BatchProfile System', () => {
+  describe('Profile Registration', () => {
+    it('should have at least 2 profiles (ORANJEHOEN + CUNO_MOORMANN)', () => {
+      expect(BATCH_PROFILES.length).toBeGreaterThanOrEqual(2);
+    });
+
+    it('ORANJEHOEN profile should match JOINT_PRODUCT_CODES', () => {
+      expect([...PROFILE_ORANJEHOEN.joint_product_codes].sort()).toEqual(
+        [...JOINT_PRODUCT_CODES].sort()
+      );
+    });
+
+    it('CUNO_MOORMANN profile should have 4 joint products', () => {
+      expect([...PROFILE_CUNO_MOORMANN.joint_product_codes].sort()).toEqual(
+        ['dijfilet_vel', 'drumsticks', 'filet_supremes', 'platte_vleugels']
+      );
+    });
+
+    it('getBatchProfile should return correct profile', () => {
+      expect(getBatchProfile('oranjehoen')).toBe(PROFILE_ORANJEHOEN);
+      expect(getBatchProfile('cuno_moormann')).toBe(PROFILE_CUNO_MOORMANN);
+    });
+
+    it('getBatchProfile should fallback to ORANJEHOEN for unknown ID', () => {
+      expect(getBatchProfile('unknown')).toBe(PROFILE_ORANJEHOEN);
+    });
+  });
+
+  describe('assertJointProduct with profiles', () => {
+    it('should pass for ORANJEHOEN joint products without profile', () => {
+      expect(() => assertJointProduct('breast_cap')).not.toThrow();
+      expect(() => assertJointProduct('legs')).not.toThrow();
+      expect(() => assertJointProduct('wings')).not.toThrow();
+    });
+
+    it('should pass for ORANJEHOEN joint products with explicit profile', () => {
+      expect(() => assertJointProduct('breast_cap', PROFILE_ORANJEHOEN)).not.toThrow();
+      expect(() => assertJointProduct('legs', PROFILE_ORANJEHOEN)).not.toThrow();
+      expect(() => assertJointProduct('wings', PROFILE_ORANJEHOEN)).not.toThrow();
+    });
+
+    it('should throw for CUNO products on default (ORANJEHOEN) profile', () => {
+      expect(() => assertJointProduct('filet_supremes')).toThrow('SCOPE VIOLATION');
+      expect(() => assertJointProduct('drumsticks')).toThrow('SCOPE VIOLATION');
+    });
+
+    it('should pass for CUNO products on CUNO profile', () => {
+      expect(() => assertJointProduct('filet_supremes', PROFILE_CUNO_MOORMANN)).not.toThrow();
+      expect(() => assertJointProduct('drumsticks', PROFILE_CUNO_MOORMANN)).not.toThrow();
+    });
+
+    it('should throw for ORANJEHOEN products on CUNO profile', () => {
+      expect(() => assertJointProduct('breast_cap', PROFILE_CUNO_MOORMANN)).toThrow('SCOPE VIOLATION');
+      expect(() => assertJointProduct('legs', PROFILE_CUNO_MOORMANN)).toThrow('SCOPE VIOLATION');
+    });
+  });
+
+  describe('isJointProduct with profiles', () => {
+    it('should work without profile (default = ORANJEHOEN)', () => {
+      expect(isJointProduct('breast_cap')).toBe(true);
+      expect(isJointProduct('filet_supremes')).toBe(false);
+    });
+
+    it('should work with CUNO profile', () => {
+      expect(isJointProduct('filet_supremes', PROFILE_CUNO_MOORMANN)).toBe(true);
+      expect(isJointProduct('drumsticks', PROFILE_CUNO_MOORMANN)).toBe(true);
+      expect(isJointProduct('breast_cap', PROFILE_CUNO_MOORMANN)).toBe(false);
+    });
+  });
+
+  describe('SVASO with CUNO_MOORMANN profile', () => {
+    /**
+     * CUNO batch scenario:
+     * - Koopt 200 kg filet suprêmes @ €8,50/kg en 150 kg drumsticks @ €5,00/kg
+     * - Verwerkingskosten: €0,85/kg × 350 kg = €297,50
+     * - Totale inkoopkosten: (200 × 8,50) + (150 × 5,00) = €2.450
+     * - Joint cost pool: €2.450 + €297,50 = €2.747,50
+     * - Geen by-products → net_joint_cost = joint_cost_pool
+     */
+    const CUNO_LANDED_INPUT: LandedCostInput = {
+      batch_id: 'CUNO-001',
+      input_live_kg: 350, // total kg purchased
+      input_count: 1,     // external batch = 1 "lot"
+      live_price_per_kg: 7.00, // weighted average purchase price
+      transport_cost_eur: 0,
+      catching_fee_eur: 0,
+      slaughter_fee_per_head: 0,
+      doa_count: 0,
+      doa_threshold_pct: 0.02,
+    };
+
+    const CUNO_JOINT_PRODUCTS: JointProductInput[] = [
+      { part_code: 'filet_supremes', weight_kg: 200, shadow_price_per_kg: 15.35 },
+      { part_code: 'drumsticks', weight_kg: 150, shadow_price_per_kg: 8.00 },
+    ];
+
+    it('should accept CUNO joint products with CUNO profile', () => {
+      const landed = calculateLandedCost(CUNO_LANDED_INPUT);
+      const level1 = calculateJointCostPool('CUNO-001', landed, 297.50, 350);
+      const level2 = calculateByProductCredit('CUNO-001', level1, []); // no by-products
+
+      expect(() => {
+        calculateSVASOAllocation('CUNO-001', level2, CUNO_JOINT_PRODUCTS, PROFILE_CUNO_MOORMANN);
+      }).not.toThrow();
+    });
+
+    it('should reject CUNO joint products WITHOUT profile (default scope)', () => {
+      const landed = calculateLandedCost(CUNO_LANDED_INPUT);
+      const level1 = calculateJointCostPool('CUNO-001', landed, 297.50, 350);
+      const level2 = calculateByProductCredit('CUNO-001', level1, []);
+
+      expect(() => {
+        calculateSVASOAllocation('CUNO-001', level2, CUNO_JOINT_PRODUCTS);
+      }).toThrow('SCOPE VIOLATION');
+    });
+
+    it('SVASO wiskunde is identiek: k-factor, allocatie, reconciliatie', () => {
+      const landed = calculateLandedCost(CUNO_LANDED_INPUT);
+      const level1 = calculateJointCostPool('CUNO-001', landed, 297.50, 350);
+      const level2 = calculateByProductCredit('CUNO-001', level1, []);
+      const result = calculateSVASOAllocation('CUNO-001', level2, CUNO_JOINT_PRODUCTS, PROFILE_CUNO_MOORMANN);
+
+      // k-factor = net_joint_cost / TMV
+      const expectedTMV = (200 * 15.35) + (150 * 8.00);
+      const expectedK = level2.net_joint_cost_eur / expectedTMV;
+      expect(result.k_factor).toBeCloseTo(expectedK, 4);
+      expect(result.k_factor_interpretation).toBe('PROFITABLE'); // k < 1
+
+      // Allocation factors sum to 1.0
+      expect(result.sum_allocation_factors).toBeCloseTo(1.0, 4);
+
+      // Reconciliation: sum = net_joint_cost
+      expect(result.sum_allocated_cost_eur).toBeCloseTo(level2.net_joint_cost_eur, 2);
+      expect(result.reconciliation_delta_eur).toBeLessThan(0.01);
+      expect(result.is_valid).toBe(true);
+    });
+
+    it('should have 2 allocations (filet_supremes + drumsticks)', () => {
+      const landed = calculateLandedCost(CUNO_LANDED_INPUT);
+      const level1 = calculateJointCostPool('CUNO-001', landed, 297.50, 350);
+      const level2 = calculateByProductCredit('CUNO-001', level1, []);
+      const result = calculateSVASOAllocation('CUNO-001', level2, CUNO_JOINT_PRODUCTS, PROFILE_CUNO_MOORMANN);
+
+      expect(result.allocations).toHaveLength(2);
+      expect(result.allocations.map(a => a.part_code).sort()).toEqual(
+        ['drumsticks', 'filet_supremes']
+      );
+    });
+
+    it('filet_supremes gets higher cost/kg than drumsticks (higher shadow price)', () => {
+      const landed = calculateLandedCost(CUNO_LANDED_INPUT);
+      const level1 = calculateJointCostPool('CUNO-001', landed, 297.50, 350);
+      const level2 = calculateByProductCredit('CUNO-001', level1, []);
+      const result = calculateSVASOAllocation('CUNO-001', level2, CUNO_JOINT_PRODUCTS, PROFILE_CUNO_MOORMANN);
+
+      const filet = result.allocations.find(a => a.part_code === 'filet_supremes')!;
+      const drums = result.allocations.find(a => a.part_code === 'drumsticks')!;
+
+      expect(filet.allocated_cost_per_kg).toBeGreaterThan(drums.allocated_cost_per_kg);
+    });
+  });
+
+  describe('Regression: ORANJEHOEN unchanged', () => {
+    it('existing SVASO test data produces identical results with and without profile', () => {
+      const landed = calculateLandedCost(TEST_LANDED_COST_INPUT);
+      const level1 = calculateJointCostPool('CANON-001', landed, 1400, 7000);
+      const level2 = calculateByProductCredit('CANON-001', level1, TEST_BY_PRODUCTS);
+
+      const withoutProfile = calculateSVASOAllocation('CANON-001', level2, TEST_JOINT_PRODUCTS);
+      const withProfile = calculateSVASOAllocation('CANON-001', level2, TEST_JOINT_PRODUCTS, PROFILE_ORANJEHOEN);
+
+      expect(withProfile.k_factor).toBe(withoutProfile.k_factor);
+      expect(withProfile.sum_allocated_cost_eur).toBe(withoutProfile.sum_allocated_cost_eur);
+      expect(withProfile.is_valid).toBe(withoutProfile.is_valid);
+
+      for (let i = 0; i < withoutProfile.allocations.length; i++) {
+        expect(withProfile.allocations[i].allocated_cost_per_kg).toBe(
+          withoutProfile.allocations[i].allocated_cost_per_kg
+        );
+        expect(withProfile.allocations[i].allocated_cost_total_eur).toBe(
+          withoutProfile.allocations[i].allocated_cost_total_eur
+        );
+      }
     });
   });
 });

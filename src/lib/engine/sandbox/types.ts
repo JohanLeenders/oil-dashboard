@@ -148,7 +148,7 @@ export interface DeltaResult {
 
   l3_k_factor_delta: number;
   l3_allocations: Array<{
-    part_code: JointProductCode;
+    part_code: JointProductCode | string;
     baseline_allocation_pct: number;
     scenario_allocation_pct: number;
     delta_pp: number;

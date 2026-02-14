@@ -11,8 +11,9 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import type { BatchInputData, BatchDerivedValues } from '@/lib/data/batch-input-store';
+import type { BatchInputData, BatchDerivedValues, JointProductEntry } from '@/lib/data/batch-input-store';
 import { computeDerivedValues } from '@/lib/data/batch-input-store';
+import { BATCH_PROFILES, getPartNameDutch } from '@/lib/engine/canonical-cost';
 import { MassBalancePanel } from './MassBalancePanel';
 import { formatEur, formatKg, formatPct } from '@/lib/data/demo-batch-v2';
 
@@ -27,6 +28,8 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
 
   const derived = useMemo(() => computeDerivedValues(data), [data]);
 
+  const isExternal = data.batch_profile !== 'oranjehoen';
+
   const update = useCallback(<K extends keyof BatchInputData>(key: K, value: BatchInputData[K]) => {
     setData(prev => ({ ...prev, [key]: value }));
   }, []);
@@ -40,12 +43,63 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
     }
   }, []);
 
+  const updateJointProduct = useCallback((idx: number, field: keyof JointProductEntry, raw: string) => {
+    const v = parseFloat(raw);
+    const val = (!isNaN(v) && v >= 0) ? v : 0;
+    setData(prev => {
+      const updated = [...prev.joint_products];
+      updated[idx] = { ...updated[idx], [field]: val };
+      return { ...prev, joint_products: updated };
+    });
+  }, []);
+
+  const addJointProduct = useCallback(() => {
+    setData(prev => ({
+      ...prev,
+      joint_products: [
+        ...prev.joint_products,
+        { part_code: '', weight_kg: 0, shadow_price_per_kg: 0, selling_price_per_kg: 0 },
+      ],
+    }));
+  }, []);
+
+  const removeJointProduct = useCallback((idx: number) => {
+    setData(prev => ({
+      ...prev,
+      joint_products: prev.joint_products.filter((_, i) => i !== idx),
+    }));
+  }, []);
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Left column: Form sections */}
       <div className="lg:col-span-2 space-y-6">
         {/* SECTIE 0: Header */}
         <SectionHeader data={data} derived={derived} />
+
+        {/* PROFIEL SELECTOR */}
+        <div className="bg-white rounded-lg border border-gray-200 p-4">
+          <label className="block text-xs font-semibold text-gray-500 uppercase mb-2">Verwerkingsprofiel</label>
+          <div className="flex rounded-lg border border-gray-300 overflow-hidden">
+            {BATCH_PROFILES.map(profile => (
+              <button
+                key={profile.profile_id}
+                type="button"
+                onClick={() => update('batch_profile', profile.profile_id)}
+                className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
+                  data.batch_profile === profile.profile_id
+                    ? 'bg-blue-600 text-white'
+                    : 'bg-white text-gray-600 hover:bg-gray-50'
+                }`}
+              >
+                {profile.profile_name}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-gray-400 mt-1">
+            {BATCH_PROFILES.find(p => p.profile_id === data.batch_profile)?.description ?? ''}
+          </p>
+        </div>
 
         {/* SECTIE 1: Basis (Level 0) */}
         <FormSection title="1. Basis (Aanvoer)" level={0} color="blue">
@@ -132,76 +186,173 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
         </FormSection>
 
         {/* SECTIE 3: Joint Products (Level 3 Input) */}
-        <FormSection title="3. Hoofdproducten (Joint)" level={3} color="purple">
-          <div className="grid grid-cols-3 gap-4">
-            <NumberField
-              label="Borstkap"
-              value={data.breast_cap_kg}
-              onChange={(v) => updateNum('breast_cap_kg', v)}
-              unit="kg"
-            />
-            <NumberField
-              label="Bouten / poten"
-              value={data.legs_kg}
-              onChange={(v) => updateNum('legs_kg', v)}
-              unit="kg"
-            />
-            <NumberField
-              label="Vleugels"
-              value={data.wings_kg}
-              onChange={(v) => updateNum('wings_kg', v)}
-              unit="kg"
-            />
-          </div>
-          <div className="mt-3 grid grid-cols-4 gap-3 text-sm">
-            <ReadOnlyField label="Som joint" value={formatKg(derived.joint_total_kg)} />
-            <ReadOnlyField label="Borstkap %" value={formatPct(derived.breast_cap_pct)} />
-            <ReadOnlyField label="Bouten %" value={formatPct(derived.legs_pct)} />
-            <ReadOnlyField label="Vleugels %" value={formatPct(derived.wings_pct)} />
-          </div>
-        </FormSection>
-
-        {/* SECTIE 4: Sub-cuts (Level 4 Input) */}
-        <FormSection title="4. Sub-cuts" level={4} color="indigo">
-          {/* Borstkap sub-cuts */}
-          <div className="mb-4">
-            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Borstkap → Sub-cuts</h4>
+        {!isExternal ? (
+          <FormSection title="3. Hoofdproducten (Joint)" level={3} color="purple">
             <div className="grid grid-cols-3 gap-4">
               <NumberField
-                label="Filet"
-                value={data.filet_kg}
-                onChange={(v) => updateNum('filet_kg', v)}
+                label="Borstkap"
+                value={data.breast_cap_kg}
+                onChange={(v) => updateNum('breast_cap_kg', v)}
                 unit="kg"
               />
-              <ReadOnlyField label="Rest/trim" value={formatKg(derived.breast_rest_trim_kg)} />
-              <ReadOnlyField label="Filet % v. borstkap" value={formatPct(derived.filet_pct_of_breast)} />
+              <NumberField
+                label="Bouten / poten"
+                value={data.legs_kg}
+                onChange={(v) => updateNum('legs_kg', v)}
+                unit="kg"
+              />
+              <NumberField
+                label="Vleugels"
+                value={data.wings_kg}
+                onChange={(v) => updateNum('wings_kg', v)}
+                unit="kg"
+              />
             </div>
-          </div>
+            <div className="mt-3 grid grid-cols-4 gap-3 text-sm">
+              <ReadOnlyField label="Som joint" value={formatKg(derived.joint_total_kg)} />
+              <ReadOnlyField label="Borstkap %" value={formatPct(derived.breast_cap_pct)} />
+              <ReadOnlyField label="Bouten %" value={formatPct(derived.legs_pct)} />
+              <ReadOnlyField label="Vleugels %" value={formatPct(derived.wings_pct)} />
+            </div>
+          </FormSection>
+        ) : (
+          <FormSection title="3. Producten (Extern)" level={3} color="purple">
+            <div className="space-y-3">
+              {/* Column headers */}
+              <div className="grid grid-cols-12 gap-2 text-xs text-gray-500 font-medium">
+                <span className="col-span-3">Product code</span>
+                <span className="col-span-2 text-right">Gewicht</span>
+                <span className="col-span-2 text-right">Schaduwprijs</span>
+                <span className="col-span-2 text-right">Verkoopprijs</span>
+                <span className="col-span-2 text-right">Marktwaarde</span>
+                <span className="col-span-1" />
+              </div>
 
-          {/* Bouten sub-cuts */}
-          <div>
-            <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Bouten → Sub-cuts</h4>
-            <div className="grid grid-cols-2 gap-4">
-              <NumberField
-                label="Dijfilet"
-                value={data.thigh_fillet_kg}
-                onChange={(v) => updateNum('thigh_fillet_kg', v)}
-                unit="kg"
-              />
-              <NumberField
-                label="Drumvlees"
-                value={data.drum_meat_kg}
-                onChange={(v) => updateNum('drum_meat_kg', v)}
-                unit="kg"
+              {data.joint_products.map((jp, idx) => (
+                <div key={idx} className="grid grid-cols-12 gap-2 items-center">
+                  <div className="col-span-3">
+                    <input
+                      type="text"
+                      value={jp.part_code}
+                      onChange={(e) => {
+                        setData(prev => {
+                          const updated = [...prev.joint_products];
+                          updated[idx] = { ...updated[idx], part_code: e.target.value };
+                          return { ...prev, joint_products: updated };
+                        });
+                      }}
+                      placeholder="bijv. filet_supremes"
+                      className="border border-gray-300 rounded px-2 py-1.5 text-sm w-full"
+                    />
+                    <span className="text-[10px] text-gray-400">{getPartNameDutch(jp.part_code)}</span>
+                  </div>
+                  <div className="col-span-2">
+                    <NumberField
+                      label=""
+                      value={jp.weight_kg}
+                      onChange={(v) => updateJointProduct(idx, 'weight_kg', v)}
+                      unit="kg"
+                      inline
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <NumberField
+                      label=""
+                      value={jp.shadow_price_per_kg}
+                      onChange={(v) => updateJointProduct(idx, 'shadow_price_per_kg', v)}
+                      unit="€/kg"
+                      inline
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="col-span-2">
+                    <NumberField
+                      label=""
+                      value={jp.selling_price_per_kg ?? 0}
+                      onChange={(v) => updateJointProduct(idx, 'selling_price_per_kg', v)}
+                      unit="€/kg"
+                      inline
+                      step="0.01"
+                    />
+                  </div>
+                  <div className="col-span-2 text-right text-sm text-gray-600">
+                    {formatEur(jp.weight_kg * jp.shadow_price_per_kg)}
+                  </div>
+                  <div className="col-span-1 text-right">
+                    <button
+                      type="button"
+                      onClick={() => removeJointProduct(idx)}
+                      className="text-red-400 hover:text-red-600 text-sm px-1"
+                      title="Verwijder product"
+                    >
+                      ×
+                    </button>
+                  </div>
+                </div>
+              ))}
+
+              <button
+                type="button"
+                onClick={addJointProduct}
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                + Product toevoegen
+              </button>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-3 text-sm">
+              <ReadOnlyField label="Som joint kg" value={formatKg(derived.joint_total_kg)} />
+              <ReadOnlyField
+                label="Totaal marktwaarde"
+                value={formatEur(data.joint_products.reduce((s, jp) => s + jp.weight_kg * jp.shadow_price_per_kg, 0))}
               />
             </div>
-            <div className="mt-2 grid grid-cols-3 gap-3 text-sm">
-              <ReadOnlyField label="Rest/trim" value={formatKg(derived.legs_rest_trim_kg)} />
-              <ReadOnlyField label="Dijfilet %" value={formatPct(derived.thigh_pct_of_legs)} />
-              <ReadOnlyField label="Drumvlees %" value={formatPct(derived.drum_pct_of_legs)} />
+          </FormSection>
+        )}
+
+        {/* SECTIE 4: Sub-cuts (Level 4 Input) — only for internal profile */}
+        {!isExternal && (
+          <FormSection title="4. Sub-cuts" level={4} color="indigo">
+            {/* Borstkap sub-cuts */}
+            <div className="mb-4">
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Borstkap → Sub-cuts</h4>
+              <div className="grid grid-cols-3 gap-4">
+                <NumberField
+                  label="Filet"
+                  value={data.filet_kg}
+                  onChange={(v) => updateNum('filet_kg', v)}
+                  unit="kg"
+                />
+                <ReadOnlyField label="Rest/trim" value={formatKg(derived.breast_rest_trim_kg)} />
+                <ReadOnlyField label="Filet % v. borstkap" value={formatPct(derived.filet_pct_of_breast)} />
+              </div>
             </div>
-          </div>
-        </FormSection>
+
+            {/* Bouten sub-cuts */}
+            <div>
+              <h4 className="text-xs font-semibold text-gray-500 uppercase mb-2">Bouten → Sub-cuts</h4>
+              <div className="grid grid-cols-2 gap-4">
+                <NumberField
+                  label="Dijfilet"
+                  value={data.thigh_fillet_kg}
+                  onChange={(v) => updateNum('thigh_fillet_kg', v)}
+                  unit="kg"
+                />
+                <NumberField
+                  label="Drumvlees"
+                  value={data.drum_meat_kg}
+                  onChange={(v) => updateNum('drum_meat_kg', v)}
+                  unit="kg"
+                />
+              </div>
+              <div className="mt-2 grid grid-cols-3 gap-3 text-sm">
+                <ReadOnlyField label="Rest/trim" value={formatKg(derived.legs_rest_trim_kg)} />
+                <ReadOnlyField label="Dijfilet %" value={formatPct(derived.thigh_pct_of_legs)} />
+                <ReadOnlyField label="Drumvlees %" value={formatPct(derived.drum_pct_of_legs)} />
+              </div>
+            </div>
+          </FormSection>
+        )}
 
         {/* SECTIE 5: By-Products (Level 2 Input) */}
         <FormSection title="5. Bijproducten" level={2} color="emerald">
