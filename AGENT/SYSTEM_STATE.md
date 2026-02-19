@@ -1,8 +1,8 @@
 # SYSTEM_STATE.md — Oranjehoen Commercial Dashboard
 
-**Version:** 1.3.0
+**Version:** 1.3.1
 **Last Updated:** 2026-02-19
-**Updated By:** OIL Order Module — Wave 1 (Phase 1)
+**Updated By:** OIL Order Module — Wave 1 Migration Gate (Phase 1)
 
 ---
 
@@ -45,7 +45,8 @@ The governance triangle that governs all sprint work:
 
 ## 2. SCHEMA STATUS
 
-**Total migrations:** 120 (119 applied ✅ + 1 pending order module)
+**Total migrations:** 120 (all applied ✅)
+**Migration Gate:** ✅ Verified 2026-02-19 14:34 — `supabase db push` succeeded, 4 tables + 3 enums confirmed on remote DB via REST API
 **Migration range:** `20260124100000` → `20260219100000`
 
 ### Core Tables
@@ -67,10 +68,10 @@ The governance triangle that governs all sprint work:
 | cost_drivers | 113 | ✅ Applied | Operational cost definitions |
 | price_scenarios | 117 | ✅ Applied | What-if price simulations |
 | sandbox_scenarios | 20260212210000 | ✅ Applied | Scenario sandbox storage |
-| **slaughter_calendar** | **20260219100000** | **⏳ Pending** | **Order module: planned slaughter dates** |
-| **customer_orders** | **20260219100000** | **⏳ Pending** | **Order module: orders per customer per slaughter** |
-| **order_lines** | **20260219100000** | **⏳ Pending** | **Order module: order line items** |
-| **order_schema_snapshots** | **20260219100000** | **⏳ Pending** | **Order module: append-only formalized schemas** |
+| slaughter_calendar | 20260219100000 | ✅ Applied | Order module: planned slaughter dates |
+| customer_orders | 20260219100000 | ✅ Applied | Order module: orders per customer per slaughter |
+| order_lines | 20260219100000 | ✅ Applied | Order module: order line items |
+| order_schema_snapshots | 20260219100000 | ✅ Applied | Order module: append-only formalized schemas |
 
 ### Key Views
 
@@ -154,6 +155,7 @@ During schema bootstrap (2026-02-12), the following migrations required fixes:
 | 107 | varchar = enum JOIN mismatch | Added `::text` cast |
 | 109 | Multiple enum-text COALESCE/JOIN mismatches | Added 3× `::text` casts |
 | 112 | CHECK constraint blocks negative by-product prices | Removed CHECK constraint |
+| 20260219100000 | `WHERE status != 'cancelled'::slaughter_status` — invalid enum value in partial index | Changed to plain unique index on `slaughter_date` (commit `8fcd8d9`) |
 
 ---
 
