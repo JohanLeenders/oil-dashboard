@@ -1,8 +1,8 @@
 # SYSTEM_STATE.md — Oranjehoen Commercial Dashboard
 
-**Version:** 1.2.0
-**Last Updated:** 2026-02-12
-**Updated By:** Governance Triangle Completion
+**Version:** 1.3.0
+**Last Updated:** 2026-02-19
+**Updated By:** OIL Order Module — Wave 1 (Phase 1)
 
 ---
 
@@ -45,8 +45,8 @@ The governance triangle that governs all sprint work:
 
 ## 2. SCHEMA STATUS
 
-**Total migrations:** 118 (all applied ✅)
-**Migration range:** `20260124100001` → `20260124100118`
+**Total migrations:** 120 (119 applied ✅ + 1 pending order module)
+**Migration range:** `20260124100000` → `20260219100000`
 
 ### Core Tables
 
@@ -66,6 +66,11 @@ The governance triangle that governs all sprint work:
 | std_prices | 112 | ✅ Applied | SVASO allocation price vectors |
 | cost_drivers | 113 | ✅ Applied | Operational cost definitions |
 | price_scenarios | 117 | ✅ Applied | What-if price simulations |
+| sandbox_scenarios | 20260212210000 | ✅ Applied | Scenario sandbox storage |
+| **slaughter_calendar** | **20260219100000** | **⏳ Pending** | **Order module: planned slaughter dates** |
+| **customer_orders** | **20260219100000** | **⏳ Pending** | **Order module: orders per customer per slaughter** |
+| **order_lines** | **20260219100000** | **⏳ Pending** | **Order module: order line items** |
+| **order_schema_snapshots** | **20260219100000** | **⏳ Pending** | **Order module: append-only formalized schemas** |
 
 ### Key Views
 
@@ -106,6 +111,7 @@ The governance triangle that governs all sprint work:
 | 10 | Scenario Engine & Pricing Lab | ⏸ BLOCKED (→9) | — | — |
 | 11A | Scenario Sandbox v1 (Baseline vs Scenario) | ✅ DONE | 382 pass | ✅ |
 | 11B | Process Chain Editor v1 | 📐 DESIGNED | — | — |
+| **OM-W1** | **Order Module Wave 1 (Schema + Nav + QA)** | **✅ DONE** | **521 pass** | **✅** |
 
 ---
 
@@ -128,6 +134,8 @@ The governance triangle that governs all sprint work:
 | `/oil/trends` | Historical trends | v_part_trend_over_time | ✅ Active |
 | `/oil/alignment` | Carcass alignment | v_customer_carcass_alignment | ✅ Active |
 | `/oil/batches/[id]/sandbox` | Scenario sandbox (baseline vs scenario) | Canonical engine wrapper | ✅ Active |
+| `/oil/planning` | Slaughter calendar & availability planning | slaughter_calendar (future) | 🔧 Placeholder |
+| `/oil/orders` | Order management & bestelschema | customer_orders (future) | 🔧 Placeholder |
 
 ---
 
@@ -153,7 +161,7 @@ During schema bootstrap (2026-02-12), the following migrations required fixes:
 
 ### 6.1 Code Quality
 - **17× `as any` TypeScript assertions** — Need proper Supabase types (Fase 2)
-- **No git repository** — Project not version-controlled yet
+- ~~No git repository~~ → Git initialized, baseline commit `5408817` ✅
 
 ### 6.2 Data
 - **Empty database** — Schema applied but no seed data loaded

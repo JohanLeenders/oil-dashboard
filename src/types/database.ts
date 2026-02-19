@@ -41,6 +41,23 @@ export type SignalSeverity = 'info' | 'warning' | 'critical';
 
 export type SignalStatus = 'open' | 'acknowledged' | 'resolved' | 'dismissed';
 
+// Order Module Enums (Data Contracts v1 — §4.9)
+
+export type SlaughterStatus =
+  | 'planned'
+  | 'orders_open'
+  | 'finalized'
+  | 'slaughtered'
+  | 'completed';
+
+export type OrderStatus =
+  | 'draft'
+  | 'submitted'
+  | 'confirmed'
+  | 'cancelled';
+
+export type SnapshotType = 'draft' | 'finalized';
+
 // ============================================================================
 // TABLE TYPES
 // ============================================================================
@@ -908,4 +925,131 @@ export interface SandboxScenario {
   result_json: Record<string, unknown> | null;  // ScenarioResult
   created_at: string;
   updated_at: string;
+}
+
+// ============================================================================
+// ORDER MODULE TYPES — Phase 1 Core Tables
+// ============================================================================
+
+/**
+ * Mester breakdown entry in slaughter_calendar.mester_breakdown JSONB
+ */
+export interface MesterBreakdown {
+  mester: string;
+  birds: number;
+  avg_weight_kg: number;
+}
+
+/**
+ * Order Module: Slaughter calendar — planned slaughter dates with expected quantities
+ * Table: slaughter_calendar
+ * Status workflow: planned → orders_open → finalized → slaughtered → completed
+ */
+export interface SlaughterCalendar {
+  id: string;
+  slaughter_date: string;
+  week_number: number;
+  year: number;
+  expected_birds: number;
+  expected_live_weight_kg: number;
+  mester_breakdown: MesterBreakdown[];
+  slaughter_location: string | null;
+  status: SlaughterStatus;
+  order_deadline: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+/**
+ * Order Module: Customer orders per slaughter date
+ * Table: customer_orders
+ * Status workflow: draft → submitted → confirmed → cancelled
+ */
+export interface CustomerOrder {
+  id: string;
+  slaughter_id: string;
+  customer_id: string;
+  status: OrderStatus;
+  total_kg: number;
+  total_lines: number;
+  notes: string | null;
+  submitted_at: string | null;
+  confirmed_at: string | null;
+  confirmed_by: string | null;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+/**
+ * Order Module: Order lines per product
+ * Table: order_lines
+ */
+export interface OrderLine {
+  id: string;
+  order_id: string;
+  product_id: string;
+  quantity_kg: number;
+  quantity_pieces: number | null;
+  unit_price_eur: number | null;
+  notes: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+}
+
+/**
+ * Order Module: Formalized order schemas (APPEND-ONLY)
+ * Table: order_schema_snapshots
+ * NOTE: This table is append-only. No UPDATE or DELETE allowed.
+ */
+export interface OrderSchemaSnapshot {
+  id: string;
+  slaughter_id: string;
+  snapshot_type: SnapshotType;
+  schema_data: OrderSchemaData;
+  version: number;
+  snapshot_date: string;
+  notes: string | null;
+  created_at: string;
+  created_by: string | null;
+}
+
+/**
+ * Order Module: Schema data structure for order_schema_snapshots.schema_data
+ * Data Contract v1 (§4.9)
+ */
+export interface OrderSchemaData {
+  slaughter_id: string;
+  snapshot_date: string;
+  availability: OrderSchemaAvailability[];
+  orders: OrderSchemaCustomerOrder[];
+  surplus_deficit: OrderSchemaSurplusDeficit[];
+}
+
+export interface OrderSchemaAvailability {
+  product_id: string;
+  product_name: string;
+  location: 'putten' | 'nijkerk';
+  expected_kg: number;
+}
+
+export interface OrderSchemaCustomerOrder {
+  customer_id: string;
+  customer_name: string;
+  lines: OrderSchemaLine[];
+}
+
+export interface OrderSchemaLine {
+  product_id: string;
+  quantity_kg: number;
+}
+
+export interface OrderSchemaSurplusDeficit {
+  product_id: string;
+  available_kg: number;
+  ordered_kg: number;
+  delta_kg: number;
 }
