@@ -13,6 +13,8 @@ import { notFound } from 'next/navigation';
 import Link from 'next/link';
 import { getSlaughterDetail } from '@/lib/actions/planning';
 import SlaughterDetail from '@/components/oil/planning/SlaughterDetail';
+import AvailabilityTable from '@/components/oil/planning/AvailabilityTable';
+import EstimateVsActual from '@/components/oil/planning/EstimateVsActual';
 
 interface SlaughterDetailPageProps {
   params: Promise<{ slaughterId: string }>;
@@ -53,6 +55,8 @@ export default async function SlaughterDetailPage({ params }: SlaughterDetailPag
       </div>
 
       <SlaughterDetail slaughter={slaughter} />
+      <AvailabilityTable expectedLiveWeightKg={slaughter.expected_live_weight_kg} />
+      <EstimateVsActual />
     </div>
   );
 }

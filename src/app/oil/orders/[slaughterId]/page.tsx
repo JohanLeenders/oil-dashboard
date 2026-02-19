@@ -76,6 +76,7 @@ export default async function SlaughterOrdersPage({ params }: PageProps) {
         customers={customers}
         products={products}
         initialSnapshots={snapshots}
+        slaughterDate={slaughter.slaughter_date}
       />
     </div>
   );

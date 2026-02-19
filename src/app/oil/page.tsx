@@ -9,6 +9,7 @@
 
 import Link from 'next/link';
 import { getBatchStats } from '@/lib/actions/batches';
+import OrderStatusTiles from '@/components/oil/dashboard/OrderStatusTiles';
 
 export default async function OilDashboardPage() {
   const stats = await getBatchStats();
@@ -46,6 +47,9 @@ export default async function OilDashboardPage() {
           alert={stats.batches_needs_review > 0 || stats.batches_tht_warning > 0}
         />
       </div>
+
+      {/* Order Status */}
+      <OrderStatusTiles />
 
       {/* Quick Links */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
