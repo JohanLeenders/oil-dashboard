@@ -85,8 +85,7 @@ CREATE TABLE slaughter_calendar (
 CREATE INDEX idx_slaughter_calendar_date ON slaughter_calendar(slaughter_date);
 CREATE INDEX idx_slaughter_calendar_status ON slaughter_calendar(status);
 CREATE INDEX idx_slaughter_calendar_week_year ON slaughter_calendar(year, week_number);
-CREATE UNIQUE INDEX idx_slaughter_calendar_unique_date ON slaughter_calendar(slaughter_date)
-  WHERE status != 'cancelled'::slaughter_status;
+CREATE UNIQUE INDEX idx_slaughter_calendar_unique_date ON slaughter_calendar(slaughter_date);
 
 -- updated_at trigger
 CREATE TRIGGER trg_slaughter_calendar_updated_at
