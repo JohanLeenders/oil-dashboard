@@ -1053,3 +1053,64 @@ export interface OrderSchemaSurplusDeficit {
   ordered_kg: number;
   delta_kg: number;
 }
+
+// ============================================================================
+// PROCESSING MODULE TYPES — Phase 1 Wave 4
+// ============================================================================
+
+/**
+ * Processing instruction status enum
+ */
+export type ProcessingInstructionStatus = 'pending' | 'in_progress' | 'completed' | 'cancelled';
+
+/**
+ * Processing Module: Recipes per product
+ * Table: processing_recipes
+ */
+export interface ProcessingRecipe {
+  id: string;
+  product_id: string;
+  recipe_name: string;
+  yield_percentage: number | null;
+  instructions_json: Record<string, unknown> | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+  created_by: string | null;
+}
+
+/**
+ * Processing Module: Generated processing instructions (APPEND-ONLY)
+ * Table: processing_instructions
+ * NOTE: This table is append-only. No UPDATE or DELETE allowed.
+ */
+export interface ProcessingInstruction {
+  id: string;
+  snapshot_id: string;
+  recipe_id: string;
+  instruction_data: ProcessingInstructionData;
+  status: ProcessingInstructionStatus;
+  generated_at: string;
+  created_by: string | null;
+}
+
+/**
+ * Processing instruction data structure
+ * Stored in processing_instructions.instruction_data JSONB
+ */
+export interface ProcessingInstructionData {
+  recipe_id: string;
+  recipe_name: string;
+  product_id: string;
+  product_name: string;
+  quantity_kg: number;
+  yield_percentage: number | null;
+  expected_output_kg: number | null;
+  steps: ProcessingStep[];
+}
+
+export interface ProcessingStep {
+  step_number: number;
+  description: string;
+  parameters?: Record<string, unknown>;
+}

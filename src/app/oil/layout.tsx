@@ -20,6 +20,8 @@ const NAV_ITEMS = [
   { href: '/oil/customers', label: 'Klanten' },
   { href: '/oil/planning', label: 'Planning' },
   { href: '/oil/orders', label: 'Orders' },
+  { href: '/oil/processing', label: 'Verwerking' },
+  { href: '/oil/exports', label: 'Exports' },
 ];
 
 export default function OilLayout({

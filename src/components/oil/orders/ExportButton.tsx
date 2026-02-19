@@ -6,9 +6,11 @@
  * REGRESSIE-CHECK:
  * - Pure client component, no DB access
  * - Uses exportOrderSchemaToExcel (pure function)
+ * - Validates with validateForStorteboom before export
  */
 
 import { exportOrderSchemaToExcel } from '@/lib/export/orderSchemaExport';
+import { validateForStorteboom } from '@/lib/export/storteboomValidator';
 import type { OrderSchemaData } from '@/types/database';
 
 interface ExportButtonProps {
@@ -18,6 +20,25 @@ interface ExportButtonProps {
 
 export default function ExportButton({ schemaData, slaughterDate }: ExportButtonProps) {
   function handleExport() {
+    // Validate before export
+    const validation = validateForStorteboom(schemaData);
+
+    if (!validation.valid) {
+      alert(
+        'Export niet mogelijk:\n\n' + validation.errors.map((e) => '• ' + e).join('\n')
+      );
+      return;
+    }
+
+    if (validation.warnings.length > 0) {
+      const proceed = confirm(
+        'Waarschuwingen:\n\n' +
+          validation.warnings.map((w) => '• ' + w).join('\n') +
+          '\n\nDoorgaan met export?'
+      );
+      if (!proceed) return;
+    }
+
     const buffer = exportOrderSchemaToExcel(schemaData, slaughterDate);
     const blob = new Blob([buffer.buffer as ArrayBuffer], {
       type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
