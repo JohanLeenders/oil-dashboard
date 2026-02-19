@@ -1,8 +1,8 @@
 # OIL System State - Logboek
 
 **Project:** Oranjehoen Intelligence Layer (OIL)
-**Laatste Update:** 2026-01-24 (Verification Patch)
-**Huidige Fase:** Fase 2 - UI & Visualisatie
+**Laatste Update:** 2026-02-19 (Order Module Wave 2)
+**Huidige Fase:** Order Module Phase 1 — Wave 2 Complete
 
 ---
 
@@ -204,6 +204,40 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
   - No writes, no edits, no auto-corrections
 - ✅ All components read-only, v_effective_* views only
 
+### 2026-02-19 - Wave 1 (Order Module Schema)
+- ✅ Migration: 20260219100000_order_module_core_tables.sql applied to remote DB
+- ✅ Enums: slaughter_status, order_status, snapshot_type
+- ✅ Tables: slaughter_calendar, customer_orders, order_lines, order_schema_snapshots
+- ✅ TypeScript types added to src/types/database.ts
+- ✅ Append-only enforced on order_schema_snapshots (no update trigger)
+- ✅ All 120 migrations applied and verified
+
+### 2026-02-19 - Wave 2 (Order Module Core Workflow)
+- ✅ **A1-S1 Planning UI** — Read-only slaughter calendar
+  - /oil/planning: List upcoming slaughter dates from slaughter_calendar
+  - /oil/planning/[slaughterId]: Detail with mester breakdown, status, notes
+  - Server actions: getSlaughterCalendar(), getSlaughterDetail()
+  - Components: SlaughterCalendarList, SlaughterDetail
+- ✅ **A2-S1 Orders UI** — Order intake MVP
+  - /oil/orders: Slaughter dates overview with order counts
+  - /oil/orders/[slaughterId]: Order management per slaughter date
+  - Create customer_orders (draft status), add/remove order_lines
+  - Components: OrderList, OrderEntryForm, OrderLineEditor, SnapshotPanel
+  - Server actions: full CRUD (getOrdersForSlaughter, createCustomerOrder, addOrderLine, removeOrderLine)
+- ✅ **A2-S2 Orders Engine** — Aggregation + snapshot
+  - buildOrderSchema(): aggregate order_lines per product
+  - computeSurplusDeficit(): availability minus ordered (Wave 2: stub availability = 0)
+  - createDraftSnapshot(): builds OrderSchemaData + INSERT into order_schema_snapshots (APPEND-ONLY)
+  - 11 unit tests covering both engine functions
+- ✅ **QA+Security Review** — All sprintlets passed
+  - No protected engine files touched
+  - No controlled assets modified by non-owners
+  - Append-only preserved on order_schema_snapshots
+  - No batch_yields integration (theoretical only)
+  - No MS Graph / SharePoint / email code
+- ✅ **Gates**: 532 tests passed, clean build, zero lint warnings
+- ⏳ **A0-S1b Infra Schema** — Deferred to Wave 3 (customer_order_profiles, customer_contract_defaults)
+
 ---
 
 ## 8. Bekende Issues / Aandachtspunten
@@ -224,6 +258,8 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
 | `003_seed_demo_data.sql` | Demo batches en klanten |
 | `004_sku_provenance.sql` | technical_definitions table + provenance records |
 | `005_effective_views.sql` | v_effective_* views, append-only protection |
+| `20260212210000_table_sandbox_scenarios.sql` | Sprint 11A sandbox scenarios table |
+| `20260219100000_order_module_core_tables.sql` | Wave 1: slaughter_calendar, customer_orders, order_lines, order_schema_snapshots + enums |
 
 ---
 
