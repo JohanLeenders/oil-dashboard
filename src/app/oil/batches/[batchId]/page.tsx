@@ -48,15 +48,15 @@ export default async function BatchDetailPage({ params }: PageProps) {
           <div className="flex items-center gap-2">
             <Link
               href="/oil/batches"
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:text-gray-600"
             >
               ← Batches
             </Link>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mt-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
             Batch {batch.batch_ref}
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-600 mt-1">
             Slachtdatum: {formatDate(batch.slaughter_date)} | Status: {batch.status}
           </p>
         </div>
@@ -111,8 +111,8 @@ export default async function BatchDetailPage({ params }: PageProps) {
         />
 
         {/* Weight KPIs */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h4 className="text-sm font-medium text-gray-500 mb-4">Gewichten</h4>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-500 mb-4">Gewichten</h4>
           <div className="space-y-3">
             <KpiRow
               label="Levend gewicht"
@@ -139,8 +139,8 @@ export default async function BatchDetailPage({ params }: PageProps) {
         </div>
 
         {/* Loss KPIs */}
-        <div className="bg-white rounded-lg border border-gray-200 p-4">
-          <h4 className="text-sm font-medium text-gray-500 mb-4">Verliesstromen</h4>
+        <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+          <h4 className="text-sm font-medium text-gray-500 dark:text-gray-500 mb-4">Verliesstromen</h4>
           <div className="space-y-3">
             <KpiRow
               label="Afkeur/DOA"
@@ -171,12 +171,12 @@ export default async function BatchDetailPage({ params }: PageProps) {
           Per Sprint 1: "Optioneel: Sankey (uitleg, niet leidend)"
           ================================================================ */}
       {massBalance && (
-        <details className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-          <summary className="px-6 py-4 cursor-pointer font-semibold text-gray-900 hover:bg-gray-50 transition-colors">
+        <details className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+          <summary className="px-6 py-4 cursor-pointer font-semibold text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:bg-gray-900 transition-colors">
             Massabalans Flow Diagram (uitleg) — Klik om te tonen
           </summary>
-          <div className="p-6 border-t border-gray-200">
-            <p className="text-sm text-gray-500 mb-4">
+          <div className="p-6 border-t border-gray-200 dark:border-gray-700">
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
               Dit diagram is een visuele uitleg van de massabalans. De tabel hierboven is leidend.
             </p>
             <MassBalanceSankey massBalance={massBalance} />
@@ -185,58 +185,58 @@ export default async function BatchDetailPage({ params }: PageProps) {
       )}
 
       {/* Yields Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Cut-Up Yields (Effective)
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-500">
             Data uit v_effective_batch_yields (correcties geresolved)
           </p>
         </div>
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Onderdeel
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Gewicht (kg)
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Yield %
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Target
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Delta
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Status
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
             {yields.length === 0 ? (
               <tr>
-                <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={6} className="px-6 py-8 text-center text-gray-500 dark:text-gray-500">
                   Geen yield data beschikbaar
                 </td>
               </tr>
             ) : (
               yields.map((y, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900">
+                <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100">
                     {formatPartName(y.anatomical_part)}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 text-right">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 text-right">
                     {y.actual_weight_kg.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 text-right">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 text-right">
                     {y.yield_pct ? `${y.yield_pct.toFixed(2)}%` : '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500 text-right">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500 text-right">
                     {y.target_yield_min && y.target_yield_max
                       ? `${y.target_yield_min}-${y.target_yield_max}%`
                       : '-'}
@@ -244,7 +244,7 @@ export default async function BatchDetailPage({ params }: PageProps) {
                   <td className={`px-6 py-4 text-sm text-right font-medium ${
                     y.delta_from_target
                       ? y.delta_from_target > 0 ? 'text-green-600' : 'text-red-600'
-                      : 'text-gray-400'
+                      : 'text-gray-400 dark:text-gray-500'
                   }`}>
                     {y.delta_from_target
                       ? `${y.delta_from_target > 0 ? '+' : ''}${y.delta_from_target.toFixed(2)}%`
@@ -254,7 +254,7 @@ export default async function BatchDetailPage({ params }: PageProps) {
                     <span className={`text-xs px-2 py-1 rounded ${
                       y.data_status === 'CORRECTED'
                         ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-600'
                     }`}>
                       {y.data_status}
                     </span>
@@ -267,62 +267,62 @@ export default async function BatchDetailPage({ params }: PageProps) {
       </div>
 
       {/* Costs Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Kosten (Effective)
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-500">
             Data uit v_effective_batch_costs (adjustments geresolved)
           </p>
         </div>
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Type
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Omschrijving
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Bedrag
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Factuur
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Status
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
             {costs.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-6 py-8 text-center text-gray-500">
+                <td colSpan={5} className="px-6 py-8 text-center text-gray-500 dark:text-gray-500">
                   Geen kostendata beschikbaar
                 </td>
               </tr>
             ) : (
               costs.map((c, i) => (
-                <tr key={i} className="hover:bg-gray-50">
-                  <td className="px-6 py-4 text-sm font-medium text-gray-900 capitalize">
+                <tr key={i} className="hover:bg-gray-50 dark:bg-gray-900">
+                  <td className="px-6 py-4 text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
                     {c.cost_type}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-600">
+                  <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-600">
                     {c.description || '-'}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-900 text-right">
+                  <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 text-right">
                     €{c.amount.toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-500">
+                  <td className="px-6 py-4 text-sm text-gray-500 dark:text-gray-500">
                     {c.invoice_ref || '-'}
                   </td>
                   <td className="px-6 py-4 text-center">
                     <span className={`text-xs px-2 py-1 rounded ${
                       c.cost_status === 'ADJUSTMENT'
                         ? 'bg-blue-100 text-blue-700'
-                        : 'bg-gray-100 text-gray-600'
+                        : 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-600'
                     }`}>
                       {c.cost_status}
                     </span>
@@ -333,10 +333,10 @@ export default async function BatchDetailPage({ params }: PageProps) {
           </tbody>
         </table>
         {costs.length > 0 && (
-          <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+          <div className="px-6 py-4 border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900">
             <div className="flex justify-between items-center">
-              <span className="font-medium text-gray-900">Totaal</span>
-              <span className="font-bold text-gray-900">
+              <span className="font-medium text-gray-900 dark:text-gray-100">Totaal</span>
+              <span className="font-bold text-gray-900 dark:text-gray-100">
                 €{costs.reduce((sum, c) => sum + c.amount, 0).toLocaleString('nl-NL', { minimumFractionDigits: 2 })}
               </span>
             </div>
@@ -369,8 +369,8 @@ function KpiRow({
 }) {
   return (
     <div className="flex justify-between items-center">
-      <span className="text-sm text-gray-600">{label}</span>
-      <span className={`text-sm font-medium ${highlight ? 'text-orange-600' : 'text-gray-900'}`}>
+      <span className="text-sm text-gray-600 dark:text-gray-600">{label}</span>
+      <span className={`text-sm font-medium ${highlight ? 'text-orange-600' : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </span>
     </div>
@@ -501,23 +501,23 @@ function TrueUpDeltaSection({
   const underPerformers = yieldsWithDelta.filter(y => (y.delta_from_target || 0) < 0).length;
 
   return (
-    <div className="bg-white rounded-lg border border-gray-200 p-4">
-      <h4 className="text-sm font-medium text-gray-500 mb-4">True-Up Delta Analyse</h4>
+    <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <h4 className="text-sm font-medium text-gray-500 dark:text-gray-500 mb-4">True-Up Delta Analyse</h4>
 
       <div className="grid grid-cols-3 gap-4 mb-4">
         <div className="text-center">
           <p className={`text-2xl font-bold ${avgDelta >= 0 ? 'text-green-600' : 'text-red-600'}`}>
             {avgDelta >= 0 ? '+' : ''}{avgDelta.toFixed(2)}%
           </p>
-          <p className="text-xs text-gray-500">Gem. Delta</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">Gem. Delta</p>
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-green-600">{overPerformers}</p>
-          <p className="text-xs text-gray-500">Boven target</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">Boven target</p>
         </div>
         <div className="text-center">
           <p className="text-2xl font-bold text-red-600">{underPerformers}</p>
-          <p className="text-xs text-gray-500">Onder target</p>
+          <p className="text-xs text-gray-500 dark:text-gray-500">Onder target</p>
         </div>
       </div>
 
@@ -529,10 +529,10 @@ function TrueUpDeltaSection({
 
           return (
             <div key={i} className="flex items-center gap-2">
-              <span className="w-24 text-xs text-gray-600 truncate">
+              <span className="w-24 text-xs text-gray-600 dark:text-gray-600 truncate">
                 {formatPartName(y.anatomical_part)}
               </span>
-              <div className="flex-1 h-4 bg-gray-100 rounded relative">
+              <div className="flex-1 h-4 bg-gray-100 dark:bg-gray-900 rounded relative">
                 <div className="absolute inset-y-0 left-1/2 w-px bg-gray-300" />
                 {delta !== 0 && (
                   <div
@@ -544,7 +544,7 @@ function TrueUpDeltaSection({
                 )}
               </div>
               <span className={`w-16 text-xs text-right font-medium ${
-                delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-400'
+                delta > 0 ? 'text-green-600' : delta < 0 ? 'text-red-600' : 'text-gray-400 dark:text-gray-500'
               }`}>
                 {delta > 0 ? '+' : ''}{delta.toFixed(2)}%
               </span>
@@ -607,7 +607,7 @@ function MassBalanceTable({
   };
 
   return (
-    <div className="bg-white rounded-lg border-2 border-blue-200 overflow-hidden">
+    <div className="bg-white dark:bg-gray-800 rounded-lg border-2 border-blue-200 overflow-hidden">
       <div className="px-6 py-4 border-b border-blue-200 bg-blue-50">
         <h3 className="text-lg font-bold text-blue-900">
           Massabalans-Tabel (LEIDEND)
@@ -618,13 +618,13 @@ function MassBalanceTable({
       </div>
 
       {/* Level 1: Live → Griller */}
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+      <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-600 mb-3">
           Niveau 1: Levend → Griller
         </h4>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500">
+            <tr className="text-left text-gray-500 dark:text-gray-500">
               <th className="pb-2">Stroom</th>
               <th className="pb-2 text-right">Gewicht (kg)</th>
               <th className="pb-2 text-right">% van levend</th>
@@ -637,17 +637,17 @@ function MassBalanceTable({
               <td className="py-2 text-right">100.00%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Griller</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Griller</td>
               <td className="py-2 text-right">{massBalance.node_griller.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level1Input > 0 ? ((massBalance.node_griller / level1Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Afkeur/DOA</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Afkeur/DOA</td>
               <td className="py-2 text-right">{massBalance.loss_rejection.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level1Input > 0 ? ((massBalance.loss_rejection / level1Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Slachtafval</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Slachtafval</td>
               <td className="py-2 text-right">{massBalance.loss_slaughter.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level1Input > 0 ? ((massBalance.loss_slaughter / level1Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
@@ -662,12 +662,12 @@ function MassBalanceTable({
 
       {/* Level 2: Griller → Parts */}
       <div className="px-6 py-4">
-        <h4 className="text-sm font-semibold text-gray-700 mb-3">
+        <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-600 mb-3">
           Niveau 2: Griller → Onderdelen
         </h4>
         <table className="w-full text-sm">
           <thead>
-            <tr className="text-left text-gray-500">
+            <tr className="text-left text-gray-500 dark:text-gray-500">
               <th className="pb-2">Stroom</th>
               <th className="pb-2 text-right">Gewicht (kg)</th>
               <th className="pb-2 text-right">% van griller</th>
@@ -680,31 +680,31 @@ function MassBalanceTable({
               <td className="py-2 text-right">100.00%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Borstkap</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Borstkap</td>
               <td className="py-2 text-right">{massBalance.node_breast_cap.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level2Input > 0 ? ((massBalance.node_breast_cap / level2Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Achterkwartier</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Achterkwartier</td>
               <td className="py-2 text-right">{massBalance.node_leg_quarter.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level2Input > 0 ? ((massBalance.node_leg_quarter / level2Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Vleugels</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Vleugels</td>
               <td className="py-2 text-right">{massBalance.node_wings.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level2Input > 0 ? ((massBalance.node_wings / level2Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Karkas/Rug</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Karkas/Rug</td>
               <td className="py-2 text-right">{massBalance.node_back_carcass.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level2Input > 0 ? ((massBalance.node_back_carcass / level2Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
             <tr>
-              <td className="py-2 pl-4 text-gray-600">→ Organen</td>
+              <td className="py-2 pl-4 text-gray-600 dark:text-gray-600">→ Organen</td>
               <td className="py-2 text-right">{massBalance.node_offal.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level2Input > 0 ? ((massBalance.node_offal / level2Input) * 100).toFixed(2) : '0.00'}%</td>
             </tr>
-            <tr className="font-medium border-t border-gray-200">
+            <tr className="font-medium border-t border-gray-200 dark:border-gray-700">
               <td className="py-2">Subtotaal onderdelen</td>
               <td className="py-2 text-right">{totalParts.toLocaleString('nl-NL', { maximumFractionDigits: 2 })}</td>
               <td className="py-2 text-right">{level2Input > 0 ? ((totalParts / level2Input) * 100).toFixed(2) : '0.00'}%</td>
@@ -719,7 +719,7 @@ function MassBalanceTable({
       </div>
 
       {/* Data source info */}
-      <div className="px-6 py-3 bg-gray-50 border-t border-gray-200 text-xs text-gray-500">
+      <div className="px-6 py-3 bg-gray-50 dark:bg-gray-900 border-t border-gray-200 dark:border-gray-700 text-xs text-gray-500 dark:text-gray-500">
         Bron: v_batch_mass_balance (v_effective_batch_yields) | Data Status: {massBalance.data_status || 'UNKNOWN'}
       </div>
     </div>

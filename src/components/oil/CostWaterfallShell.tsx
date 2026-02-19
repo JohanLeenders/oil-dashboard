@@ -40,6 +40,7 @@ import type {
   SkuDefinition,
   NRVInput,
   JointProductCode,
+  AuditTrailEntry,
 } from '@/lib/engine/canonical-cost';
 import type { ExtraBewerkingInput, OverrideEvent, MassBalanceStatus } from '@/lib/data/demo-batch-v2';
 import { OVERRIDE_STORAGE_KEY } from '@/lib/data/demo-batch-v2';
@@ -55,6 +56,7 @@ import { Level2ByProductCredit } from './levels/Level2ByProductCredit';
 import { Level3SVASOAllocation } from './levels/Level3SVASOAllocation';
 import { Level4MiniSVASO } from './levels/Level4MiniSVASO';
 import { Level5ABCCosts } from './levels/Level5ABCCosts';
+import { LevelRouteResults } from './levels/LevelRouteResults';
 import { Level6FullSKUCost } from './levels/Level6FullSKUCost';
 import { Level6bExtraBewerking } from './levels/Level6bExtraBewerking';
 import { Level7NRVCheck } from './levels/Level7NRVCheck';
@@ -62,6 +64,28 @@ import { Level7NRVCheck } from './levels/Level7NRVCheck';
 // ============================================================================
 // TYPES
 // ============================================================================
+
+/**
+ * Processing route result (Sprint 14 — Picnic multi-site).
+ * Computed OUTSIDE the engine in batch-engine-bridge.ts.
+ */
+export interface RouteResult {
+  route_id: string;
+  route_name: string;
+  type: 'single-source' | 'blend';
+  source_part: string;
+  end_product: string;
+  svaso_cost_per_kg: number;
+  processing_steps: { processor: string; activity: string; cost_per_kg: number }[];
+  total_processing_cost_per_kg: number;
+  yield_factor: number;
+  yield_adjusted_svaso_per_kg: number;
+  end_product_cost_per_kg: number;
+  input_kg: number;
+  recipe?: { inputs: { part: string; ratio: number; source_type: string; cost_per_kg: number }[] };
+  mass_balance_warning?: string;
+  audit_trail: AuditTrailEntry[];
+}
 
 export interface CanonWaterfallData {
   batch: {
@@ -85,6 +109,8 @@ export interface CanonWaterfallData {
   level5: ABCCostResult;
   level6: FullSKUCostResult;
   level7: Readonly<NRVAssessment>;
+  /** Processing route results (Sprint 14 — Picnic only) */
+  routeResults?: RouteResult[];
   inputs: {
     landedCostInput: LandedCostInput;
     slaughterFeeEur: number;
@@ -342,7 +368,7 @@ export function CostWaterfallShell({ canonData }: { canonData: CanonWaterfallDat
   }
 
   return (
-    <div className={isScenarioMode ? 'border-4 border-yellow-400 rounded-xl p-2 relative' : 'relative'}>
+    <div className={isScenarioMode ? 'border-2 border-yellow-400 dark:border-yellow-600 rounded-2xl p-3 relative bg-yellow-50/20 dark:bg-yellow-900/20' : 'relative'}>
       {/* Scenario badge */}
       {isScenarioMode && <ScenarioBadge />}
 
@@ -493,6 +519,24 @@ export function CostWaterfallShell({ canonData }: { canonData: CanonWaterfallDat
           />
         </WaterfallLevelCard>
 
+        {/* Level 5b: Processing Routes (Picnic only) */}
+        {canonData.routeResults && canonData.routeResults.length > 0 && (
+          <WaterfallLevelCard
+            level="5b"
+            meta={{ level: '5b', titleNL: 'Verwerkingsroutes', engineFn: 'computeRouteCosts', color: 'text-amber-800', colorBg: 'bg-amber-100' }}
+            rendement={`${canonData.routeResults.length} routes`}
+            isCollapsed={collapsedLevels.has('5b')}
+            onToggle={() => toggleLevel('5b')}
+            isScenarioMode={isScenarioMode}
+            costDiff={null}
+          >
+            <LevelRouteResults
+              routeResults={canonData.routeResults}
+              isScenarioMode={isScenarioMode}
+            />
+          </WaterfallLevelCard>
+        )}
+
         {/* Level 6 */}
         <WaterfallLevelCard
           level={6}
@@ -507,6 +551,8 @@ export function CostWaterfallShell({ canonData }: { canonData: CanonWaterfallDat
             canonResult={canonData.level6}
             scenarioResult={scenarioResults?.level6}
             isScenarioMode={isScenarioMode}
+            svasoAllocations={canonData.level3}
+            abcResult={canonData.level5}
           />
         </WaterfallLevelCard>
 

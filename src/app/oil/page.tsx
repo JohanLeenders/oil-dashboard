@@ -14,14 +14,14 @@ export default async function OilDashboardPage() {
   const stats = await getBatchStats();
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <div>
-        <h2 className="text-2xl font-bold text-gray-900">Dashboard</h2>
-        <p className="text-gray-600 mt-1">Overzicht vierkantsverwaarding en massabalans</p>
+        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Dashboard</h2>
+        <p className="text-sm text-gray-400 mt-0.5">Overzicht vierkantsverwaarding en massabalans</p>
       </div>
 
       {/* KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard
           title="Totaal Batches"
           value={stats.total_batches.toString()}
@@ -48,7 +48,7 @@ export default async function OilDashboardPage() {
       </div>
 
       {/* Quick Links */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         <QuickLinkCard
           title="Batches"
           description="Bekijk alle slachtbatches met massabalans en THT status"
@@ -62,22 +62,17 @@ export default async function OilDashboardPage() {
           icon="🍒"
         />
         <QuickLinkCard
-          title="Sankey Diagram"
-          description="Visualiseer massabalans flow (Demo: P2520210)"
-          href="/oil/batches"
-          icon="📊"
+          title="Kostprijs"
+          description="Kostprijsberekeningen per profiel met 7-level waterval"
+          href="/oil/kostprijs"
+          icon="💰"
         />
       </div>
 
-      {/* System Info */}
-      <div className="bg-gray-100 rounded-lg p-4 text-sm text-gray-600">
-        <p className="font-medium mb-2">Systeem Configuratie (Locked)</p>
-        <ul className="space-y-1">
-          <li>• THT Thresholds: Groen &lt;70%, Oranje 70-90%, Rood &gt;90%</li>
-          <li>• SVASO: Sales Value at Split-off allocatie (enige methode)</li>
-          <li>• Cherry-Picker: Alert bij filet &gt;30% (anatomisch ~24%)</li>
-          <li>• Data: Append-only met effective views</li>
-        </ul>
+      {/* System Info — compact */}
+      <div className="bg-gray-100/60 dark:bg-gray-800/60 rounded-xl p-4 text-xs text-gray-400">
+        <span className="font-semibold text-gray-500 dark:text-gray-300">Systeem:</span>{' '}
+        THT 70/90 · SVASO allocatie · Cherry-Picker alert bij filet &gt;30% · Append-only
       </div>
     </div>
   );
@@ -98,15 +93,15 @@ function KpiCard({
 }) {
   const content = (
     <div
-      className={`bg-white rounded-lg border p-6 ${
-        alert ? 'border-orange-300' : 'border-gray-200'
-      } ${href ? 'hover:border-gray-300 transition-colors' : ''}`}
+      className={`bg-white dark:bg-gray-800 rounded-xl border p-5 transition-all ${
+        alert ? 'border-orange-200 dark:border-orange-800' : 'border-gray-100 dark:border-gray-700'
+      } ${href ? 'hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 cursor-pointer' : 'shadow-sm'}`}
     >
-      <p className="text-sm text-gray-500">{title}</p>
-      <p className={`text-3xl font-bold mt-1 ${alert ? 'text-orange-600' : 'text-gray-900'}`}>
+      <p className="text-xs text-gray-400 uppercase tracking-wider">{title}</p>
+      <p className={`text-2xl font-bold mt-1.5 tabular-nums ${alert ? 'text-orange-600 dark:text-orange-400' : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </p>
-      <p className="text-sm text-gray-400 mt-1">{subtitle}</p>
+      <p className="text-xs text-gray-400 mt-1">{subtitle}</p>
     </div>
   );
 
@@ -131,13 +126,13 @@ function QuickLinkCard({
   return (
     <Link
       href={href}
-      className="bg-white rounded-lg border border-gray-200 p-6 hover:border-gray-300 transition-colors"
+      className="bg-white dark:bg-gray-800 rounded-xl border border-gray-100 dark:border-gray-700 p-5 hover:shadow-md hover:border-gray-200 dark:hover:border-gray-600 transition-all group"
     >
-      <div className="flex items-start gap-4">
-        <span className="text-3xl">{icon}</span>
+      <div className="flex items-start gap-3">
+        <span className="text-2xl">{icon}</span>
         <div>
-          <h3 className="font-semibold text-gray-900">{title}</h3>
-          <p className="text-sm text-gray-500 mt-1">{description}</p>
+          <h3 className="font-semibold text-gray-900 dark:text-gray-100 text-sm group-hover:text-oranje-600 transition-colors">{title}</h3>
+          <p className="text-xs text-gray-400 mt-1">{description}</p>
         </div>
       </div>
     </Link>

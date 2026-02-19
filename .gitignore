@@ -41,3 +41,17 @@ next-env.d.ts
 
 # Vercel
 .vercel
+
+# Build artifacts
+dist/
+
+# Test coverage
+coverage/
+
+# Claude Code local state
+.claude/
+
+# Backup & temp files
+*.bak
+.fuse_hidden*
+nul

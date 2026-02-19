@@ -131,10 +131,10 @@ export default async function CostWaterfallV2Page() {
   return (
     <div className="container mx-auto py-8 px-4">
       {/* Breadcrumbs */}
-      <div className="flex items-center gap-2 text-sm text-gray-500 mb-4">
+      <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-500 mb-4">
         <Link href="/oil" className="hover:text-blue-600">Dashboard</Link>
         <span>/</span>
-        <span className="text-gray-900">Kostprijswaterval</span>
+        <span className="text-gray-900 dark:text-gray-100">Kostprijswaterval</span>
       </div>
 
       <CostWaterfallShell canonData={canonData} />

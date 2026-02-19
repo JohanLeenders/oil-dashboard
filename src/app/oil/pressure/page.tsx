@@ -86,15 +86,15 @@ export default async function PressureBoardPage() {
         <div className="flex items-center gap-2">
           <Link
             href="/oil"
-            className="text-gray-500 hover:text-gray-700"
+            className="text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:text-gray-600"
           >
             ← Dashboard
           </Link>
         </div>
-        <h2 className="text-2xl font-bold text-gray-900 mt-2">
+        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
           Voorraaddruk & Sales Pressure
         </h2>
-        <p className="text-gray-600 mt-1">
+        <p className="text-gray-600 dark:text-gray-600 mt-1">
           Overzicht van voorraad- en verkoopdruk per onderdeel
         </p>
       </div>
@@ -128,23 +128,23 @@ export default async function PressureBoardPage() {
         <SummaryCard
           label="Geen data"
           count={summary.no_data}
-          colorClass="bg-gray-50 border-gray-200 text-gray-500"
+          colorClass="bg-gray-50 dark:bg-gray-900 border-gray-200 dark:border-gray-700 text-gray-500 dark:text-gray-500"
         />
       </div>
 
       {/* Pressure Board */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             Pressure Board
           </h3>
-          <p className="text-sm text-gray-500">
+          <p className="text-sm text-gray-500 dark:text-gray-500">
             Per onderdeel: voorraad, verkoopsnelheid, DSI en drukstatus
           </p>
         </div>
 
         {pressureData.length === 0 ? (
-          <div className="px-6 py-12 text-center text-gray-500">
+          <div className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
             Geen voorraaddata beschikbaar. Voer inventory_positions in om druk te berekenen.
           </div>
         ) : (
@@ -157,39 +157,39 @@ export default async function PressureBoardPage() {
       </div>
 
       {/* DSI Explanation */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-6">
-        <h4 className="font-semibold text-gray-900 mb-4">DSI Uitleg</h4>
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-6">
+        <h4 className="font-semibold text-gray-900 dark:text-gray-100 mb-4">DSI Uitleg</h4>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
           <div className="flex items-start gap-3">
             <span className="w-3 h-3 bg-green-500 rounded-full mt-1 flex-shrink-0" />
             <div>
-              <p className="font-medium text-gray-900">Groen (DSI &lt; 14 dagen)</p>
-              <p className="text-gray-600">Normale voorraaddruk. Voorraad draait goed.</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Groen (DSI &lt; 14 dagen)</p>
+              <p className="text-gray-600 dark:text-gray-600">Normale voorraaddruk. Voorraad draait goed.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <span className="w-3 h-3 bg-orange-500 rounded-full mt-1 flex-shrink-0" />
             <div>
-              <p className="font-medium text-gray-900">Oranje (DSI 14-28 dagen)</p>
-              <p className="text-gray-600">Verhoogde druk. Let op THT-risico.</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Oranje (DSI 14-28 dagen)</p>
+              <p className="text-gray-600 dark:text-gray-600">Verhoogde druk. Let op THT-risico.</p>
             </div>
           </div>
           <div className="flex items-start gap-3">
             <span className="w-3 h-3 bg-red-500 rounded-full mt-1 flex-shrink-0" />
             <div>
-              <p className="font-medium text-gray-900">Rood (DSI &gt; 28 dagen)</p>
-              <p className="text-gray-600">Hoge druk. Voorraad staat te lang.</p>
+              <p className="font-medium text-gray-900 dark:text-gray-100">Rood (DSI &gt; 28 dagen)</p>
+              <p className="text-gray-600 dark:text-gray-600">Hoge druk. Voorraad staat te lang.</p>
             </div>
           </div>
         </div>
-        <p className="mt-4 text-xs text-gray-500">
+        <p className="mt-4 text-xs text-gray-500 dark:text-gray-500">
           DSI = Days Sales Inventory = (Voorraad kg) / (Gem. dagelijkse verkoop kg).
           Thresholds: 14 en 28 dagen per Sprint 3 contract.
         </p>
       </div>
 
       {/* Data Source */}
-      <div className="text-xs text-gray-500">
+      <div className="text-xs text-gray-500 dark:text-gray-500">
         Bron: v_sales_pressure_score (v_inventory_by_part + v_sales_velocity_by_part)
       </div>
     </div>
@@ -220,14 +220,14 @@ function PressureRow({ data }: { data: PressureData }) {
   const trendColorClass = getVelocityTrendColorClass(data.velocity_trend);
 
   return (
-    <div className="px-6 py-4 hover:bg-gray-50">
+    <div className="px-6 py-4 hover:bg-gray-50 dark:bg-gray-900">
       <div className="flex items-start justify-between">
         <div className="flex-1">
           <div className="flex items-center gap-3">
             <span className={`px-2 py-1 rounded text-xs font-medium ${colorClass}`}>
               {label}
             </span>
-            <h4 className="font-medium text-gray-900">
+            <h4 className="font-medium text-gray-900 dark:text-gray-100">
               {formatPartName(data.part_code)}
             </h4>
             {data.tht_batches_red > 0 && (
@@ -237,21 +237,21 @@ function PressureRow({ data }: { data: PressureData }) {
             )}
           </div>
 
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-gray-600 dark:text-gray-600">
             {data.explanation}
           </p>
 
-          <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500">
+          <div className="mt-3 flex flex-wrap gap-4 text-xs text-gray-500 dark:text-gray-500">
             <span>
-              Voorraad: <strong className="text-gray-900">{formatNumber(data.inventory_kg)} kg</strong>
+              Voorraad: <strong className="text-gray-900 dark:text-gray-100">{formatNumber(data.inventory_kg)} kg</strong>
               {data.batch_count > 0 && ` (${data.batch_count} batches)`}
             </span>
             <span>
-              Verkoop: <strong className="text-gray-900">{formatNumber(data.avg_daily_sales_kg)} kg/dag</strong>
+              Verkoop: <strong className="text-gray-900 dark:text-gray-100">{formatNumber(data.avg_daily_sales_kg)} kg/dag</strong>
               <span className={`ml-1 ${trendColorClass}`}>{trendArrow}</span>
             </span>
             <span>
-              DSI: <strong className="text-gray-900">
+              DSI: <strong className="text-gray-900 dark:text-gray-100">
                 {data.days_sales_inventory != null ? `${data.days_sales_inventory} dagen` : '-'}
               </strong>
             </span>

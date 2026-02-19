@@ -31,24 +31,24 @@ export function Level6bExtraBewerking({ bewerking, inputSkuCost }: Props) {
       <table className="w-full text-sm">
         <tbody>
           <tr className="border-t border-yellow-200">
-            <td className="py-1.5 text-gray-600">Input SKU</td>
+            <td className="py-1.5 text-gray-600 dark:text-gray-600">Input SKU</td>
             <td className="py-1.5 text-right">{bewerking.input_sku_codes.join(', ')}</td>
           </tr>
           <tr className="border-t border-yellow-200">
-            <td className="py-1.5 text-gray-600">Input kostprijs/kg</td>
+            <td className="py-1.5 text-gray-600 dark:text-gray-600">Input kostprijs/kg</td>
             <td className="py-1.5 text-right">{formatEurPerKg(inputCostPerKg)}</td>
           </tr>
           <tr className="border-t border-yellow-200">
-            <td className="py-1.5 text-gray-600">Yield-aangepaste kost/kg</td>
+            <td className="py-1.5 text-gray-600 dark:text-gray-600">Yield-aangepaste kost/kg</td>
             <td className="py-1.5 text-right">{formatEurPerKg(meatCostAdjusted)}</td>
           </tr>
           <tr className="border-t border-yellow-200">
-            <td className="py-1.5 text-gray-600">Bewerkingskost/kg</td>
+            <td className="py-1.5 text-gray-600 dark:text-gray-600">Bewerkingskost/kg</td>
             <td className="py-1.5 text-right">{formatEurPerKg(bewerking.cost_per_kg_eur)}</td>
           </tr>
           {bewerking.cost_per_batch_eur > 0 && (
             <tr className="border-t border-yellow-200">
-              <td className="py-1.5 text-gray-600">Batchkost</td>
+              <td className="py-1.5 text-gray-600 dark:text-gray-600">Batchkost</td>
               <td className="py-1.5 text-right">{formatEur(bewerking.cost_per_batch_eur)}</td>
             </tr>
           )}
@@ -57,11 +57,11 @@ export function Level6bExtraBewerking({ bewerking, inputSkuCost }: Props) {
             <td className="py-1.5 text-right text-yellow-800">{formatEurPerKg(outputCostPerKg)}</td>
           </tr>
           <tr className="border-t border-yellow-200">
-            <td className="py-1.5 text-gray-600">Output SKU</td>
+            <td className="py-1.5 text-gray-600 dark:text-gray-600">Output SKU</td>
             <td className="py-1.5 text-right">{bewerking.output_sku_code || '(niet ingevuld)'}</td>
           </tr>
           <tr className="border-t border-yellow-200">
-            <td className="py-1.5 text-gray-600">Verkoopprijs/kg</td>
+            <td className="py-1.5 text-gray-600 dark:text-gray-600">Verkoopprijs/kg</td>
             <td className="py-1.5 text-right">{formatEurPerKg(bewerking.output_selling_price_per_kg)}</td>
           </tr>
           <tr className="border-t border-yellow-200">

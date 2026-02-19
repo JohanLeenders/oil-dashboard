@@ -39,15 +39,15 @@ export function Level4MiniSVASO({
           <div key={parentAlloc.part_code} className="border border-indigo-100 rounded-lg p-4">
             <h4 className="font-medium text-indigo-800 mb-3">
               {getPartNameDutch(parentAlloc.part_code)} — Mini-SVASO
-              <span className="text-xs text-gray-500 ml-2">
+              <span className="text-xs text-gray-500 dark:text-gray-500 ml-2">
                 (parent: {formatKg(parentAlloc.weight_kg)} @ {formatEur(parentAlloc.allocated_cost_total_eur)})
               </span>
             </h4>
 
             <table className="w-full text-sm">
               <thead>
-                <tr className="text-left text-gray-500">
-                  <th className="pb-2">Sub-cut</th>
+                <tr className="text-left text-gray-500 dark:text-gray-500">
+                  <th className="pb-2">Deelsnit</th>
                   <th className="pb-2 text-right">Gewicht</th>
                   <th className="pb-2 text-right">% v. parent</th>
                   <th className="pb-2 text-right">Schaduwprijs</th>
@@ -60,7 +60,7 @@ export function Level4MiniSVASO({
                   const baseSubCut = parentSubCuts[i];
                   const yieldPct = (sa.weight_kg / parentAlloc.weight_kg) * 100;
                   return (
-                    <tr key={sa.sub_cut_code} className="border-t border-gray-100">
+                    <tr key={sa.sub_cut_code} className="border-t border-gray-100 dark:border-gray-700">
                       <td className="py-1.5 font-medium">{getPartNameDutch(sa.sub_cut_code)}</td>
                       <td className="py-1.5 text-right">
                         {isScenarioMode && baseSubCut ? (
@@ -83,7 +83,7 @@ export function Level4MiniSVASO({
                         )}
                       </td>
                       <td className="py-1.5 text-right">{formatPct(yieldPct)}</td>
-                      <td className="py-1.5 text-right text-gray-500 italic">
+                      <td className="py-1.5 text-right text-gray-500 dark:text-gray-500 italic">
                         {formatEurPerKg(sa.shadow_price_per_kg)}
                       </td>
                       <td className="py-1.5 text-right font-medium">{formatEurPerKg(sa.allocated_cost_per_kg)}</td>
@@ -94,7 +94,7 @@ export function Level4MiniSVASO({
 
                 {/* Rest/trim row — always show when sum < parent */}
                 {restWeight > 0.5 && (
-                  <tr className="border-t border-dashed border-gray-300 text-gray-400 italic">
+                  <tr className="border-t border-dashed border-gray-300 dark:border-gray-500 text-gray-400 dark:text-gray-500 italic">
                     <td className="py-1.5">Rest/trim (onbenoemd)</td>
                     <td className="py-1.5 text-right">{formatKg(restWeight)}</td>
                     <td className="py-1.5 text-right">{formatPct((restWeight / parentAlloc.weight_kg) * 100)}</td>
@@ -118,7 +118,7 @@ export function Level4MiniSVASO({
             </table>
 
             {/* Reconciliation */}
-            <div className="mt-2 text-xs text-gray-500">
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-500">
               Parent kost: {formatEur(activeMini.parent_allocated_cost_eur)} |
               Sub-allocatie: {formatEur(activeMini.sum_sub_allocated_cost_eur)}
               {activeMini.rounding_residual_eur !== 0 && (

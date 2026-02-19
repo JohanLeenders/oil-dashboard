@@ -39,8 +39,52 @@ export interface JointProductEntry {
   part_code: string;
   weight_kg: number;
   shadow_price_per_kg: number;
+  /** Verpakkingskosten per kg — additieve verwerkingskosten (Level 5) */
+  cutting_cost_per_kg?: number;
   /** Verkoopprijs per kg — voor marge-analyse */
   selling_price_per_kg?: number;
+}
+
+/**
+ * Processing step within a route (Sprint 14 — Picnic multi-site).
+ * One verwerker + activiteit with a cost per kg.
+ */
+export interface ProcessingStep {
+  processor_name: string;    // "Cor Voet", "Driessen", "Storteboom"
+  activity: string;          // "fileren", "wegen/sorteren", "gehakt maken"
+  cost_per_kg: number;       // €/kg verwerkingskosten
+  cost_per_unit?: number;    // Alternatief: €/stuk
+}
+
+/**
+ * Blend input for multi-source routes (e.g. 60% drumvlees + 40% vel → burger).
+ * source_type prevents double cost allocation: by-products already credited
+ * at Level 2 get €0 source cost in the blend.
+ */
+export interface BlendInput {
+  part: string;              // "drum_meat", "skin"
+  ratio: number;             // 0.6, 0.4 — must sum to 1.0
+  source_type: 'joint_product' | 'by_product';
+}
+
+/**
+ * Processing route: transforms a Level 3/4 part into an end product
+ * through one or more processing steps at external processors.
+ *
+ * All yields, costs and ratios are PER BATCH — no hardcoded constants.
+ */
+export interface ProcessingRoute {
+  route_id: string;
+  route_name: string;        // "Borstkap → Filet (Cor Voet)"
+  type: 'single-source' | 'blend';
+  source_part: string;       // For single-source: SVASO/Mini-SVASO part code
+  end_product: string;       // "filet_picnic"
+  processors: ProcessingStep[];
+  yield_factor?: number;     // kg output per kg input (e.g. 0.68)
+  input_kg: number;          // How many kg of source_part this route consumes
+  recipe?: {                 // Only for blend routes
+    inputs: BlendInput[];
+  };
 }
 
 export interface BatchInputData {
@@ -85,10 +129,18 @@ export interface BatchInputData {
   back_carcass_kg: number;
   cat3_other_kg: number;
 
-  // SECTIE 6: Kosten
+  // SECTIE 6: Kosten (Level 0)
   live_cost_per_kg: number;
   transport_cost_eur: number;
   catching_fee_eur: number;
+
+  // SECTIE 7: Externe verwerkingskosten (Level 1)
+  /** Versnijdtoeslag externe verwerker — platte fee per kip (€/stuk) */
+  processing_fee_per_bird: number;
+
+  // SECTIE 8: Processing Routes (Sprint 14 — Picnic multi-site)
+  /** Per-route verwerkingsketens. Default: [] voor profielen zonder routes. */
+  processing_routes: ProcessingRoute[];
 }
 
 // ============================================================================
@@ -103,6 +155,8 @@ export interface BatchDerivedValues {
   // Sectie 2
   griller_yield_pct: number;
   slaughter_fee_eur: number;
+  /** Totale versnijdtoeslag externe verwerker (processing_fee_per_bird × bird_count) */
+  processing_fee_eur: number;
 
   // Sectie 3
   joint_total_kg: number;
@@ -145,6 +199,7 @@ export function computeDerivedValues(input: BatchInputData): BatchDerivedValues 
   const slaughter_fee_eur = input.slaughter_cost_mode === 'per_bird'
     ? input.slaughter_cost_per_bird * input.bird_count
     : input.slaughter_cost_total;
+  const processing_fee_eur = (input.processing_fee_per_bird ?? 0) * input.bird_count;
 
   // Sectie 3 — use dynamic joint_products for external profiles
   const joint_total_kg = isExternal
@@ -178,6 +233,7 @@ export function computeDerivedValues(input: BatchInputData): BatchDerivedValues 
     doa_pct,
     griller_yield_pct,
     slaughter_fee_eur,
+    processing_fee_eur,
     joint_total_kg,
     breast_cap_pct,
     legs_pct,
@@ -230,10 +286,16 @@ export function batchInputToLandedCost(input: BatchInputData): LandedCostInput {
   };
 }
 
+/**
+ * Total processing costs for engine Level 1 (Joint Cost Pool).
+ * Includes slaughter + external processing fee (versnijdtoeslag).
+ */
 export function batchInputToSlaughterFee(input: BatchInputData): number {
-  return input.slaughter_cost_mode === 'per_bird'
+  const slaughter = input.slaughter_cost_mode === 'per_bird'
     ? input.slaughter_cost_per_bird * input.bird_count
     : input.slaughter_cost_total;
+  const processingFee = (input.processing_fee_per_bird ?? 0) * input.bird_count;
+  return slaughter + processingFee;
 }
 
 export function batchInputToByProducts(input: BatchInputData): ByProductPhysical[] {
@@ -302,7 +364,7 @@ export function batchInputToSubCuts(input: BatchInputData): Record<string, SubJo
 }
 
 /**
- * Default ABC drivers for Validatiegolf 1.
+ * Default ABC drivers for Validatiegolf 1 (Oranjehoen intern profiel).
  * Same as demo-batch-v2 until configurable.
  */
 export function getDefaultABCDrivers(): ABCCostDriver[] {
@@ -311,6 +373,83 @@ export function getDefaultABCDrivers(): ABCCostDriver[] {
     { driver_code: 'labeling', driver_name: 'Etikettering', rate_per_unit: 0.03, units_consumed: 120 },
     { driver_code: 'quality_check', driver_name: 'Kwaliteitscontrole', rate_per_unit: 0.15, units_consumed: 10 },
   ];
+}
+
+/**
+ * Part-name display mapping (Dutch).
+ */
+const PART_NAMES: Record<string, string> = {
+  filet_supremes: 'Filet Suprêmes',
+  drumsticks: 'Drumsticks',
+  dijfilet_vel: 'Dijfilet m/v',
+  platte_vleugels: 'Platte Vleugels',
+  breast_cap: 'Borstkap',
+  legs: 'Poten',
+  wings: 'Vleugels',
+  // Crisp (Sprint 14)
+  griller: 'Griller',
+  // Picnic eindproducten (Sprint 14)
+  filet_picnic: 'Filet (Picnic)',
+  gehakt_picnic: 'Gehakt (Picnic)',
+  burger_picnic: 'Burger (Picnic)',
+  dijen_picnic: 'Dijen (Picnic)',
+  vleugels_picnic: 'Vleugels (Picnic)',
+  drum_meat: 'Drumvlees',
+  skin: 'Vel',
+};
+
+/**
+ * Generate ABC cost drivers from joint product cutting costs.
+ * For external profiles (e.g. Cuno Moormann), each joint product has a
+ * cutting_cost_per_kg that represents SKU-specific processing costs
+ * (verwerking + verpakking per deel, AFTER split-off).
+ *
+ * These are ADDITIVE per SKU and should NOT be in the SVASO pool.
+ *
+ * Structure:
+ * - One ABC driver per joint product with cutting costs
+ * - rate_per_unit = cutting_cost_per_kg (€/kg)
+ * - units_consumed = weight_kg of that product
+ * - total_cost = rate × weight = total cutting cost from invoice
+ */
+export function batchInputToABCDrivers(input: BatchInputData): ABCCostDriver[] {
+  // Picnic processing routes: generate ABC drivers from route steps
+  if (input.processing_routes && input.processing_routes.length > 0) {
+    const drivers: ABCCostDriver[] = [];
+    for (const route of input.processing_routes) {
+      for (const step of route.processors) {
+        if (step.cost_per_kg > 0) {
+          drivers.push({
+            driver_code: `${route.route_id}_${step.processor_name.toLowerCase().replace(/\s+/g, '_')}_${step.activity.toLowerCase().replace(/\s+/g, '_')}`,
+            driver_name: `${step.processor_name}: ${step.activity} (${PART_NAMES[route.end_product] ?? route.end_product})`,
+            rate_per_unit: step.cost_per_kg,
+            units_consumed: route.input_kg,
+          });
+        }
+      }
+    }
+    return drivers;
+  }
+
+  // External profiles (Cuno): ABC drivers from cutting costs
+  if (input.batch_profile !== 'oranjehoen' && input.joint_products.length > 0) {
+    const drivers: ABCCostDriver[] = [];
+    for (const jp of input.joint_products) {
+      if (jp.cutting_cost_per_kg && jp.cutting_cost_per_kg > 0) {
+        const name = PART_NAMES[jp.part_code] ?? jp.part_code;
+        drivers.push({
+          driver_code: `cutting_${jp.part_code}`,
+          driver_name: `Verwerking ${name}`,
+          rate_per_unit: jp.cutting_cost_per_kg,
+          units_consumed: jp.weight_kg,
+        });
+      }
+    }
+    return drivers;
+  }
+
+  // Default (Oranjehoen): standard internal ABC drivers
+  return getDefaultABCDrivers();
 }
 
 export function getDefaultSkuDefinition(): SkuDefinition {
@@ -449,6 +588,9 @@ export function createValidatiegolf1Batch(): BatchInputData {
     live_cost_per_kg: 2.40,
     transport_cost_eur: 0,
     catching_fee_eur: 0,
+    processing_fee_per_bird: 0, // intern profiel — geen externe verwerker
+
+    processing_routes: [], // Oranjehoen: geen processing routes
   };
 }
 
@@ -468,10 +610,10 @@ export function createValidatiegolf1Batch(): BatchInputData {
  * - Slachtkosten: €0,89/kip × 1.024 = €911,36
  * - Grillers naar Cuno Moormann voor uitsnij
  *
- * Uitsnijresultaten (Cuno factuur — snijkosten €2,00/stuk = €2.048 totaal):
- * - Filet Suprêmes:    621,64 kg (snij €1,29/kg = €801,92)
+ * Uitsnijresultaten (Cuno factuur 2506506 — versnijdtoeslag €2,00/stuk = €2.000 totaal):
+ * - Filet Suprêmes:    621,64 kg (snij €1,29/kg = €801,91)
  * - Drumsticks:        253,50 kg (snij €1,98/kg = €501,93)
- * - Dijfilet met vel:  252,00 kg (snij €1,98/kg = €498,96)
+ * - Dijfilet met vel:  252,14 kg (snij €1,98/kg = €499,23)
  * - Platte vleugels:    79,27 kg (snij €1,98/kg = €156,95)
  * - Karkassen:         570,00 kg (by-product, €0,75/kg = €427,50)
  *
@@ -482,8 +624,8 @@ export function createValidatiegolf1Batch(): BatchInputData {
  * - Platte vleugels:    €6,00/kg
  * - Karkassen: wisselend (niet in marge)
  *
- * Massabalans: joint (1.206,41) + by-product (570) = 1.776,41 kg
- *              vs griller 1.793,5 kg → 17,09 kg verschil (0,95%)
+ * Massabalans: joint (1.206,55) + by-product (570) = 1.776,55 kg
+ *              vs griller 1.793,5 kg → 16,95 kg verschil (0,95%)
  *
  * Verwachte SVASO (shadow = VP):
  * - TMV = €15.825,79
@@ -524,24 +666,28 @@ export function createCunoMoormannBatch(): BatchInputData {
         part_code: 'filet_supremes',
         weight_kg: 621.64,
         shadow_price_per_kg: 15.35,
+        cutting_cost_per_kg: 1.29,
         selling_price_per_kg: 15.35,
       },
       {
         part_code: 'drumsticks',
         weight_kg: 253.50,
         shadow_price_per_kg: 8.00,
+        cutting_cost_per_kg: 1.98,
         selling_price_per_kg: 8.00,
       },
       {
         part_code: 'dijfilet_vel',
-        weight_kg: 252.00,
+        weight_kg: 252.14,
         shadow_price_per_kg: 15.00,
+        cutting_cost_per_kg: 1.98,
         selling_price_per_kg: 15.00,
       },
       {
         part_code: 'platte_vleugels',
         weight_kg: 79.27,
         shadow_price_per_kg: 6.00,
+        cutting_cost_per_kg: 1.98,
         selling_price_per_kg: 6.00,
       },
     ],
@@ -562,6 +708,270 @@ export function createCunoMoormannBatch(): BatchInputData {
     live_cost_per_kg: 2.50,
     transport_cost_eur: 0,
     catching_fee_eur: 0,
+
+    // Externe verwerker: Cuno versnijdtoeslag €2,00/kip (factuur 2506506)
+    processing_fee_per_bird: 2.00,
+
+    processing_routes: [], // Cuno: geen processing routes (ABC via cutting_cost_per_kg)
+  };
+}
+
+// ============================================================================
+// CRISP — PREFILLED GRILLER DIRECT BATCH (Sprint 14)
+// ============================================================================
+
+/**
+ * Crisp batch: griller direct verkoop — DEMO DATA
+ *
+ * Keten: Levende kip → Storteboom (slacht) → Griller → Verkoop
+ *
+ * Productieketen:
+ * - 5.000 kippen, levend gewicht 2,45 kg/kip = 12.250 kg levend
+ * - Slachtrendement: 72% → grillergewicht = 8.820 kg
+ * - Slachtkosten: €0,89/kip × 5.000 = €4.450
+ * - Verkoopprijs griller: €4,50/kg (shadow price)
+ *
+ * By-products (van slachtproces):
+ * - Organen: ~350 kg
+ * - Cat3/overig: ~80 kg (veren, bloed al verwijderd)
+ * - Rug/karkas: 3.000 kg (rest van griller naar parts balans)
+ *
+ * Massabalans: griller (8.820) + by-products (3.430) = 12.250 → 0% afwijking
+ *
+ * SVASO: triviaal — 1 joint product (griller) = 100% allocatie
+ * Kostprijs = (Landed + Slacht − By-product credit) / griller kg
+ */
+export function createCrispBatch(): BatchInputData {
+  // Zelfde basis als Oranjehoen validatiebatch voor vergelijkbaarheid
+  const bird_count = 15855;
+  const live_weight_kg = 38980;
+  const griller_kg = 28056;
+
+  // By-products to achieve 0% mass balance (griller = hele kip bij Crisp)
+  const back_carcass_kg = 1800;
+  const offal_kg = 700;
+  const cat3_other_kg = Math.round((live_weight_kg - griller_kg - back_carcass_kg - offal_kg) * 100) / 100;
+
+  return {
+    batch_id: 'CRISP-2025-12-01',
+    batch_ref: 'CRISP-2025-12-01',
+    date: '2025-12-01',
+    batch_profile: 'crisp',
+
+    bird_count,
+    doa_count: 0,
+    live_weight_kg,
+
+    griller_weight_kg: griller_kg,
+    slaughter_cost_mode: 'per_bird',
+    slaughter_cost_per_bird: 0.83,
+    slaughter_cost_total: 0,
+
+    // ORANJEHOEN fields — niet gebruikt bij Crisp
+    breast_cap_kg: 0,
+    legs_kg: 0,
+    wings_kg: 0,
+
+    // Griller is het enige joint product
+    joint_products: [
+      {
+        part_code: 'griller',
+        weight_kg: griller_kg,
+        shadow_price_per_kg: 4.50,
+        selling_price_per_kg: 4.50,
+      },
+    ],
+
+    // Geen sub-cuts
+    filet_kg: 0,
+    thigh_fillet_kg: 0,
+    drum_meat_kg: 0,
+
+    // By-products (slachtafval — niet van uitsnij)
+    blood_kg: 0,       // Al verwijderd voor weging
+    feathers_kg: 0,    // Al verwijderd voor weging
+    offal_kg,
+    back_carcass_kg,
+    cat3_other_kg,
+
+    // Kosten — zelfde als Oranjehoen
+    live_cost_per_kg: 2.40,
+    transport_cost_eur: 0,
+    catching_fee_eur: 0,
+    processing_fee_per_bird: 0, // Geen externe verwerker
+
+    processing_routes: [], // Crisp: geen processing routes
+  };
+}
+
+// ============================================================================
+// PICNIC — PREFILLED MULTI-SITE BATCH (Sprint 14)
+// ============================================================================
+
+/**
+ * Picnic batch: multi-site verwerkingsketen — DEMO DATA
+ *
+ * Keten:
+ * Levende kip → Storteboom (slacht + uitsnij)
+ *   → Borstkap → Cor Voet (fileren, wegen, sorteren, verpakken) → Filet Picnic
+ *   → Achterkwartier → Mini-SVASO → Dijen + Drumsticks
+ *     → Drumvlees + Vel → Driessen (gehakt/burgers, 60/40) → Burgers
+ *     → Dijen → Cor Voet (verpakken) → Dijen verpakt
+ *   → Vleugels → Storteboom (verpakken) → Vleugels verpakt
+ *
+ * Zelfde basis als Oranjehoen validatiebatch voor vergelijkbaarheid:
+ * - 15.855 kippen, 38.980 kg levend, 28.056 kg griller
+ * - Live cost: €2,40/kg
+ * - Slachtkosten: €0,83/kip
+ *
+ * Joint products (% van griller — zelfde als Oranjehoen):
+ * - Borstkap: 36,6% × 28.056 = 10.268,50 kg
+ * - Poten: 43,56% × 28.056 = 12.221,19 kg
+ * - Vleugels: 9,2% × 28.056 = 2.581,15 kg
+ *
+ * Sub-cuts (Mini-SVASO op poten):
+ * - Dijfilet: 47,1% × 62,5% × 12.221,19 = 3.597,49 kg
+ * - Drumvlees: 51,87% × 62,5% × 12.221,19 = 3.962,07 kg
+ *
+ * By-products:
+ * - Rug/karkas: 1.800 kg
+ * - Organen: 700 kg
+ * - Cat3: rest voor balans
+ *
+ * Processing routes (alle tarieven demo — per batch aanpasbaar):
+ * Route 1: Borstkap → Filet (yield 0.68, Cor Voet)
+ * Route 2: Drumvlees + Vel → Burger (blend 60/40, Driessen)
+ * Route 3: Dijen → Verpakt (Cor Voet)
+ * Route 4: Vleugels → Verpakt (Storteboom)
+ */
+export function createPicnicBatch(): BatchInputData {
+  // Zelfde basis als Oranjehoen validatiebatch voor vergelijkbaarheid
+  const bird_count = 15855;
+  const live_weight_kg = 38980;
+  const griller_kg = 28056;
+
+  // Joint products (zelfde % als Oranjehoen)
+  const breast_cap_kg = Math.round(0.366 * griller_kg * 100) / 100;  // 10268.50
+  const legs_kg = Math.round(0.4356 * griller_kg * 100) / 100;       // 12221.19
+  const wings_kg = Math.round(0.092 * griller_kg * 100) / 100;       // 2581.15
+
+  // Sub-cuts from legs (zelfde % als Oranjehoen)
+  const thigh_fillet_kg = Math.round(0.471 * 0.625 * legs_kg * 100) / 100; // 3597.49
+  const drum_meat_kg = Math.round(0.5187 * 0.625 * legs_kg * 100) / 100;   // 3962.07
+
+  // By-products
+  const joint_total = breast_cap_kg + legs_kg + wings_kg;
+  const back_carcass_kg = 1800;
+  const offal_kg = 700;
+  const cat3_other_kg = Math.round((griller_kg - joint_total - back_carcass_kg - offal_kg) * 100) / 100;
+
+  // Vel = rest van drumstick na vlees (by-product in blend)
+  // In de blend: drumvlees = 60%, vel = 40%
+  // Totale input voor burger route: drumvlees + vel
+  const vel_kg = Math.round(drum_meat_kg * (0.4 / 0.6) * 100) / 100; // ~2641.38
+
+  return {
+    batch_id: 'PICNIC-2025-12-01',
+    batch_ref: 'PICNIC-2025-12-01',
+    date: '2025-12-01',
+    batch_profile: 'picnic',
+
+    bird_count,
+    doa_count: 0,
+    live_weight_kg,
+
+    griller_weight_kg: griller_kg,
+    slaughter_cost_mode: 'per_bird',
+    slaughter_cost_per_bird: 0.83,
+    slaughter_cost_total: 0,
+
+    // ORANJEHOEN-stijl joint products (Picnic uses same anatomy)
+    breast_cap_kg,
+    legs_kg,
+    wings_kg,
+
+    joint_products: [], // Picnic uses named fields (same as Oranjehoen)
+
+    // Sub-cuts (Mini-SVASO) — zelfde % als Oranjehoen
+    filet_kg: Math.round(0.68 * breast_cap_kg * 100) / 100, // 6982.58 (filet uit borstkap)
+    thigh_fillet_kg,
+    drum_meat_kg,
+
+    // By-products
+    blood_kg: 0,
+    feathers_kg: 0,
+    offal_kg,
+    back_carcass_kg,
+    cat3_other_kg,
+
+    // Kosten — zelfde als Oranjehoen
+    live_cost_per_kg: 2.40,
+    transport_cost_eur: 0,
+    catching_fee_eur: 0,
+    processing_fee_per_bird: 0, // Slachtkosten zitten al in slaughter_cost
+
+    // Processing routes — alle tarieven per batch aanpasbaar
+    processing_routes: [
+      {
+        route_id: 'picnic_filet',
+        route_name: 'Borstkap → Filet (Cor Voet)',
+        type: 'single-source',
+        source_part: 'breast_cap',
+        end_product: 'filet_picnic',
+        input_kg: breast_cap_kg,
+        yield_factor: 0.68, // 68% rendement borstkap → filet
+        processors: [
+          { processor_name: 'Storteboom', activity: 'uitsnij borstkap', cost_per_kg: 0.45 },
+          { processor_name: 'Cor Voet', activity: 'fileren', cost_per_kg: 1.20 },
+          { processor_name: 'Cor Voet', activity: 'wegen/sorteren', cost_per_kg: 0.35 },
+          { processor_name: 'Cor Voet', activity: 'verpakken', cost_per_kg: 0.25 },
+        ],
+      },
+      {
+        route_id: 'picnic_burger',
+        route_name: 'Drumvlees + Vel → Burger (Driessen)',
+        type: 'blend',
+        source_part: 'drum_meat', // Primary source for reference
+        end_product: 'burger_picnic',
+        input_kg: drum_meat_kg + vel_kg, // Totaal blend input
+        yield_factor: 0.92, // 92% yield op verwerking
+        processors: [
+          { processor_name: 'Storteboom', activity: 'fileren achterkwartier', cost_per_kg: 0.50 },
+          { processor_name: 'Driessen', activity: 'gehakt/burger maken', cost_per_kg: 1.80 },
+          { processor_name: 'Driessen', activity: 'verpakken', cost_per_kg: 0.30 },
+        ],
+        recipe: {
+          inputs: [
+            { part: 'drum_meat', ratio: 0.6, source_type: 'joint_product' },
+            { part: 'skin', ratio: 0.4, source_type: 'by_product' },
+          ],
+        },
+      },
+      {
+        route_id: 'picnic_dijen',
+        route_name: 'Dijen → Verpakt (Cor Voet)',
+        type: 'single-source',
+        source_part: 'thigh_fillet',
+        end_product: 'dijen_picnic',
+        input_kg: thigh_fillet_kg,
+        yield_factor: 0.98, // 98% yield (minimaal verlies bij verpakken)
+        processors: [
+          { processor_name: 'Cor Voet', activity: 'verpakken', cost_per_kg: 0.25 },
+        ],
+      },
+      {
+        route_id: 'picnic_vleugels',
+        route_name: 'Vleugels → Verpakt (Storteboom)',
+        type: 'single-source',
+        source_part: 'wings',
+        end_product: 'vleugels_picnic',
+        input_kg: wings_kg,
+        yield_factor: 0.99, // 99% yield
+        processors: [
+          { processor_name: 'Storteboom', activity: 'verpakken', cost_per_kg: 0.20 },
+        ],
+      },
+    ],
   };
 }
 
@@ -571,3 +981,9 @@ saveBatch(validatieBatch);
 
 const cunoBatch = createCunoMoormannBatch();
 saveBatch(cunoBatch);
+
+const crispBatch = createCrispBatch();
+saveBatch(crispBatch);
+
+const picnicBatch = createPicnicBatch();
+saveBatch(picnicBatch);

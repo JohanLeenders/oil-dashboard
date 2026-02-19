@@ -52,7 +52,7 @@ const CARCASS_REFERENCE: Record<string, number> = {
 
 // UI Helpers
 function getMarginBadgeClass(marginPct: number | null): string {
-  if (marginPct === null) return 'bg-gray-100 text-gray-600';
+  if (marginPct === null) return 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-600';
   if (marginPct < 0) return 'bg-red-100 text-red-800';
   if (marginPct < 5) return 'bg-orange-100 text-orange-800';
   if (marginPct > 15) return 'bg-green-100 text-green-800';
@@ -68,7 +68,7 @@ function getDeviationFlagClass(flag: string): string {
     case 'ABOVE_RANGE':
       return 'bg-blue-100 text-blue-800';
     default:
-      return 'bg-gray-100 text-gray-600';
+      return 'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-600';
   }
 }
 
@@ -193,15 +193,15 @@ export default async function MarginsPage() {
     <div className="container mx-auto py-8 px-4">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-500 mb-2">
           <Link href="/oil" className="hover:text-blue-600">Dashboard</Link>
           <span>/</span>
           <span>Klantmarges</span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
           Klantafspraken, Marges & Karkascontext
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-600 mt-2">
           Marges per klant in relatie tot karkasafname en contractuele afspraken.
         </p>
         <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -214,32 +214,32 @@ export default async function MarginsPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Klanten geanalyseerd</div>
-          <div className="text-3xl font-bold text-gray-900">{totalCustomers}</div>
-          <div className="text-sm text-gray-500 mt-1">Laatste 90 dagen</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Klanten geanalyseerd</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalCustomers}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Laatste 90 dagen</div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Gem. marge</div>
-          <div className={`text-3xl font-bold ${avgMarginPct < 5 ? 'text-orange-600' : avgMarginPct > 15 ? 'text-green-600' : 'text-gray-900'}`}>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Gem. marge</div>
+          <div className={`text-3xl font-bold ${avgMarginPct < 5 ? 'text-orange-600' : avgMarginPct > 15 ? 'text-green-600' : 'text-gray-900 dark:text-gray-100'}`}>
             {formatPercent(avgMarginPct)}
           </div>
-          <div className="text-sm text-gray-500 mt-1">Over alle klanten</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Over alle klanten</div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Klanten met contractafwijking</div>
-          <div className="text-3xl font-bold text-gray-900">{customersWithDeviations}</div>
-          <div className="text-sm text-gray-500 mt-1">Buiten afgesproken range</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Klanten met contractafwijking</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{customersWithDeviations}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Buiten afgesproken range</div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Totale omzet (90d)</div>
-          <div className="text-3xl font-bold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Totale omzet (90d)</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {formatMoney(customers.reduce((sum, c) => sum + c.total_revenue_eur, 0))}
           </div>
-          <div className="text-sm text-gray-500 mt-1">Alle klanten</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Alle klanten</div>
         </div>
       </div>
 
@@ -253,16 +253,16 @@ export default async function MarginsPage() {
       )}
 
       {/* Customer Margin Table */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Klantoverzicht</h2>
-          <p className="text-sm text-gray-500 mt-1">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Klantoverzicht</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
             Marge per onderdeel met afwijkingen van contracten en karkasbalans
           </p>
         </div>
 
         {customers.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
+          <div className="p-6 text-center text-gray-500 dark:text-gray-500">
             Geen klantdata beschikbaar. Controleer of er verkoopdata is in de laatste 90 dagen.
           </div>
         ) : (
@@ -272,15 +272,15 @@ export default async function MarginsPage() {
                 {/* Customer Header */}
                 <div className="flex items-center justify-between mb-4">
                   <div>
-                    <h3 className="text-lg font-medium text-gray-900">{customer.customer_name}</h3>
-                    <div className="flex items-center gap-4 text-sm text-gray-500">
+                    <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">{customer.customer_name}</h3>
+                    <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-500">
                       <span>{customer.customer_code}</span>
                       <span>•</span>
                       <span>{customer.total_kg.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg totaal</span>
                     </div>
                   </div>
                   <div className="text-right">
-                    <div className="text-2xl font-bold text-gray-900">
+                    <div className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                       {formatMoney(customer.total_margin_eur)}
                     </div>
                     <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium ${getMarginBadgeClass(customer.total_margin_pct)}`}>
@@ -306,8 +306,8 @@ export default async function MarginsPage() {
 
                 {/* No Cost Data Warning */}
                 {!customer.has_cost_data && (
-                  <div className="mb-4 p-3 bg-gray-50 border border-gray-200 rounded-lg">
-                    <p className="text-sm text-gray-600">
+                  <div className="mb-4 p-3 bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg">
+                    <p className="text-sm text-gray-600 dark:text-gray-600">
                       <strong>Let op:</strong> Geen kostprijsdata beschikbaar. Margeberekening is onvolledig.
                     </p>
                   </div>
@@ -316,16 +316,16 @@ export default async function MarginsPage() {
                 {/* Part-by-Part Margin Table */}
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Onderdeel</th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Omzet</th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Kosten</th>
-                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Marge</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Marge %</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Afname %</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">vs Karkas</th>
-                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase">Contract</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Onderdeel</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Omzet</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Kosten</th>
+                        <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Marge</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Marge %</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Afname %</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">vs Karkas</th>
+                        <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Contract</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -339,20 +339,20 @@ export default async function MarginsPage() {
                         );
 
                         return (
-                          <tr key={margin.part_code} className="hover:bg-gray-50">
-                            <td className="px-3 py-2 font-medium text-gray-900">
+                          <tr key={margin.part_code} className="hover:bg-gray-50 dark:bg-gray-900">
+                            <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">
                               {getPartNameDutch(margin.part_code)}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-900">
+                            <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">
                               {formatMoney(margin.revenue_eur)}
                             </td>
-                            <td className="px-3 py-2 text-right text-gray-600">
+                            <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-600">
                               {margin.cost_data_status === 'COST_AVAILABLE'
                                 ? formatMoney(margin.cost_eur)
-                                : <span className="text-gray-400">-</span>}
+                                : <span className="text-gray-400 dark:text-gray-500">-</span>}
                             </td>
                             <td className="px-3 py-2 text-right font-medium">
-                              <span className={margin.margin_eur < 0 ? 'text-red-600' : 'text-gray-900'}>
+                              <span className={margin.margin_eur < 0 ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}>
                                 {formatMoney(margin.margin_eur)}
                               </span>
                             </td>
@@ -361,7 +361,7 @@ export default async function MarginsPage() {
                                 {formatPercent(margin.margin_pct)}
                               </span>
                             </td>
-                            <td className="px-3 py-2 text-center text-gray-600">
+                            <td className="px-3 py-2 text-center text-gray-600 dark:text-gray-600">
                               {formatPercent(margin.customer_share_pct)}
                             </td>
                             <td className="px-3 py-2 text-center">
@@ -370,7 +370,7 @@ export default async function MarginsPage() {
                                   {formatDeviation(alignmentDelta)}
                                 </span>
                               ) : (
-                                <span className="text-gray-400">-</span>
+                                <span className="text-gray-400 dark:text-gray-500">-</span>
                               )}
                             </td>
                             <td className="px-3 py-2 text-center">
@@ -379,7 +379,7 @@ export default async function MarginsPage() {
                                   {getDeviationFlagLabel(deviation.deviation_flag)}
                                 </span>
                               ) : (
-                                <span className="text-xs text-gray-400">Geen contract</span>
+                                <span className="text-xs text-gray-400 dark:text-gray-500">Geen contract</span>
                               )}
                             </td>
                           </tr>
@@ -390,8 +390,8 @@ export default async function MarginsPage() {
                 </div>
 
                 {/* Margin Explanation */}
-                <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-                  <p className="text-sm text-gray-700">
+                <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-900 rounded-lg">
+                  <p className="text-sm text-gray-700 dark:text-gray-600">
                     <strong>Context:</strong>{' '}
                     {customer.total_margin_pct !== null && customer.total_margin_pct < 5
                       ? 'Lage totale marge.'
@@ -411,8 +411,8 @@ export default async function MarginsPage() {
       </div>
 
       {/* Reference Info */}
-      <div className="mt-8 text-sm text-gray-500">
-        <h3 className="font-medium text-gray-700 mb-2">Referentie</h3>
+      <div className="mt-8 text-sm text-gray-500 dark:text-gray-500">
+        <h3 className="font-medium text-gray-700 dark:text-gray-600 mb-2">Referentie</h3>
         <ul className="space-y-1">
           <li>• Karkasratio&apos;s: JA757 (Hubbard spec) — voor alignment berekening</li>
           <li>• Analyseperiode: Laatste 90 dagen</li>

@@ -23,7 +23,7 @@ export function MassBalanceIndicator({ status, deviationPct, size = 'sm' }: Prop
         <div className={`text-xl font-bold ${config.text}`}>
           {config.emoji} {deviationPct.toFixed(1)}%
         </div>
-        <div className="text-sm text-gray-500">{config.label}</div>
+        <div className="text-sm text-gray-500 dark:text-gray-500">{config.label}</div>
       </div>
     );
   }

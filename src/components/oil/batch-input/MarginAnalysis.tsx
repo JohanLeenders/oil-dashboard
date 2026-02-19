@@ -33,17 +33,21 @@ export function MarginAnalysis({ batch, waterfallData }: Props) {
   const rows = batch.joint_products.map(jp => {
     const alloc = level3.allocations.find(a => a.part_code === jp.part_code);
     const svaso_per_kg = alloc?.allocated_cost_per_kg ?? 0;
+    const cutting_per_kg = jp.cutting_cost_per_kg ?? 0;
+    const total_cost_per_kg = svaso_per_kg + cutting_per_kg;
     const vp_per_kg = jp.selling_price_per_kg ?? 0;
-    const marge_per_kg = vp_per_kg > 0 ? vp_per_kg - svaso_per_kg : 0;
+    const marge_per_kg = vp_per_kg > 0 ? vp_per_kg - total_cost_per_kg : 0;
     const marge_pct = vp_per_kg > 0 ? (marge_per_kg / vp_per_kg) * 100 : 0;
     const total_omzet = jp.weight_kg * vp_per_kg;
-    const total_kosten = jp.weight_kg * svaso_per_kg;
+    const total_kosten = jp.weight_kg * total_cost_per_kg;
     const total_marge = total_omzet - total_kosten;
 
     return {
       part_code: jp.part_code,
       weight_kg: jp.weight_kg,
       svaso_per_kg,
+      cutting_per_kg,
+      total_cost_per_kg,
       vp_per_kg,
       marge_per_kg,
       marge_pct,
@@ -105,6 +109,8 @@ export function MarginAnalysis({ batch, waterfallData }: Props) {
               <th className="pb-2">Product</th>
               <th className="pb-2 text-right">kg</th>
               <th className="pb-2 text-right">SVASO €/kg</th>
+              <th className="pb-2 text-right">+ Verpakking €/kg</th>
+              <th className="pb-2 text-right">= Kostprijs €/kg</th>
               <th className="pb-2 text-right">VP €/kg</th>
               <th className="pb-2 text-right">Marge €/kg</th>
               <th className="pb-2 text-right">Marge %</th>
@@ -116,7 +122,9 @@ export function MarginAnalysis({ batch, waterfallData }: Props) {
               <tr key={r.part_code} className="border-b border-gray-100">
                 <td className="py-2 font-medium">{getPartNameDutch(r.part_code)}</td>
                 <td className="py-2 text-right">{r.weight_kg.toFixed(1)}</td>
-                <td className="py-2 text-right">{fmtEur2(r.svaso_per_kg)}</td>
+                <td className="py-2 text-right text-gray-500">{fmtEur2(r.svaso_per_kg)}</td>
+                <td className="py-2 text-right text-gray-500">{fmtEur2(r.cutting_per_kg)}</td>
+                <td className="py-2 text-right font-medium">{fmtEur2(r.total_cost_per_kg)}</td>
                 <td className="py-2 text-right">{fmtEur2(r.vp_per_kg)}</td>
                 <td className="py-2 text-right font-medium">{fmtEur2(r.marge_per_kg)}</td>
                 <td className="py-2 text-right">
@@ -136,6 +144,8 @@ export function MarginAnalysis({ batch, waterfallData }: Props) {
               <td className="pt-2 text-right">
                 {rows.reduce((s, r) => s + r.weight_kg, 0).toFixed(1)}
               </td>
+              <td className="pt-2" />
+              <td className="pt-2" />
               <td className="pt-2" />
               <td className="pt-2" />
               <td className="pt-2" />

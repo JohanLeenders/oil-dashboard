@@ -35,21 +35,27 @@ function createEmptyBatch(): BatchInputData {
     live_cost_per_kg: 0,
     transport_cost_eur: 0,
     catching_fee_eur: 0,
+    processing_fee_per_bird: 0,
+    processing_routes: [],
   };
 }
 
-export function NewBatchShell() {
+interface Props {
+  redirectBasePath?: string;
+}
+
+export function NewBatchShell({ redirectBasePath = '/oil/kostprijs' }: Props) {
   const router = useRouter();
 
   const handleSave = useCallback((data: BatchInputData) => {
     saveBatch(data);
-    router.push(`/oil/batch-input/${encodeURIComponent(data.batch_id)}`);
-  }, [router]);
+    router.push(`${redirectBasePath}/${encodeURIComponent(data.batch_id)}`);
+  }, [router, redirectBasePath]);
 
   const handleSaveAndRecalc = useCallback((data: BatchInputData) => {
     saveBatch(data);
-    router.push(`/oil/batch-input/${encodeURIComponent(data.batch_id)}`);
-  }, [router]);
+    router.push(`${redirectBasePath}/${encodeURIComponent(data.batch_id)}`);
+  }, [router, redirectBasePath]);
 
   return (
     <BatchInputForm

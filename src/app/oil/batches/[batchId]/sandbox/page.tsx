@@ -38,15 +38,15 @@ export default async function SandboxPage({ params }: PageProps) {
           <div className="flex items-center gap-2">
             <Link
               href={`/oil/batches/${batchId}`}
-              className="text-gray-500 hover:text-gray-700"
+              className="text-gray-500 dark:text-gray-500 hover:text-gray-700 dark:text-gray-600"
             >
               {PAGE.backLink(batchDetail.batch.batch_ref)}
             </Link>
           </div>
-          <h2 className="text-2xl font-bold text-gray-900 mt-2">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 mt-2">
             {PAGE.title}
           </h2>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600 dark:text-gray-600 mt-1">
             {PAGE.subtitle}
           </p>
         </div>

@@ -43,7 +43,7 @@ describe('mapBatchToBaseline', () => {
       { cost_type: 'catching', description: 'Catching fee', amount: 50.00, invoice_ref: null, cost_status: 'OK' },
     ],
     massBalance: null as any,
-    tht: { status: 'green' as any, days_until_expiry: 14, tht_date: '2026-02-15' },
+    tht: { status: 'green' as any, elapsed_pct: 50, days_remaining: 14, urgency_label: 'OK' },
     validation: { is_valid: true, data_status: 'COMPLETE', warnings: [] },
   };
 

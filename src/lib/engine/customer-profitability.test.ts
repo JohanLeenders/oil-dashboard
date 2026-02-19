@@ -131,7 +131,7 @@ describe('calculateCustomerProfitability', () => {
 
   it('moet mix deviation correct berekenen', () => {
     // 120 kg totaal: 80 kg filet (66.7%), 40 kg dij (33.3%)
-    // Filet anatomisch = 24%, deviation = 66.7 - 24 = +42.7%
+    // Filet anatomisch = 23.5%, deviation = 66.7 - 23.5 = +43.2%
     const salesLines: CustomerSalesLine[] = [
       { category: 'filet', quantity_kg: 80, revenue: 760, allocated_cost: 560, invoice_date: '2026-01-15' },
       { category: 'dij', quantity_kg: 40, revenue: 300, allocated_cost: 240, invoice_date: '2026-01-15' },
@@ -146,8 +146,8 @@ describe('calculateCustomerProfitability', () => {
 
     const filetMargin = result.category_margins.find(m => m.category === 'filet');
     expect(filetMargin?.volume_share_pct).toBeCloseTo(66.67, 1);
-    expect(filetMargin?.anatomical_ratio_pct).toBe(24);
-    expect(filetMargin?.deviation_pct).toBeCloseTo(42.67, 1);
+    expect(filetMargin?.anatomical_ratio_pct).toBe(22);
+    expect(filetMargin?.deviation_pct).toBeCloseTo(44.67, 1);
 
     // Mix deviation score should be low due to high deviation
     expect(result.mix_deviation_score).toBeLessThan(60);

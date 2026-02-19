@@ -161,15 +161,15 @@ export default async function AlignmentPage() {
     <div className="container mx-auto py-8 px-4">
       {/* Header */}
       <div className="mb-8">
-        <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
+        <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-500 mb-2">
           <Link href="/oil" className="hover:text-blue-600">Dashboard</Link>
           <span>/</span>
           <span>Vierkantsverwaarding</span>
         </div>
-        <h1 className="text-3xl font-bold text-gray-900">
+        <h1 className="text-3xl font-bold text-gray-900 dark:text-gray-100">
           Klant-specifieke Vierkantsverwaarding
         </h1>
-        <p className="text-gray-600 mt-2">
+        <p className="text-gray-600 dark:text-gray-600 mt-2">
           Vergelijking van klantafnameprofielen met de natuurlijke karkasbalans.
         </p>
         <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
@@ -182,24 +182,24 @@ export default async function AlignmentPage() {
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Klanten geanalyseerd</div>
-          <div className="text-3xl font-bold text-gray-900">{customers.length}</div>
-          <div className="text-sm text-gray-500 mt-1">Laatste 90 dagen</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Klanten geanalyseerd</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{customers.length}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Laatste 90 dagen</div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Gem. alignment score</div>
-          <div className="text-3xl font-bold text-gray-900">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Gem. alignment score</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">
             {avgAlignmentScore.toFixed(1)}
           </div>
-          <div className="text-sm text-gray-500 mt-1">100 = perfecte karkasbalans</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">100 = perfecte karkasbalans</div>
         </div>
 
-        <div className="bg-white rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 mb-1">Klanten met afwijkend profiel</div>
-          <div className="text-3xl font-bold text-gray-900">{customersWithLowAlignment}</div>
-          <div className="text-sm text-gray-500 mt-1">Alignment score &lt; 50</div>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Klanten met afwijkend profiel</div>
+          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{customersWithLowAlignment}</div>
+          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Alignment score &lt; 50</div>
         </div>
       </div>
 
@@ -211,45 +211,45 @@ export default async function AlignmentPage() {
       )}
 
       {/* Customer Alignment Table */}
-      <div className="bg-white rounded-lg shadow mb-8">
-        <div className="px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">Klantprofielen vs Karkasbalans</h2>
-          <p className="text-sm text-gray-500 mt-1">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Klantprofielen vs Karkasbalans</h2>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
             Afwijking van de natuurlijke karkasverhouding (JA757 referentie)
           </p>
         </div>
 
         {customers.length === 0 ? (
-          <div className="p-6 text-center text-gray-500">
+          <div className="p-6 text-center text-gray-500 dark:text-gray-500">
             Geen klantdata beschikbaar. Controleer of er verkoopdata is in de laatste 90 dagen.
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-gray-50 dark:bg-gray-900">
                 <tr>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                     Klant
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                     Totaal (kg)
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                     Alignment
                   </th>
-                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+                  <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                     Afwijkingen
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-200">
                 {customers.map((customer) => (
-                  <tr key={customer.customer_id} className="hover:bg-gray-50">
+                  <tr key={customer.customer_id} className="hover:bg-gray-50 dark:bg-gray-900">
                     <td className="px-6 py-4">
-                      <div className="font-medium text-gray-900">{customer.customer_name}</div>
-                      <div className="text-sm text-gray-500">{customer.customer_code}</div>
+                      <div className="font-medium text-gray-900 dark:text-gray-100">{customer.customer_name}</div>
+                      <div className="text-sm text-gray-500 dark:text-gray-500">{customer.customer_code}</div>
                     </td>
-                    <td className="px-6 py-4 text-sm text-gray-900">
+                    <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100">
                       {customer.customer_total_kg.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg
                     </td>
                     <td className="px-6 py-4">
@@ -272,7 +272,7 @@ export default async function AlignmentPage() {
                             </span>
                           ))}
                         {customer.deviations.filter(d => d.deviation_category !== 'BALANCED').length === 0 && (
-                          <span className="text-sm text-gray-500">Geen significante afwijkingen</span>
+                          <span className="text-sm text-gray-500 dark:text-gray-500">Geen significante afwijkingen</span>
                         )}
                       </div>
                     </td>
@@ -286,10 +286,10 @@ export default async function AlignmentPage() {
 
       {/* Scenario Section */}
       {scenarios.length > 0 && (
-        <div className="bg-white rounded-lg shadow">
-          <div className="px-6 py-4 border-b border-gray-200">
-            <h2 className="text-xl font-semibold text-gray-900">Scenario&apos;s (Wat-als)</h2>
-            <p className="text-sm text-gray-500 mt-1">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow">
+          <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+            <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Scenario&apos;s (Wat-als)</h2>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
               Projecties gebaseerd op aannames — geen voorspellingen of aanbevelingen
             </p>
           </div>
@@ -304,29 +304,29 @@ export default async function AlignmentPage() {
 
           <div className="p-6 space-y-6">
             {scenarios.map((scenario) => (
-              <div key={scenario.scenario_id} className="border border-gray-200 rounded-lg p-4">
+              <div key={scenario.scenario_id} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
                 <div className="flex items-center justify-between mb-3">
                   <div>
-                    <h3 className="font-medium text-gray-900">{scenario.scenario_name}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{scenario.scenario_name}</h3>
                     {scenario.scenario_description && (
-                      <p className="text-sm text-gray-500">{scenario.scenario_description}</p>
+                      <p className="text-sm text-gray-500 dark:text-gray-500">{scenario.scenario_description}</p>
                     )}
                   </div>
-                  <span className="px-2 py-1 text-xs font-medium bg-gray-100 text-gray-600 rounded">
+                  <span className="px-2 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-600 rounded">
                     AANNAME
                   </span>
                 </div>
 
                 <div className="overflow-x-auto">
                   <table className="w-full text-sm">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-gray-50 dark:bg-gray-900">
                       <tr>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Onderdeel</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Prijswijziging</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Volumewijziging</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Huidige dag/kg</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Projectie dag/kg</th>
-                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500">Bron</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500">Onderdeel</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500">Prijswijziging</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500">Volumewijziging</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500">Huidige dag/kg</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500">Projectie dag/kg</th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500">Bron</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-gray-100">
@@ -343,14 +343,14 @@ export default async function AlignmentPage() {
                               {formatDeviation(part.expected_volume_change_pct)}
                             </span>
                           </td>
-                          <td className="px-3 py-2 text-gray-600">
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-600">
                             {part.current_daily_kg?.toFixed(1) || '-'} kg
                           </td>
-                          <td className="px-3 py-2 text-gray-600">
+                          <td className="px-3 py-2 text-gray-600 dark:text-gray-600">
                             {part.projected_daily_kg?.toFixed(1) || '-'} kg
                           </td>
                           <td className="px-3 py-2">
-                            <span className="text-xs text-gray-500">{part.assumption_source}</span>
+                            <span className="text-xs text-gray-500 dark:text-gray-500">{part.assumption_source}</span>
                           </td>
                         </tr>
                       ))}
@@ -359,7 +359,7 @@ export default async function AlignmentPage() {
                 </div>
 
                 {scenario.parts[0]?.assumption_note && (
-                  <div className="mt-3 text-xs text-gray-500">
+                  <div className="mt-3 text-xs text-gray-500 dark:text-gray-500">
                     <strong>Toelichting:</strong> {scenario.parts[0].assumption_note}
                   </div>
                 )}
@@ -370,15 +370,15 @@ export default async function AlignmentPage() {
       )}
 
       {scenarios.length === 0 && (
-        <div className="bg-white rounded-lg shadow p-6 text-center text-gray-500">
-          <h2 className="text-lg font-medium text-gray-900 mb-2">Scenario&apos;s</h2>
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 text-center text-gray-500 dark:text-gray-500">
+          <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-2">Scenario&apos;s</h2>
           <p>Geen scenario&apos;s geconfigureerd. Voeg elasticiteitsaannames toe om wat-als analyses te zien.</p>
         </div>
       )}
 
       {/* Reference Info */}
-      <div className="mt-8 text-sm text-gray-500">
-        <h3 className="font-medium text-gray-700 mb-2">Referentie</h3>
+      <div className="mt-8 text-sm text-gray-500 dark:text-gray-500">
+        <h3 className="font-medium text-gray-700 dark:text-gray-600 mb-2">Referentie</h3>
         <ul className="space-y-1">
           <li>• Karkasratio&apos;s: JA757 (Hubbard spec) — <strong>NORMATIEF</strong></li>
           <li>• Analyseperiode: Laatste 90 dagen</li>

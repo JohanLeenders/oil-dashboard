@@ -82,10 +82,28 @@ export const PROFILE_CUNO_MOORMANN: BatchProfile = {
   description: 'Externe verwerker: ontvangt grillers, snijdt uit tot filet suprêmes, drumsticks, dijfilet met vel, platte vleugels',
 };
 
+/** Crisp: hele kip → griller direct verkoop (geen uitsnij) */
+export const PROFILE_CRISP: BatchProfile = {
+  profile_id: 'crisp',
+  profile_name: 'Crisp (griller direct)',
+  joint_product_codes: ['griller'],
+  description: 'Hele kip slacht → griller direct verkoop, geen uitsnij',
+};
+
+/** Picnic: multi-site verwerkingsketen (Storteboom → Cor Voet / Driessen) */
+export const PROFILE_PICNIC: BatchProfile = {
+  profile_id: 'picnic',
+  profile_name: 'Picnic (multi-site)',
+  joint_product_codes: ['breast_cap', 'legs', 'wings'],
+  description: 'Slacht + uitsnij → meerdere verwerkingsroutes via Cor Voet, Driessen, Storteboom',
+};
+
 /** All registered profiles */
 export const BATCH_PROFILES: readonly BatchProfile[] = [
   PROFILE_ORANJEHOEN,
   PROFILE_CUNO_MOORMANN,
+  PROFILE_CRISP,
+  PROFILE_PICNIC,
 ];
 
 /** Get profile by ID, falls back to ORANJEHOEN */
@@ -1946,6 +1964,15 @@ export function getPartNameDutch(partCode: string): string {
     dijfilet_vel: 'Dijfilet met vel',
     platte_vleugels: 'Platte vleugels',
     karkassen: 'Karkassen',
+    // Crisp (Sprint 14)
+    griller: 'Griller',
+    // Picnic eindproducten (Sprint 14)
+    filet_picnic: 'Filet (Picnic)',
+    gehakt_picnic: 'Gehakt (Picnic)',
+    burger_picnic: 'Burger (Picnic)',
+    dijen_picnic: 'Dijen (Picnic)',
+    vleugels_picnic: 'Vleugels (Picnic)',
+    skin: 'Vel',
   };
   return names[partCode] || partCode;
 }

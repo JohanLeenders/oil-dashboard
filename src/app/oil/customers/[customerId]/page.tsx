@@ -38,19 +38,19 @@ export default async function CustomerDetailPage({ params }: PageProps) {
   return (
     <div className="space-y-6">
       {/* Breadcrumb */}
-      <nav className="text-sm text-gray-500">
-        <Link href="/oil/customers" className="hover:text-gray-700">
+      <nav className="text-sm text-gray-500 dark:text-gray-500">
+        <Link href="/oil/customers" className="hover:text-gray-700 dark:text-gray-600">
           Klanten
         </Link>
         <span className="mx-2">/</span>
-        <span className="text-gray-900">{customer.name}</span>
+        <span className="text-gray-900 dark:text-gray-100">{customer.name}</span>
       </nav>
 
       {/* Header */}
       <div className="flex justify-between items-start">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">{customer.name}</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{customer.name}</h2>
+          <p className="text-gray-600 dark:text-gray-600 mt-1">
             {customer.customer_code} &bull; {customer.segment || 'Geen segment'}
           </p>
         </div>
@@ -103,12 +103,12 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         {/* Left Column: Profitability Details */}
         <div className="space-y-6">
           {/* Margin Trend */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Marge Trend</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Marge Trend</h3>
             <div className="flex items-center gap-4">
               <div className="flex-1">
-                <p className="text-sm text-gray-500">Huidige Periode (30d)</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-500">Huidige Periode (30d)</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {profitability.recent_margin_pct.toFixed(1)}%
                 </p>
               </div>
@@ -116,13 +116,13 @@ export default async function CustomerDetailPage({ params }: PageProps) {
                 {getTrendArrow(profitability.margin_trend)}
               </div>
               <div className="flex-1 text-right">
-                <p className="text-sm text-gray-500">Vorige Periode</p>
-                <p className="text-2xl font-bold text-gray-900">
+                <p className="text-sm text-gray-500 dark:text-gray-500">Vorige Periode</p>
+                <p className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {profitability.prior_margin_pct.toFixed(1)}%
                 </p>
               </div>
             </div>
-            <p className="text-sm text-gray-500 mt-2">
+            <p className="text-sm text-gray-500 dark:text-gray-500 mt-2">
               Trend: <span className={getTrendColorClass(profitability.margin_trend)}>
                 {profitability.margin_trend === 'improving' && 'Verbeterend'}
                 {profitability.margin_trend === 'stable' && 'Stabiel'}
@@ -133,11 +133,11 @@ export default async function CustomerDetailPage({ params }: PageProps) {
           </div>
 
           {/* Category Margins */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Marge per Categorie</h3>
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Marge per Categorie</h3>
             <div className="space-y-3">
               {profitability.category_margins.length === 0 ? (
-                <p className="text-gray-500 text-sm">Geen verkoop data beschikbaar</p>
+                <p className="text-gray-500 dark:text-gray-500 text-sm">Geen verkoop data beschikbaar</p>
               ) : (
                 profitability.category_margins.map((cm) => (
                   <CategoryMarginRow key={cm.category} margin={cm} />
@@ -150,9 +150,9 @@ export default async function CustomerDetailPage({ params }: PageProps) {
         {/* Right Column: Mix Analysis */}
         <div className="space-y-6">
           {/* Product Mix vs Anatomical */}
-          <div className="bg-white rounded-lg border border-gray-200 p-4">
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Productmix vs. Anatomisch</h3>
-            <p className="text-sm text-gray-500 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Productmix vs. Anatomisch</h3>
+            <p className="text-sm text-gray-500 dark:text-gray-500 mb-4">
               Mix Deviation Score: <span className={
                 profitability.mix_deviation_score >= 70 ? 'text-green-600' :
                 profitability.mix_deviation_score >= 50 ? 'text-yellow-600' : 'text-red-600'
@@ -162,7 +162,7 @@ export default async function CustomerDetailPage({ params }: PageProps) {
             </p>
             <div className="space-y-2">
               {cherry_picker_analysis.category_breakdown.length === 0 ? (
-                <p className="text-gray-500 text-sm">Geen data beschikbaar</p>
+                <p className="text-gray-500 dark:text-gray-500 text-sm">Geen data beschikbaar</p>
               ) : (
                 cherry_picker_analysis.category_breakdown
                   .filter(cb => cb.quantity_kg > 0)
@@ -176,8 +176,8 @@ export default async function CustomerDetailPage({ params }: PageProps) {
 
           {/* Warnings */}
           {profitability.warnings.length > 0 && (
-            <div className="bg-white rounded-lg border border-gray-200 p-4">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Waarschuwingen</h3>
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Waarschuwingen</h3>
               <div className="space-y-2">
                 {profitability.warnings.map((warning, idx) => (
                   <WarningRow key={idx} warning={warning} />
@@ -195,32 +195,32 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       </div>
 
       {/* Recent Sales Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
-        <div className="px-4 py-3 border-b border-gray-200">
-          <h3 className="text-lg font-semibold text-gray-900">Recente Transacties</h3>
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-gray-100">Recente Transacties</h3>
         </div>
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Factuur
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Datum
               </th>
-              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Categorie
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Kg
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Omzet
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Kostprijs
               </th>
-              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase">
+              <th className="px-4 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
                 Marge
               </th>
             </tr>
@@ -228,29 +228,29 @@ export default async function CustomerDetailPage({ params }: PageProps) {
           <tbody className="divide-y divide-gray-200">
             {customer.recent_sales.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-4 py-8 text-center text-gray-500">
+                <td colSpan={7} className="px-4 py-8 text-center text-gray-500 dark:text-gray-500">
                   Geen transacties gevonden
                 </td>
               </tr>
             ) : (
               customer.recent_sales.map((sale, idx) => (
-                <tr key={idx} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 text-sm text-gray-900">
+                <tr key={idx} className="hover:bg-gray-50 dark:bg-gray-900">
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100">
                     {sale.invoice_number}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600">
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-600">
                     {new Date(sale.invoice_date).toLocaleDateString('nl-NL')}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 capitalize">
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 capitalize">
                     {sale.category.replace('_', ' ')}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">
                     {sale.quantity_kg.toFixed(1)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-900 text-right">
+                  <td className="px-4 py-3 text-sm text-gray-900 dark:text-gray-100 text-right">
                     {'\u20AC'}{sale.revenue.toFixed(2)}
                   </td>
-                  <td className="px-4 py-3 text-sm text-gray-600 text-right">
+                  <td className="px-4 py-3 text-sm text-gray-600 dark:text-gray-600 text-right">
                     {sale.allocated_cost ? `\u20AC${sale.allocated_cost.toFixed(2)}` : '-'}
                   </td>
                   <td className={`px-4 py-3 text-sm text-right font-medium ${
@@ -266,11 +266,11 @@ export default async function CustomerDetailPage({ params }: PageProps) {
       </div>
 
       {/* Info Box */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-4 text-sm">
-        <p className="font-medium text-gray-800">Berekeningslogica</p>
-        <ul className="mt-2 text-gray-600 space-y-1">
+      <div className="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-lg p-4 text-sm">
+        <p className="font-medium text-gray-800 dark:text-gray-200">Berekeningslogica</p>
+        <ul className="mt-2 text-gray-600 dark:text-gray-600 space-y-1">
           <li>&bull; Marge berekend met SVASO (Sales Value at Split-off)</li>
-          <li>&bull; Cherry Picker: filet afname &gt;30% (anatomisch ~24%)</li>
+          <li>&bull; Cherry Picker: filet afname &gt;28% (anatomisch 23.5%)</li>
           <li>&bull; Health Score: 60% marge + 40% balance score</li>
           <li>&bull; Trend: vergelijking laatste 30 vs. 31-60 dagen</li>
         </ul>
@@ -299,18 +299,18 @@ function KpiCard({
   const borderClass = highlight
     ? status === 'unprofitable' ? 'border-red-300' :
       status === 'marginal' ? 'border-yellow-300' : 'border-orange-300'
-    : 'border-gray-200';
+    : 'border-gray-200 dark:border-gray-700';
 
   const valueClass = status === 'unprofitable' ? 'text-red-600' :
-    status === 'marginal' ? 'text-yellow-600' : 'text-gray-900';
+    status === 'marginal' ? 'text-yellow-600' : 'text-gray-900 dark:text-gray-100';
 
   return (
-    <div className={`bg-white rounded-lg border p-4 ${borderClass}`}>
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${highlight ? valueClass : 'text-gray-900'}`}>
+    <div className={`bg-white dark:bg-gray-800 rounded-lg border p-4 ${borderClass}`}>
+      <p className="text-sm text-gray-500 dark:text-gray-500">{label}</p>
+      <p className={`text-2xl font-bold mt-1 ${highlight ? valueClass : 'text-gray-900 dark:text-gray-100'}`}>
         {value}
       </p>
-      <p className="text-xs text-gray-400 mt-1">{subtext}</p>
+      <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">{subtext}</p>
     </div>
   );
 }
@@ -351,12 +351,12 @@ function CategoryMarginRow({
     margin.margin_pct >= 10 ? 'text-yellow-600' : 'text-red-600';
 
   return (
-    <div className="flex items-center justify-between py-2 border-b border-gray-100 last:border-0">
+    <div className="flex items-center justify-between py-2 border-b border-gray-100 dark:border-gray-700 last:border-0">
       <div className="flex-1">
-        <p className="text-sm font-medium text-gray-900 capitalize">
+        <p className="text-sm font-medium text-gray-900 dark:text-gray-100 capitalize">
           {margin.category.replace('_', ' ')}
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-500">
           {margin.quantity_kg.toFixed(0)} kg ({margin.volume_share_pct.toFixed(1)}%)
         </p>
       </div>
@@ -364,7 +364,7 @@ function CategoryMarginRow({
         <p className={`text-sm font-medium ${marginColor}`}>
           {margin.margin_pct.toFixed(1)}%
         </p>
-        <p className="text-xs text-gray-500">
+        <p className="text-xs text-gray-500 dark:text-gray-500">
           {'\u20AC'}{margin.gross_margin.toFixed(0)}
         </p>
       </div>
@@ -388,14 +388,14 @@ function MixComparisonRow({
 
   return (
     <div className="flex items-center gap-2 py-1">
-      <div className="w-24 text-sm text-gray-700 capitalize">
+      <div className="w-24 text-sm text-gray-700 dark:text-gray-600 capitalize">
         {breakdown.category.replace('_', ' ')}
       </div>
       <div className="flex-1">
-        <div className="relative h-4 bg-gray-200 rounded-full overflow-hidden">
+        <div className="relative h-4 bg-gray-200 dark:bg-gray-900 rounded-full overflow-hidden">
           {/* Anatomical ratio marker */}
           <div
-            className="absolute top-0 bottom-0 w-0.5 bg-gray-800 z-10"
+            className="absolute top-0 bottom-0 w-0.5 bg-gray-800 dark:bg-gray-900 z-10"
             style={{ left: `${Math.min(breakdown.anatomical_ratio, 100)}%` }}
           />
           {/* Actual bar */}

@@ -15,7 +15,7 @@
 /* Base styles */
 @layer base {
   body {
-    @apply text-gray-900;
+    @apply text-gray-900 dark:text-gray-100 dark:bg-gray-950;
   }
 
   h1 {
@@ -35,7 +35,7 @@
 @layer components {
   /* KPI Tile */
   .kpi-tile {
-    @apply rounded-lg border bg-white p-6 shadow-sm;
+    @apply rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 p-6 shadow-sm;
   }
 
   .kpi-tile-value {
@@ -43,7 +43,7 @@
   }
 
   .kpi-tile-label {
-    @apply text-sm text-gray-500;
+    @apply text-sm text-gray-500 dark:text-gray-400;
   }
 
   /* Status badges */
@@ -52,24 +52,24 @@
   }
 
   .badge-green {
-    @apply bg-green-100 text-green-800;
+    @apply bg-green-100 text-green-800 dark:bg-green-900/40 dark:text-green-300;
   }
 
   .badge-orange {
-    @apply bg-orange-100 text-orange-800;
+    @apply bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300;
   }
 
   .badge-red {
-    @apply bg-red-100 text-red-800;
+    @apply bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300;
   }
 
   .badge-gray {
-    @apply bg-gray-100 text-gray-800;
+    @apply bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-300;
   }
 
   /* THT Thermometer */
   .tht-bar {
-    @apply h-3 rounded-full overflow-hidden bg-gray-200;
+    @apply h-3 rounded-full overflow-hidden bg-gray-200 dark:bg-gray-700;
   }
 
   .tht-bar-fill {
@@ -90,11 +90,11 @@
 
   /* Data table */
   .data-table {
-    @apply w-full divide-y divide-gray-200;
+    @apply w-full divide-y divide-gray-200 dark:divide-gray-700;
   }
 
   .data-table th {
-    @apply px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500;
+    @apply px-4 py-3 text-left text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400;
   }
 
   .data-table td {
@@ -102,16 +102,16 @@
   }
 
   .data-table tbody tr {
-    @apply hover:bg-gray-50;
+    @apply hover:bg-gray-50 dark:hover:bg-gray-800;
   }
 
   /* Cards */
   .card {
-    @apply rounded-lg border bg-white shadow-sm;
+    @apply rounded-lg border bg-white dark:bg-gray-800 dark:border-gray-700 shadow-sm;
   }
 
   .card-header {
-    @apply border-b px-6 py-4;
+    @apply border-b dark:border-gray-700 px-6 py-4;
   }
 
   .card-body {
@@ -120,7 +120,7 @@
 
   /* Navigation */
   .nav-link {
-    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100;
+    @apply flex items-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800;
   }
 
   .nav-link-active {

@@ -1,20 +1,27 @@
 /**
  * Cherry-Picker Detectie Engine
  *
- * Kernlogica uit TRD Hoofdstuk 3.3:
+ * Een kip heeft vaste anatomische verhoudingen (biologische realiteit).
+ * Normen gebaseerd op werkelijke Oranjehoen griller rendementen
+ * (bron: "rendementen van product uit griller.xlsx", kolom I).
  *
- * Een kip heeft vaste anatomische verhoudingen (biologische realiteit):
- * - Filet: ~24% van levend gewicht
- * - Dij: ~14%
- * - Drumstick: ~12%
- * - etc.
+ * Oranjehoen griller rendementen (Sprint 16D gecorrigeerd):
+ * - Filet: 22.0% (20.5% gemeten + 1.5% correctie naar 100%)
+ * - Haas: ~2.5%
+ * - Dij: 15% (dijfilet, ontbeend — gemeten uit griller)
+ * - Drumstick: 14% (hele drumstick, mét bot)
+ * - Drumvlees: 8.75% (14% drumstick × 62.5% yield)
+ * - Vleugels: 9.2%
+ * - Vel: 2.25% (2% gemeten + 0.25% correctie naar 100%)
+ * - Karkas: 21.3%
+ * - Organen: ~5%
  *
  * Een "Cherry Picker" is een klant die disproportioneel premium delen (filet)
  * afneemt zonder de rest te compenseren. Dit verstoort de vierkantsverwaarding.
  *
  * Detectie criteria:
  * 1. Klant omzet > €10.000
- * 2. Filet afname > 30% van totaalvolume (terwijl anatomisch ~24% beschikbaar)
+ * 2. Filet afname > 28% van totaalvolume (terwijl anatomisch 23.5% beschikbaar)
  *
  * Balance Score:
  * - 100 = Perfecte anatomische mix
@@ -30,7 +37,7 @@ import type { ProductCategory, AnatomicalPart } from '@/types/database';
 
 /**
  * Anatomische ratio's per productcategorie
- * Gebaseerd op Hubbard JA757 data uit TRD
+ * Gebaseerd op werkelijke Oranjehoen griller rendementen
  */
 export interface AnatomicalNorm {
   category: ProductCategory;
@@ -71,6 +78,12 @@ export interface CherryPickerAnalysis {
   /** Opportunity cost: geschatte impact op vierkantsverwaarding */
   opportunity_cost: number;
 
+  /** Opportunity cost breakdown per surplus-categorie */
+  opportunity_cost_breakdown: OpportunityCostBreakdown[];
+
+  /** Aantal kippen nodig (bepaald door leading category) */
+  kippen_nodig: number;
+
   /** Aanbeveling voor sales team */
   recommendation: string;
 
@@ -94,58 +107,97 @@ export interface CherryPickerAlert {
   deviation_pct: number;
 }
 
+/**
+ * Opportunity cost breakdown per categorie.
+ * Toont per surplus-categorie hoeveel kg onverkocht is en wat dat kost.
+ */
+export interface OpportunityCostBreakdown {
+  category: ProductCategory;
+  /** Surplus kg: productie - afname (alleen categorieën met surplus > 0) */
+  surplus_kg: number;
+  /** Echte kg-prijs uit import, of €0.20 voor karkas */
+  kg_prijs: number;
+  /** surplus_kg × kg_prijs */
+  opportunity_cost: number;
+}
+
 // ============================================================================
-// CONSTANTS: Anatomische Normen (Hubbard JA757)
+// CONSTANTS: Anatomische Normen (Oranjehoen Griller Rendementen)
+//
+// Bronnen:
+//   Blad1: "rendementen van product uit griller.xlsx" — kolom I (directe yields)
+//   Filet-dijvlees: "Opdelen hele kip" — volledige yield-tree
+//
+// Rendementen t.o.v. de griller (Nijkerk/Putten).
+// NB: griller = kip zonder vet, bloed, veren — organen apart.
+//
+// Dij = dijfilet (ontbeend, ZONDER bot) — 15% gemeten uit griller.
+// Drumstick = hele drumstick MÉT bot — 14%.
+// Drumvlees = ontbeend drumvlees, 62.5% yield uit drumstick → 8.75%.
+//
+// Karkas = rug voor (7.9%) + rug achter (12.62%) + staart (0.78%) = 21.3%
+// (berekend uit Filet-dijvlees tabblad: bout-met-rug opdeling)
+//
+// Totaal excl. hele_kip: 100%
+//   filet +1.5% boven directe meting, vel +0.25% correctie
+//
+// Cherry-picker threshold = norm + ~5-6pp marge, afgerond.
 // ============================================================================
 
 export const ANATOMICAL_NORMS: AnatomicalNorm[] = [
   {
     category: 'filet',
     anatomical_part: 'breast_cap',
-    ratio_pct: 24.0,
-    cherry_picker_threshold_pct: 30.0,
+    ratio_pct: 22.0,    // OH flt half (20.5% Blad1) + 1.5% correctie naar 100%
+    cherry_picker_threshold_pct: 28.0,
   },
   {
     category: 'haas',
     anatomical_part: 'breast_cap',
-    ratio_pct: 2.5,
+    ratio_pct: 2.5,     // Afgeleid: filet+haas=66% van borst(34.89%) = 23% → haas ≈ 2.5%
     cherry_picker_threshold_pct: 5.0,
   },
   {
     category: 'dij',
     anatomical_part: 'leg_quarter',
-    ratio_pct: 14.0,
-    cherry_picker_threshold_pct: 20.0,
+    ratio_pct: 15.0,    // Dijfilet (ontbeend, zonder bot) — gemeten uit griller (Blad1)
+    cherry_picker_threshold_pct: 21.0,
   },
   {
     category: 'drumstick',
     anatomical_part: 'leg_quarter',
-    ratio_pct: 12.0,
-    cherry_picker_threshold_pct: 18.0,
+    ratio_pct: 14.0,    // Hele drumstick mét bot (Blad1)
+    cherry_picker_threshold_pct: 20.0,
   },
   {
     category: 'drumvlees',
     anatomical_part: 'leg_quarter',
-    ratio_pct: 7.5,
-    cherry_picker_threshold_pct: 12.0,
+    ratio_pct: 8.75,    // Drumvlees = 14% drumstick × 62.5% yield = 8.75%
+    cherry_picker_threshold_pct: 13.0,
   },
   {
     category: 'vleugels',
     anatomical_part: 'wings',
-    ratio_pct: 10.7,
-    cherry_picker_threshold_pct: 15.0,
+    ratio_pct: 9.2,     // Vleugels mix / z tip (Blad1)
+    cherry_picker_threshold_pct: 14.0,
   },
   {
     category: 'karkas',
     anatomical_part: 'back_carcass',
-    ratio_pct: 7.5,
-    cherry_picker_threshold_pct: 12.0,
+    ratio_pct: 21.3,    // Rug voor (7.9%) + rug achter (12.62%) + staart (0.78%)
+    cherry_picker_threshold_pct: 30.0,
   },
   {
     category: 'organen',
     anatomical_part: 'offal',
-    ratio_pct: 5.0,
+    ratio_pct: 5.0,     // Niet apart gemeten, schatting
     cherry_picker_threshold_pct: 8.0,
+  },
+  {
+    category: 'vel',
+    anatomical_part: 'breast_cap',
+    ratio_pct: 2.25,    // ~2% los vel + 0.25% correctie naar 100%
+    cherry_picker_threshold_pct: 5.0,
   },
   {
     category: 'hele_kip',
@@ -196,7 +248,7 @@ export function analyzeCherryPicker(
   // Filter niet-verkoopbare categorieën
   const saleableCategories: ProductCategory[] = [
     'hele_kip', 'filet', 'haas', 'dij', 'drumstick',
-    'drumvlees', 'vleugels', 'karkas', 'organen',
+    'drumvlees', 'vleugels', 'karkas', 'organen', 'vel',
   ];
 
   const filteredMix = productMix.filter(p =>
@@ -214,6 +266,8 @@ export function analyzeCherryPicker(
       is_cherry_picker: false,
       category_breakdown: [],
       opportunity_cost: 0,
+      opportunity_cost_breakdown: [],
+      kippen_nodig: 0,
       recommendation: `Omzet (€${totalRevenue.toFixed(2)}) onder drempel (€${minRevenue}). Geen cherry picker analyse.`,
       alerts: [],
     };
@@ -260,17 +314,19 @@ export function analyzeCherryPicker(
   // Bereken balance score
   const balanceScore = calculateBalanceScore(categoryBreakdown);
 
-  // Check cherry picker status (TRD: filet > 30%)
+  // Check cherry picker status: filet > 28% (norm 20.5%, threshold 28%)
   const filetBreakdown = categoryBreakdown.find(c => c.category === 'filet');
+  const filetThreshold = customNorms.find(n => n.category === 'filet')?.cherry_picker_threshold_pct ?? 28;
   const isCherryPicker = filetBreakdown
-    ? filetBreakdown.percentage_of_total > 30
+    ? filetBreakdown.percentage_of_total > filetThreshold
     : false;
 
-  // Bereken opportunity cost
-  const opportunityCost = calculateOpportunityCost(
+  // Bereken opportunity cost (via vierkantsverwaarding surplus)
+  const oppResult = calculateOpportunityCost(
     categoryBreakdown,
     totalKg,
-    customNorms
+    customNorms,
+    filteredMix
   );
 
   // Genereer aanbeveling
@@ -278,7 +334,7 @@ export function analyzeCherryPicker(
     isCherryPicker,
     balanceScore,
     categoryBreakdown,
-    opportunityCost
+    oppResult.total
   );
 
   return {
@@ -289,7 +345,9 @@ export function analyzeCherryPicker(
     balance_score: balanceScore,
     is_cherry_picker: isCherryPicker,
     category_breakdown: categoryBreakdown,
-    opportunity_cost: Number(opportunityCost.toFixed(2)),
+    opportunity_cost: Number(oppResult.total.toFixed(2)),
+    opportunity_cost_breakdown: oppResult.breakdown,
+    kippen_nodig: Number(oppResult.kippenNodig.toFixed(0)),
     recommendation,
     alerts,
   };
@@ -324,48 +382,115 @@ function calculateBalanceScore(breakdown: CategoryBreakdown[]): number {
   return Math.max(0, Math.min(100, Math.round(score)));
 }
 
+/** Karkas byproduct prijs: €0,20/kg (afval/restwaarde) */
+export const KARKAS_BYPRODUCT_PRICE = 0.20;
+
+/** Default grillergewicht — synced met chicken-equivalent.ts */
+const OPP_COST_GRILLER_KG = 1.96;
+
 /**
- * Bereken opportunity cost
+ * Bereken opportunity cost via vierkantsverwaarding (chicken-equivalent surplus).
  *
- * Dit is de geschatte waarde van onverkochte "rest" delen
- * die overblijven door disproportionele premium afname.
+ * Logica: als een klant X kippen nodig heeft voor zijn leading-category,
+ * produceren die kippen ook alle andere delen. Delen die de klant NIET
+ * afneemt (surplus) zijn "onverkocht" en vormen de opportunity cost.
+ *
+ * Per surplus-categorie: surplus_kg × echte kg-prijs.
+ * Karkas = byproduct, vast €0,20/kg.
+ *
+ * NB: Inline chicken-equivalent berekening (geen import) om circulaire
+ * dependency te voorkomen. Volgt exact dezelfde logica als
+ * calculateChickenEquivalent() uit chicken-equivalent.ts.
  */
+interface OpportunityCostResult {
+  total: number;
+  breakdown: OpportunityCostBreakdown[];
+  kippenNodig: number;
+}
+
 function calculateOpportunityCost(
   breakdown: CategoryBreakdown[],
   totalKg: number,
-  norms: AnatomicalNorm[]
-): number {
-  let opportunityCost = 0;
+  _norms: AnatomicalNorm[],
+  productMix: CustomerProductMix[]
+): OpportunityCostResult {
+  const EMPTY: OpportunityCostResult = { total: 0, breakdown: [], kippenNodig: 0 };
+  if (totalKg === 0) return EMPTY;
 
-  // Gemiddelde marktprijzen per categorie (vereenvoudigd)
-  const avgPrices: Partial<Record<ProductCategory, number>> = {
-    filet: 9.50,
-    haas: 11.00,
-    dij: 7.25,
-    drumstick: 6.90,
-    drumvlees: 7.90,
-    vleugels: 5.50,
-    karkas: 2.25,
-    organen: 3.50,
-  };
+  // --- Inline chicken-equivalent: bepaal leading category en surplus ---
+
+  // Norm-map zonder hele_kip
+  const normMap = new Map<ProductCategory, number>(
+    ANATOMICAL_NORMS
+      .filter(n => n.category !== 'hele_kip')
+      .map(n => [n.category, n.ratio_pct])
+  );
+
+  // Per categorie: hoeveel kippen nodig?
+  let maxKippen = 0;
+  const klantKgMap = new Map<ProductCategory, number>();
 
   for (const item of breakdown) {
-    // Als klant te veel premium neemt, berekenen we de "gedwongen rest"
-    if (item.deviation > 0 && PREMIUM_CATEGORIES.includes(item.category)) {
-      // Hoeveel kg heeft klant te veel genomen?
-      const excessKg = (item.deviation / 100) * totalKg;
+    if (item.category === 'hele_kip') continue;
+    if (item.quantity_kg <= 0) continue;
 
-      // Dit creëert een overschot aan rest-delen
-      // Vereenvoudigd: we nemen aan dat dit karkas/rest wordt
-      const restPrice = avgPrices.karkas || 2.25;
-      const premiumPrice = avgPrices[item.category] || 9.50;
+    const normPct = normMap.get(item.category);
+    if (!normPct || normPct <= 0) continue;
 
-      // Opportunity cost = verschil in waarde
-      opportunityCost += excessKg * (premiumPrice - restPrice) * 0.5;
+    klantKgMap.set(item.category, item.quantity_kg);
+    const yieldPerChicken = (normPct / 100) * OPP_COST_GRILLER_KG;
+    const kippenNodig = item.quantity_kg / yieldPerChicken;
+    if (kippenNodig > maxKippen) maxKippen = kippenNodig;
+  }
+
+  if (maxKippen === 0) return EMPTY;
+
+  // --- Echte kg-prijzen uit de import ---
+  const kgPrices = new Map<ProductCategory, number>();
+  for (const item of productMix) {
+    if (item.quantity_kg > 0) {
+      kgPrices.set(item.category, item.revenue / item.quantity_kg);
     }
   }
 
-  return opportunityCost;
+  // Gemiddelde kg-prijs als fallback voor categorieën die de klant niet koopt
+  const allPrices = Array.from(kgPrices.values());
+  const avgKgPrice = allPrices.length > 0
+    ? allPrices.reduce((sum, p) => sum + p, 0) / allPrices.length
+    : 0;
+
+  // --- Bereken surplus per categorie en waardeer ---
+  let total = 0;
+  const oppBreakdown: OpportunityCostBreakdown[] = [];
+
+  for (const [category, normPct] of normMap) {
+    const klantKg = klantKgMap.get(category) ?? 0;
+    const productie = maxKippen * (normPct / 100) * OPP_COST_GRILLER_KG;
+    const surplus = productie - klantKg;
+
+    // Alleen surplus (> 0) telt als opportunity cost
+    if (surplus <= 0) continue;
+
+    // Karkas = byproduct, vaste prijs €0,20/kg
+    const prijs = category === 'karkas'
+      ? KARKAS_BYPRODUCT_PRICE
+      : (kgPrices.get(category) ?? avgKgPrice);
+
+    const cost = surplus * prijs;
+    total += cost;
+
+    oppBreakdown.push({
+      category,
+      surplus_kg: Number(surplus.toFixed(2)),
+      kg_prijs: Number(prijs.toFixed(2)),
+      opportunity_cost: Number(cost.toFixed(2)),
+    });
+  }
+
+  // Sorteer: hoogste opportunity cost eerst
+  oppBreakdown.sort((a, b) => b.opportunity_cost - a.opportunity_cost);
+
+  return { total, breakdown: oppBreakdown, kippenNodig: maxKippen };
 }
 
 /**
@@ -387,7 +512,7 @@ function generateRecommendation(
 
     if (opportunityCost > 500) {
       return `ACTIE VEREIST: Cherry picker met €${opportunityCost.toFixed(0)} opportunity cost. ` +
-        `Filet afname: ${filetPct.toFixed(1)}% (max 30%). ` +
+        `Filet afname: ${filetPct.toFixed(1)}% (max 28%). ` +
         `Bespreek vierkantsverwaarding of pas pricing aan.`;
     }
 

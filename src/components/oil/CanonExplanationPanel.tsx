@@ -49,23 +49,23 @@ export function CanonExplanationPanel() {
   const [openIndex, setOpenIndex] = useState<number | null>(null);
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h3 className="text-sm font-bold text-gray-900 mb-4">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
+      <h3 className="text-sm font-bold text-gray-900 dark:text-gray-100 mb-4">
         Canon Uitleg
       </h3>
 
       <div className="space-y-1">
         {EXPLANATIONS.map((item, i) => (
-          <div key={i} className="border border-gray-100 rounded-lg">
+          <div key={i} className="border border-gray-100 dark:border-gray-700 rounded-lg">
             <button
               onClick={() => setOpenIndex(openIndex === i ? null : i)}
-              className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-gray-50 transition-colors"
+              className="w-full px-4 py-2.5 flex items-center justify-between text-left hover:bg-gray-50 dark:bg-gray-900 transition-colors"
             >
-              <span className="text-sm font-medium text-gray-800">
+              <span className="text-sm font-medium text-gray-800 dark:text-gray-200">
                 {item.question}
               </span>
               <svg
-                className={`w-4 h-4 text-gray-400 transition-transform ${openIndex === i ? 'rotate-90' : ''}`}
+                className={`w-4 h-4 text-gray-400 dark:text-gray-500 transition-transform ${openIndex === i ? 'rotate-90' : ''}`}
                 fill="none"
                 stroke="currentColor"
                 viewBox="0 0 24 24"
@@ -75,7 +75,7 @@ export function CanonExplanationPanel() {
             </button>
             {openIndex === i && (
               <div className="px-4 pb-3">
-                <p className="text-sm text-gray-600 leading-relaxed">
+                <p className="text-sm text-gray-600 dark:text-gray-600 leading-relaxed">
                   {item.answer}
                 </p>
               </div>

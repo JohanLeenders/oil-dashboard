@@ -4,6 +4,7 @@
  * P0 (Priority 0) unit tests for scenario-sandbox.ts
  */
 
+import { describe, test, expect } from 'vitest';
 import {
   runScenarioSandbox,
   mergeOverrides,

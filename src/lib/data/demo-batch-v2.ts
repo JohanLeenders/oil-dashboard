@@ -254,7 +254,7 @@ export function formatEur(value: number): string {
 }
 
 export function formatEurPerKg(value: number): string {
-  return `\u20AC${value.toLocaleString('nl-NL', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}/kg`;
+  return `\u20AC${value.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg`;
 }
 
 export function formatKg(value: number): string {
@@ -272,5 +272,5 @@ export function formatDelta(value: number): string {
 
 export function formatDeltaPerKg(value: number): string {
   const sign = value >= 0 ? '+' : '';
-  return `${sign}\u20AC${value.toLocaleString('nl-NL', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}/kg`;
+  return `${sign}\u20AC${value.toLocaleString('nl-NL', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}/kg`;
 }

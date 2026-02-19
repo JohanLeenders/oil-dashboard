@@ -32,41 +32,37 @@ export function WaterfallLevelCard({
   children,
 }: Props) {
   return (
-    <div className="bg-white rounded-lg shadow">
+    <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-100 dark:border-gray-700 overflow-hidden transition-shadow hover:shadow-md">
       {/* Header */}
       <button
         onClick={onToggle}
-        className="w-full px-6 py-3 flex items-center justify-between hover:bg-gray-50 transition-colors"
+        className="w-full px-5 py-3.5 flex items-center justify-between hover:bg-gray-50/50 dark:hover:bg-gray-700/50 transition-colors"
       >
         <div className="flex items-center gap-3">
-          {/* Level badge */}
-          <span className={`px-2 py-0.5 rounded text-xs font-bold ${meta.colorBg} ${meta.color}`}>
-            Level {level}
+          {/* Level badge — round pill */}
+          <span className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold ${meta.colorBg} ${meta.color}`}>
+            {level}
           </span>
           {/* Title */}
-          <span className="font-medium text-gray-900">{meta.titleNL}</span>
-          {/* Engine function */}
-          <span className="text-xs text-gray-400 font-mono hidden md:inline">
-            {meta.engineFn}()
-          </span>
+          <span className="font-semibold text-gray-900 dark:text-gray-100 text-sm">{meta.titleNL}</span>
         </div>
 
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-3">
           {/* Rendement */}
-          <span className="text-xs text-gray-500 hidden sm:inline">
+          <span className="text-xs text-gray-400 hidden sm:inline tabular-nums">
             {rendement}
           </span>
 
           {/* Scenario diff indicator */}
           {isScenarioMode && costDiff !== null && costDiff !== 0 && (
-            <span className={`text-xs font-medium ${costDiff > 0 ? 'text-red-600' : 'text-green-600'}`}>
+            <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${costDiff > 0 ? 'text-red-700 bg-red-50 dark:bg-red-900/40' : 'text-green-700 bg-green-50 dark:bg-green-900/40'}`}>
               {formatDeltaPerKg(costDiff)}
             </span>
           )}
 
           {/* Collapse chevron */}
           <svg
-            className={`w-5 h-5 text-gray-400 transition-transform ${isCollapsed ? '' : 'rotate-90'}`}
+            className={`w-4 h-4 text-gray-300 dark:text-gray-500 transition-transform duration-200 ${isCollapsed ? '' : 'rotate-90'}`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
@@ -78,7 +74,7 @@ export function WaterfallLevelCard({
 
       {/* Body (expanded by default) */}
       {!isCollapsed && (
-        <div className="px-6 pb-6 pt-2 border-t border-gray-100">
+        <div className="px-5 pb-5 pt-2 border-t border-gray-50 dark:border-gray-700">
           {children}
         </div>
       )}

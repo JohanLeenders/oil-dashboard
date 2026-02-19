@@ -19,12 +19,12 @@ export default async function BatchesPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900">Batches</h2>
-          <p className="text-gray-600 mt-1">
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Batches</h2>
+          <p className="text-gray-600 dark:text-gray-600 mt-1">
             Overzicht slachtbatches met THT status en data kwaliteit
           </p>
         </div>
-        <div className="text-sm text-gray-500">
+        <div className="text-sm text-gray-500 dark:text-gray-500">
           {batches.length} batches
         </div>
       </div>
@@ -33,53 +33,53 @@ export default async function BatchesPage() {
       <div className="flex gap-4 text-sm">
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-green-500" />
-          <span className="text-gray-600">THT OK (&lt;70%)</span>
+          <span className="text-gray-600 dark:text-gray-600">THT OK (&lt;70%)</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-orange-500" />
-          <span className="text-gray-600">THT Aandacht (70-90%)</span>
+          <span className="text-gray-600 dark:text-gray-600">THT Aandacht (70-90%)</span>
         </div>
         <div className="flex items-center gap-2">
           <span className="w-3 h-3 rounded-full bg-red-500" />
-          <span className="text-gray-600">THT Urgent (&gt;90%)</span>
+          <span className="text-gray-600 dark:text-gray-600">THT Urgent (&gt;90%)</span>
         </div>
       </div>
 
       {/* Batches Table */}
-      <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
+      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 dark:bg-gray-900">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Batch
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Slachtdatum
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Levend (kg)
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Griller (kg)
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Yield %
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 THT
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Data Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">
+              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase tracking-wider">
                 Actie
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white divide-y divide-gray-200">
+          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
             {batches.length === 0 ? (
               <tr>
-                <td colSpan={8} className="px-6 py-12 text-center text-gray-500">
+                <td colSpan={8} className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
                   Geen batches gevonden. Run migraties en seed data.
                 </td>
               </tr>
@@ -108,26 +108,26 @@ function BatchRow({ batch }: { batch: Awaited<ReturnType<typeof getBatchList>>[0
   const yieldColor = batch.griller_yield_pct
     ? batch.griller_yield_pct >= 70 ? 'text-green-600' :
       batch.griller_yield_pct >= 68 ? 'text-orange-600' : 'text-red-600'
-    : 'text-gray-400';
+    : 'text-gray-400 dark:text-gray-500';
 
   return (
-    <tr className="hover:bg-gray-50">
+    <tr className="hover:bg-gray-50 dark:bg-gray-900">
       <td className="px-6 py-4 whitespace-nowrap">
         <Link
           href={`/oil/batches/${batch.id}`}
-          className="text-sm font-medium text-gray-900 hover:text-blue-600"
+          className="text-sm font-medium text-gray-900 dark:text-gray-100 hover:text-blue-600"
         >
           {batch.batch_ref}
         </Link>
-        <p className="text-xs text-gray-500">{batch.status}</p>
+        <p className="text-xs text-gray-500 dark:text-gray-500">{batch.status}</p>
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-500">
         {formatDate(batch.slaughter_date)}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right">
         {batch.live_weight_kg.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}
       </td>
-      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 text-right">
+      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100 text-right">
         {batch.griller_weight_kg
           ? batch.griller_weight_kg.toLocaleString('nl-NL', { maximumFractionDigits: 0 })
           : '-'}

@@ -22,7 +22,7 @@ export function ExtraBewerkingList({
   return (
     <div className="space-y-4">
       {bewerkingen.length === 0 ? (
-        <p className="text-sm text-gray-500 italic">
+        <p className="text-sm text-gray-500 dark:text-gray-500 italic">
           Geen extra bewerkingen toegevoegd. Klik hieronder om er een toe te voegen.
         </p>
       ) : (

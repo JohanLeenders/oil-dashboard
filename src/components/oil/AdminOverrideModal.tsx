@@ -68,8 +68,8 @@ export function AdminOverrideModal({
       <div className="absolute inset-0 bg-black/40" onClick={onCancel} />
 
       {/* Modal */}
-      <div className="relative bg-white rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
-        <h3 className="text-lg font-bold text-gray-900 mb-2">
+      <div className="relative bg-white dark:bg-gray-800 rounded-xl shadow-xl max-w-md w-full mx-4 p-6">
+        <h3 className="text-lg font-bold text-gray-900 dark:text-gray-100 mb-2">
           Admin Override
         </h3>
 
@@ -84,7 +84,7 @@ export function AdminOverrideModal({
 
         {/* Reason */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-600 mb-1">
             Reden voor override
           </label>
           <textarea
@@ -92,13 +92,13 @@ export function AdminOverrideModal({
             onChange={(e) => setReason(e.target.value)}
             placeholder="Bijv. 'Handmatige correctie in verwerking, afwijking is verwacht'"
             rows={3}
-            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
+            className="w-full border border-gray-300 dark:border-gray-500 rounded-lg px-3 py-2 text-sm resize-none focus:ring-2 focus:ring-orange-300 focus:border-orange-400"
           />
         </div>
 
         {/* Duration */}
         <div className="mb-4">
-          <label className="block text-sm font-medium text-gray-700 mb-1">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-600 mb-1">
             Duur override
           </label>
           <div className="flex gap-2">
@@ -109,7 +109,7 @@ export function AdminOverrideModal({
                 className={`flex-1 py-1.5 px-3 text-sm rounded-lg border transition-colors ${
                   duration === d
                     ? 'bg-orange-100 border-orange-300 text-orange-800 font-medium'
-                    : 'bg-white border-gray-200 text-gray-600 hover:bg-gray-50'
+                    : 'bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-gray-600 dark:text-gray-600 hover:bg-gray-50 dark:bg-gray-900'
                 }`}
               >
                 {DURATION_LABELS[d]}
@@ -124,9 +124,9 @@ export function AdminOverrideModal({
             type="checkbox"
             checked={acknowledged}
             onChange={(e) => setAcknowledged(e.target.checked)}
-            className="mt-0.5 rounded border-gray-300"
+            className="mt-0.5 rounded border-gray-300 dark:border-gray-500"
           />
-          <span className="text-xs text-gray-600">
+          <span className="text-xs text-gray-600 dark:text-gray-600">
             Ik begrijp dat deze override wordt gelogd en dat scenario-resultaten bij een hoge
             massabalansafwijking minder betrouwbaar zijn.
           </span>
@@ -136,7 +136,7 @@ export function AdminOverrideModal({
         <div className="flex gap-3">
           <button
             onClick={onCancel}
-            className="flex-1 py-2 px-4 border border-gray-300 rounded-lg text-sm text-gray-700 hover:bg-gray-50 transition-colors"
+            className="flex-1 py-2 px-4 border border-gray-300 dark:border-gray-500 rounded-lg text-sm text-gray-700 dark:text-gray-600 hover:bg-gray-50 dark:bg-gray-900 transition-colors"
           >
             Annuleren
           </button>
@@ -146,7 +146,7 @@ export function AdminOverrideModal({
             className={`flex-1 py-2 px-4 rounded-lg text-sm font-medium transition-colors ${
               canConfirm
                 ? 'bg-orange-600 text-white hover:bg-orange-700'
-                : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                : 'bg-gray-200 dark:bg-gray-900 text-gray-400 dark:text-gray-500 cursor-not-allowed'
             }`}
           >
             Override activeren
