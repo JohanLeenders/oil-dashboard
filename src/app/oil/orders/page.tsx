@@ -101,8 +101,16 @@ export default async function OrdersPage() {
             Bestelschema en orderverwerking
           </p>
         </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {slaughterDates.length} slachtdatum{slaughterDates.length !== 1 ? 's' : ''}
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {slaughterDates.length} slachtdatum{slaughterDates.length !== 1 ? 's' : ''}
+          </span>
+          <Link
+            href="/oil/planning"
+            className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+          >
+            Naar planning &rarr;
+          </Link>
         </div>
       </div>
 

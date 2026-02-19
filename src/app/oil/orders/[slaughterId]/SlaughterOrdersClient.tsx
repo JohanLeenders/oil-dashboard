@@ -4,7 +4,7 @@
  * SlaughterOrdersClient — Interactive client shell for order management
  *
  * REGRESSIE-CHECK:
- * - Orchestrates OrderList, OrderEntryForm, OrderLineEditor, SnapshotPanel
+ * - Orchestrates OrderList, OrderEntryForm, OrderLineEditor, SnapshotPanel, ExportButton
  * - Refreshes data via router.refresh() after mutations
  */
 
@@ -17,6 +17,7 @@ import OrderList from '@/components/oil/orders/OrderList';
 import OrderEntryForm from '@/components/oil/orders/OrderEntryForm';
 import OrderLineEditor from '@/components/oil/orders/OrderLineEditor';
 import SnapshotPanel from '@/components/oil/orders/SnapshotPanel';
+import ExportButton from '@/components/oil/orders/ExportButton';
 
 interface OrderWithCustomer extends CustomerOrder {
   customer_name: string;
@@ -32,6 +33,7 @@ interface SlaughterOrdersClientProps {
   customers: { id: string; name: string }[];
   products: { id: string; name: string }[];
   initialSnapshots: OrderSchemaSnapshot[];
+  slaughterDate?: string;
 }
 
 export default function SlaughterOrdersClient({
@@ -40,6 +42,7 @@ export default function SlaughterOrdersClient({
   customers,
   products,
   initialSnapshots,
+  slaughterDate,
 }: SlaughterOrdersClientProps) {
   const router = useRouter();
   const [showNewOrderForm, setShowNewOrderForm] = useState(false);
@@ -90,6 +93,9 @@ export default function SlaughterOrdersClient({
   }, [refreshPage]);
 
   const selectedOrder = initialOrders.find((o) => o.id === selectedOrderId);
+
+  // Find latest snapshot for export
+  const latestSnapshot = initialSnapshots.length > 0 ? initialSnapshots[0] : null;
 
   return (
     <div className="space-y-6">
@@ -159,6 +165,16 @@ export default function SlaughterOrdersClient({
           onSnapshotCreated={refreshPage}
         />
       </section>
+
+      {/* Section 5: Excel Export */}
+      {latestSnapshot && (
+        <section className="flex justify-end">
+          <ExportButton
+            schemaData={latestSnapshot.schema_data}
+            slaughterDate={slaughterDate ?? latestSnapshot.snapshot_date}
+          />
+        </section>
+      )}
     </div>
   );
 }

@@ -9,6 +9,7 @@
  * - ✅ Server Component (no 'use client')
  */
 
+import Link from 'next/link';
 import { getSlaughterCalendar } from '@/lib/actions/planning';
 import SlaughterCalendarList from '@/components/oil/planning/SlaughterCalendarList';
 
@@ -26,8 +27,16 @@ export default async function PlanningPage() {
             Slachtkalender en beschikbaarheidsplanning
           </p>
         </div>
-        <div className="text-sm text-gray-500 dark:text-gray-400">
-          {items.length} slachtdag{items.length !== 1 ? 'en' : ''}
+        <div className="flex items-center gap-4">
+          <span className="text-sm text-gray-500 dark:text-gray-400">
+            {items.length} slachtdag{items.length !== 1 ? 'en' : ''}
+          </span>
+          <Link
+            href="/oil/orders"
+            className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+          >
+            Naar orders &rarr;
+          </Link>
         </div>
       </div>
 

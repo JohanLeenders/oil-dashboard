@@ -451,3 +451,56 @@ export async function createDraftSnapshot(
 
   return snapshot;
 }
+
+// ============================================================================
+// SNAPSHOT FINALIZATION (APPEND-ONLY)
+// ============================================================================
+
+/**
+ * Finalize snapshot — creates NEW row with snapshot_type='finalized'
+ * APPEND-ONLY: Does NOT update existing draft row.
+ * Copies schema_data from latest draft and creates finalized version.
+ */
+export async function finalizeSnapshot(
+  slaughterId: string,
+  draftSnapshotId: string
+): Promise<OrderSchemaSnapshot> {
+  const supabase = await createClient();
+
+  // Fetch the draft snapshot to copy its schema_data
+  const { data: draft, error: draftError } = await supabase
+    .from('order_schema_snapshots')
+    .select('*')
+    .eq('id', draftSnapshotId)
+    .single();
+
+  if (draftError) throw new Error(`Failed to fetch draft: ${draftError.message}`);
+  if (draft.snapshot_type === 'finalized') throw new Error('Snapshot is already finalized');
+
+  // Get next version
+  const { data: versionData } = await supabase
+    .from('order_schema_snapshots')
+    .select('version')
+    .eq('slaughter_id', slaughterId)
+    .order('version', { ascending: false })
+    .limit(1);
+
+  const nextVersion = versionData && versionData.length > 0 ? versionData[0].version + 1 : 1;
+
+  // INSERT new finalized row (APPEND-ONLY — never update draft)
+  const { data: finalized, error } = await supabase
+    .from('order_schema_snapshots')
+    .insert({
+      slaughter_id: slaughterId,
+      snapshot_type: 'finalized',
+      schema_data: draft.schema_data,
+      version: nextVersion,
+      snapshot_date: new Date().toISOString().split('T')[0],
+      notes: `Finalized from draft v${draft.version}`,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to finalize: ${error.message}`);
+  return finalized;
+}
