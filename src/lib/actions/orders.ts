@@ -19,6 +19,17 @@ import type {
 } from '@/types/database';
 import { buildOrderSchema } from '@/lib/engine/orders';
 import type { BuildOrderSchemaInput } from '@/lib/engine/orders';
+import {
+  createCustomerOrderSchema,
+  addOrderLineSchema,
+  removeOrderLineSchema,
+  createDraftSnapshotSchema,
+  finalizeSnapshotSchema,
+  getOrdersForSlaughterSchema,
+  getOrderLinesSchema,
+  getSnapshotsForSlaughterSchema,
+  getSlaughterDetailSchema,
+} from '@/lib/schemas/orders';
 
 // ============================================================================
 // READ ACTIONS
@@ -50,7 +61,9 @@ export async function getSlaughterDatesForOrders(): Promise<SlaughterCalendar[]>
 export async function getOrdersForSlaughter(
   slaughterId: string
 ): Promise<(CustomerOrder & { customer_name: string })[]> {
+  const parsed = getOrdersForSlaughterSchema.parse({ slaughterId });
   const supabase = await createClient();
+  slaughterId = parsed.slaughterId;
 
   const { data, error } = await supabase
     .from('customer_orders')
@@ -93,7 +106,9 @@ export async function getOrdersForSlaughter(
 export async function getOrderLines(
   orderId: string
 ): Promise<(OrderLine & { product_name: string })[]> {
+  const parsed = getOrderLinesSchema.parse({ orderId });
   const supabase = await createClient();
+  orderId = parsed.orderId;
 
   const { data, error } = await supabase
     .from('order_lines')
@@ -177,7 +192,9 @@ export async function getProductsForSelect(): Promise<
 export async function getSnapshotsForSlaughter(
   slaughterId: string
 ): Promise<OrderSchemaSnapshot[]> {
+  const parsed = getSnapshotsForSlaughterSchema.parse({ slaughterId });
   const supabase = await createClient();
+  slaughterId = parsed.slaughterId;
 
   const { data, error } = await supabase
     .from('order_schema_snapshots')
@@ -199,7 +216,9 @@ export async function getSnapshotsForSlaughter(
 export async function getSlaughterDetailForOrders(
   id: string
 ): Promise<SlaughterCalendar | null> {
+  const parsed = getSlaughterDetailSchema.parse({ id });
   const supabase = await createClient();
+  id = parsed.id;
 
   const { data, error } = await supabase
     .from('slaughter_calendar')
@@ -228,7 +247,11 @@ export async function createCustomerOrder(
   customerId: string,
   notes?: string
 ): Promise<CustomerOrder> {
+  const parsed = createCustomerOrderSchema.parse({ slaughterId, customerId, notes });
   const supabase = await createClient();
+  slaughterId = parsed.slaughterId;
+  customerId = parsed.customerId;
+  notes = parsed.notes;
 
   const { data, error } = await supabase
     .from('customer_orders')
@@ -259,7 +282,11 @@ export async function addOrderLine(
   productId: string,
   quantityKg: number
 ): Promise<OrderLine> {
+  const parsed = addOrderLineSchema.parse({ orderId, productId, quantityKg });
   const supabase = await createClient();
+  orderId = parsed.orderId;
+  productId = parsed.productId;
+  quantityKg = parsed.quantityKg;
 
   // Get current max sort_order
   const { data: existingLines } = await supabase
@@ -300,7 +327,9 @@ export async function addOrderLine(
  * Verwijder een orderregel en herbereken totalen
  */
 export async function removeOrderLine(lineId: string): Promise<void> {
+  const parsed = removeOrderLineSchema.parse({ lineId });
   const supabase = await createClient();
+  lineId = parsed.lineId;
 
   // Get the order_id first
   const { data: lineData, error: fetchError } = await supabase
@@ -374,7 +403,9 @@ async function recalculateOrderTotals(orderId: string): Promise<void> {
 export async function createDraftSnapshot(
   slaughterId: string
 ): Promise<OrderSchemaSnapshot> {
+  const parsed = createDraftSnapshotSchema.parse({ slaughterId });
   const supabase = await createClient();
+  slaughterId = parsed.slaughterId;
 
   // Fetch all orders with customer names
   const { data: orders, error: ordersError } = await supabase
@@ -465,7 +496,10 @@ export async function finalizeSnapshot(
   slaughterId: string,
   draftSnapshotId: string
 ): Promise<OrderSchemaSnapshot> {
+  const parsed = finalizeSnapshotSchema.parse({ slaughterId, draftSnapshotId });
   const supabase = await createClient();
+  slaughterId = parsed.slaughterId;
+  draftSnapshotId = parsed.draftSnapshotId;
 
   // Fetch the draft snapshot to copy its schema_data
   const { data: draft, error: draftError } = await supabase
