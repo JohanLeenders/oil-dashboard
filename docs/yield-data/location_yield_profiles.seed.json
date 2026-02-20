@@ -1,0 +1,71 @@
+{
+  "_comment": "Yield profiles: griller → primary parts at Putten. All yield_percentage values are 0.0-1.0 (fraction of griller weight). Total saleable yield: 73.5% — remaining 26.5% is primary cutting loss (bone dust, trim, moisture, cat3).",
+  "_location": "putten",
+  "profiles": [
+    {
+      "product_sku": "OH-BORSTKAP-001",
+      "product_description": "Borstkap (primair snijdeel)",
+      "yield_percentage": 0.235,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Phase 2 plan estimate. Bone-in breast cap incl. skin. JA757 breast_fillet is 23.2% of live weight = 32.8% of griller, but borstkap is the whole bone-in cut before deboning — lower saleable yield due to trim."
+    },
+    {
+      "product_sku": "OH-ZADEL-001",
+      "product_description": "Zadel (primair snijdeel)",
+      "yield_percentage": 0.280,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Phase 2 plan estimate. Whole leg quarter (thigh+drumstick) bone-in. JA757 leg_quarter is 28.2% of live weight = 39.9% of griller — this lower figure accounts for trim at primary cutting."
+    },
+    {
+      "product_sku": "OH-VLEUGEL-001",
+      "product_description": "Vleugels zonder Tip",
+      "yield_percentage": 0.107,
+      "yield_source": "KNOWN",
+      "yield_note": "JA757: wing = 7.6% of live weight ÷ 70.7% griller yield = 10.75% of griller. Rounded to 10.7%. Consistent with existing availability.ts."
+    },
+    {
+      "product_sku": "OH-NAAKT-001",
+      "product_description": "Karkas Naakt (rug/frame)",
+      "yield_percentage": 0.075,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Phase 2 plan estimate. Back/carcass frame after removing breast and leg quarters. JA757 back = 11.7% of live weight = 16.5% of griller — saleable rug is lower due to bone/cartilage removal."
+    },
+    {
+      "product_sku": "OH-LEVER-001",
+      "product_description": "Lever",
+      "yield_percentage": 0.018,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Estimated from total orgaan yield 3.8% split. Liver is the largest organ component."
+    },
+    {
+      "product_sku": "OH-MAAG-001",
+      "product_description": "Maag",
+      "yield_percentage": 0.010,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Estimated from total orgaan yield 3.8% split. Gizzard."
+    },
+    {
+      "product_sku": "OH-HART-001",
+      "product_description": "Hart",
+      "yield_percentage": 0.005,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Estimated from total orgaan yield 3.8% split. Heart is smallest organ."
+    },
+    {
+      "product_sku": "OH-HALS-001",
+      "product_description": "Hals/Nek",
+      "yield_percentage": 0.005,
+      "yield_source": "ESTIMATED",
+      "yield_note": "Estimated from total orgaan yield 3.8% split. Neck."
+    }
+  ],
+  "_yield_summary": {
+    "borstkap_pct": 23.5,
+    "zadel_pct": 28.0,
+    "vleugels_pct": 10.7,
+    "rug_karkas_pct": 7.5,
+    "organen_total_pct": 3.8,
+    "total_saleable_pct": 73.5,
+    "cutting_loss_pct": 26.5
+  }
+}

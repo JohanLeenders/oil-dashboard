@@ -1,0 +1,586 @@
+{
+  "_comment": "Mass balance test cases for computeCascadedAvailability(). All yields are 0.0-1.0 fractions. Griller_kg = birds × avg_weight_kg × griller_yield_pct. All expected values are rounded to 2 decimals.",
+  "_yield_profiles_used": {
+    "borstkap": { "product_id": "borstkap-id", "yield_percentage": 0.235 },
+    "zadel": { "product_id": "zadel-id", "yield_percentage": 0.280 },
+    "vleugels": { "product_id": "vleugel-id", "yield_percentage": 0.107 }
+  },
+  "_yield_chains_used": {
+    "borstkap_children": [
+      { "child_id": "filet-met-haas-id", "yield_pct": 0.42 },
+      { "child_id": "filet-zonder-haas-id", "yield_pct": 0.35 },
+      { "child_id": "haasjes-id", "yield_pct": 0.08 }
+    ],
+    "zadel_children": [
+      { "child_id": "dijfilet-id", "yield_pct": 0.35 },
+      { "child_id": "drumstick-id", "yield_pct": 0.30 },
+      { "child_id": "drumvlees-id", "yield_pct": 0.20 }
+    ]
+  },
+  "test_cases": [
+    {
+      "name": "full_cascade_no_putten_sales",
+      "description": "1000 birds, nothing sold at Putten, everything forwarded to Nijkerk",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {},
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 0,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 438.42,
+            "processing_loss_kg": 65.76,
+            "cascaded_children": [
+              { "product_id": "filet-met-haas-id", "available_kg": 184.14, "sold_kg": 0, "net_available_kg": 184.14 },
+              { "product_id": "filet-zonder-haas-id", "available_kg": 153.45, "sold_kg": 0, "net_available_kg": 153.45 },
+              { "product_id": "haasjes-id", "available_kg": 35.07, "sold_kg": 0, "net_available_kg": 35.07 }
+            ]
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 522.37,
+            "sold_primary_kg": 0,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 522.37,
+            "processing_loss_kg": 78.36,
+            "cascaded_children": [
+              { "product_id": "dijfilet-id", "available_kg": 182.83, "sold_kg": 0, "net_available_kg": 182.83 },
+              { "product_id": "drumstick-id", "available_kg": 156.71, "sold_kg": 0, "net_available_kg": 156.71 },
+              { "product_id": "drumvlees-id", "available_kg": 104.47, "sold_kg": 0, "net_available_kg": 104.47 }
+            ]
+          },
+          {
+            "product_id": "vleugel-id",
+            "primary_available_kg": 199.62,
+            "sold_primary_kg": 0,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 199.62,
+            "processing_loss_kg": 199.62,
+            "cascaded_children": []
+          }
+        ],
+        "total_sold_primary_kg": 0,
+        "total_forwarded_kg": 1160.41,
+        "total_cascaded_kg": 816.67,
+        "total_loss_kg": 343.74,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv1_per_parent": "sold + forwarded = available for each parent ✓",
+        "inv2_child_yields": "borstkap: 0.42+0.35+0.08=0.85 ≤ 1.0 ✓, zadel: 0.35+0.30+0.20=0.85 ≤ 1.0 ✓",
+        "inv3_child_sold": "no sales, trivially ✓",
+        "inv4_global": "0 + 816.67 + 343.74 = 1160.41 ≤ 1865.60 ✓"
+      }
+    },
+    {
+      "name": "all_sold_at_putten",
+      "description": "1000 birds, all primary products sold at Putten, nothing forwarded",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {
+        "borstkap-id": 438.42,
+        "zadel-id": 522.37,
+        "vleugel-id": 199.62
+      },
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 438.42,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 0,
+            "processing_loss_kg": 0,
+            "cascaded_children": []
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 522.37,
+            "sold_primary_kg": 522.37,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 0,
+            "processing_loss_kg": 0,
+            "cascaded_children": []
+          },
+          {
+            "product_id": "vleugel-id",
+            "primary_available_kg": 199.62,
+            "sold_primary_kg": 199.62,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 0,
+            "processing_loss_kg": 0,
+            "cascaded_children": []
+          }
+        ],
+        "total_sold_primary_kg": 1160.41,
+        "total_forwarded_kg": 0,
+        "total_cascaded_kg": 0,
+        "total_loss_kg": 0,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv1_per_parent": "sold = available, forwarded = 0 ✓",
+        "inv4_global": "1160.41 + 0 + 0 = 1160.41 ≤ 1865.60 ✓"
+      }
+    },
+    {
+      "name": "partial_putten_sales_30pct",
+      "description": "1000 birds, 30% sold at Putten, 70% forwarded to Nijkerk",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {
+        "borstkap-id": 131.53,
+        "zadel-id": 156.71,
+        "vleugel-id": 59.89
+      },
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 131.53,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 306.89,
+            "processing_loss_kg": 46.03,
+            "cascaded_children": [
+              { "product_id": "filet-met-haas-id", "available_kg": 128.89, "sold_kg": 0, "net_available_kg": 128.89 },
+              { "product_id": "filet-zonder-haas-id", "available_kg": 107.41, "sold_kg": 0, "net_available_kg": 107.41 },
+              { "product_id": "haasjes-id", "available_kg": 24.55, "sold_kg": 0, "net_available_kg": 24.55 }
+            ]
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 522.37,
+            "sold_primary_kg": 156.71,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 365.66,
+            "processing_loss_kg": 54.85,
+            "cascaded_children": [
+              { "product_id": "dijfilet-id", "available_kg": 127.98, "sold_kg": 0, "net_available_kg": 127.98 },
+              { "product_id": "drumstick-id", "available_kg": 109.70, "sold_kg": 0, "net_available_kg": 109.70 },
+              { "product_id": "drumvlees-id", "available_kg": 73.13, "sold_kg": 0, "net_available_kg": 73.13 }
+            ]
+          },
+          {
+            "product_id": "vleugel-id",
+            "primary_available_kg": 199.62,
+            "sold_primary_kg": 59.89,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 139.73,
+            "processing_loss_kg": 139.73,
+            "cascaded_children": []
+          }
+        ],
+        "total_sold_primary_kg": 348.13,
+        "total_forwarded_kg": 812.28,
+        "total_cascaded_kg": 571.66,
+        "total_loss_kg": 240.61,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv1_per_parent": "borstkap: 131.53 + 306.89 = 438.42 ✓, zadel: 156.71 + 365.66 = 522.37 ✓",
+        "inv4_global": "348.13 + 571.66 + 240.61 = 1160.40 ≤ 1865.60 ✓"
+      }
+    },
+    {
+      "name": "oversubscribed_primary",
+      "description": "Orders exceed available kg at Putten — clamped for calc, oversubscribed_kg > 0",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {
+        "borstkap-id": 600.00,
+        "zadel-id": 200.00
+      },
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 438.42,
+            "oversubscribed_kg": 161.58,
+            "forwarded_kg": 0,
+            "processing_loss_kg": 0,
+            "cascaded_children": []
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 522.37,
+            "sold_primary_kg": 200.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 322.37,
+            "processing_loss_kg": 48.36,
+            "cascaded_children": [
+              { "product_id": "dijfilet-id", "available_kg": 112.83, "sold_kg": 0, "net_available_kg": 112.83 },
+              { "product_id": "drumstick-id", "available_kg": 96.71, "sold_kg": 0, "net_available_kg": 96.71 },
+              { "product_id": "drumvlees-id", "available_kg": 64.47, "sold_kg": 0, "net_available_kg": 64.47 }
+            ]
+          }
+        ],
+        "total_sold_primary_kg": 638.42,
+        "total_forwarded_kg": 322.37,
+        "total_cascaded_kg": 274.01,
+        "total_loss_kg": 48.36,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv1_per_parent": "borstkap: clamped 438.42 + 0 = 438.42 ✓ (oversubscribed 161.58 tracked separately)",
+        "inv4_global": "638.42 + 274.01 + 48.36 = 960.79 ≤ 1865.60 ✓"
+      }
+    },
+    {
+      "name": "single_parent_borstkap_only",
+      "description": "Only borstkap yield profile provided, no zadel or vleugels",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {
+        "borstkap-id": 100.00
+      },
+      "nijkerk_sales": {},
+      "yield_profiles_override": [
+        { "product_id": "borstkap-id", "yield_percentage": 0.235 }
+      ],
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 100.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 338.42,
+            "processing_loss_kg": 50.76,
+            "cascaded_children": [
+              { "product_id": "filet-met-haas-id", "available_kg": 142.14, "sold_kg": 0, "net_available_kg": 142.14 },
+              { "product_id": "filet-zonder-haas-id", "available_kg": 118.45, "sold_kg": 0, "net_available_kg": 118.45 },
+              { "product_id": "haasjes-id", "available_kg": 27.07, "sold_kg": 0, "net_available_kg": 27.07 }
+            ]
+          }
+        ],
+        "total_sold_primary_kg": 100.00,
+        "total_forwarded_kg": 338.42,
+        "total_cascaded_kg": 287.66,
+        "total_loss_kg": 50.76,
+        "mass_balance_check": true
+      }
+    },
+    {
+      "name": "zero_birds",
+      "description": "Edge case: 0 birds input, everything should be 0",
+      "birds": 0,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 0,
+      "putten_sales": {},
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          { "product_id": "borstkap-id", "primary_available_kg": 0, "sold_primary_kg": 0, "forwarded_kg": 0, "processing_loss_kg": 0 },
+          { "product_id": "zadel-id", "primary_available_kg": 0, "sold_primary_kg": 0, "forwarded_kg": 0, "processing_loss_kg": 0 },
+          { "product_id": "vleugel-id", "primary_available_kg": 0, "sold_primary_kg": 0, "forwarded_kg": 0, "processing_loss_kg": 0 }
+        ],
+        "total_sold_primary_kg": 0,
+        "total_forwarded_kg": 0,
+        "total_cascaded_kg": 0,
+        "total_loss_kg": 0,
+        "mass_balance_check": true
+      }
+    },
+    {
+      "name": "large_batch_40k_birds",
+      "description": "40,000 birds — verify no floating point drift at scale",
+      "birds": 40000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 74624.00,
+      "putten_sales": {
+        "borstkap-id": 5000.00,
+        "zadel-id": 8000.00,
+        "vleugel-id": 2000.00
+      },
+      "nijkerk_sales": {
+        "filet-met-haas-id": 3000.00,
+        "dijfilet-id": 2000.00
+      },
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 17536.64,
+            "sold_primary_kg": 5000.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 12536.64,
+            "processing_loss_kg": 1880.50,
+            "cascaded_children": [
+              { "product_id": "filet-met-haas-id", "available_kg": 5265.39, "sold_kg": 3000.00, "net_available_kg": 2265.39 },
+              { "product_id": "filet-zonder-haas-id", "available_kg": 4387.82, "sold_kg": 0, "net_available_kg": 4387.82 },
+              { "product_id": "haasjes-id", "available_kg": 1002.93, "sold_kg": 0, "net_available_kg": 1002.93 }
+            ]
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 20894.72,
+            "sold_primary_kg": 8000.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 12894.72,
+            "processing_loss_kg": 1934.21,
+            "cascaded_children": [
+              { "product_id": "dijfilet-id", "available_kg": 4513.15, "sold_kg": 2000.00, "net_available_kg": 2513.15 },
+              { "product_id": "drumstick-id", "available_kg": 3868.42, "sold_kg": 0, "net_available_kg": 3868.42 },
+              { "product_id": "drumvlees-id", "available_kg": 2578.94, "sold_kg": 0, "net_available_kg": 2578.94 }
+            ]
+          },
+          {
+            "product_id": "vleugel-id",
+            "primary_available_kg": 7984.77,
+            "sold_primary_kg": 2000.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 5984.77,
+            "processing_loss_kg": 5984.77,
+            "cascaded_children": []
+          }
+        ],
+        "total_sold_primary_kg": 15000.00,
+        "total_forwarded_kg": 31416.13,
+        "total_cascaded_kg": 21616.65,
+        "total_loss_kg": 9799.48,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv4_global": "15000.00 + 21616.65 + 9799.48 = 46416.13 ≤ 74624.00 ✓"
+      }
+    },
+    {
+      "name": "multi_parent_both_forwarded",
+      "description": "Both borstkap and zadel partially forwarded with different ratios",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {
+        "borstkap-id": 200.00,
+        "zadel-id": 100.00
+      },
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 200.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 238.42,
+            "processing_loss_kg": 35.76,
+            "cascaded_children": [
+              { "product_id": "filet-met-haas-id", "available_kg": 100.14, "sold_kg": 0, "net_available_kg": 100.14 },
+              { "product_id": "filet-zonder-haas-id", "available_kg": 83.45, "sold_kg": 0, "net_available_kg": 83.45 },
+              { "product_id": "haasjes-id", "available_kg": 19.07, "sold_kg": 0, "net_available_kg": 19.07 }
+            ]
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 522.37,
+            "sold_primary_kg": 100.00,
+            "oversubscribed_kg": 0,
+            "forwarded_kg": 422.37,
+            "processing_loss_kg": 63.36,
+            "cascaded_children": [
+              { "product_id": "dijfilet-id", "available_kg": 147.83, "sold_kg": 0, "net_available_kg": 147.83 },
+              { "product_id": "drumstick-id", "available_kg": 126.71, "sold_kg": 0, "net_available_kg": 126.71 },
+              { "product_id": "drumvlees-id", "available_kg": 84.47, "sold_kg": 0, "net_available_kg": 84.47 }
+            ]
+          }
+        ],
+        "total_sold_primary_kg": 300.00,
+        "total_forwarded_kg": 660.79,
+        "total_cascaded_kg": 561.67,
+        "total_loss_kg": 99.12,
+        "mass_balance_check": true
+      }
+    },
+    {
+      "name": "secondary_orders_reduce_availability",
+      "description": "Orders at Nijkerk reduce net_available of cascaded children",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {},
+      "nijkerk_sales": {
+        "filet-met-haas-id": 100.00,
+        "dijfilet-id": 50.00,
+        "drumstick-id": 80.00
+      },
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 0,
+            "forwarded_kg": 438.42,
+            "processing_loss_kg": 65.76,
+            "cascaded_children": [
+              { "product_id": "filet-met-haas-id", "available_kg": 184.14, "sold_kg": 100.00, "net_available_kg": 84.14 },
+              { "product_id": "filet-zonder-haas-id", "available_kg": 153.45, "sold_kg": 0, "net_available_kg": 153.45 },
+              { "product_id": "haasjes-id", "available_kg": 35.07, "sold_kg": 0, "net_available_kg": 35.07 }
+            ]
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 522.37,
+            "sold_primary_kg": 0,
+            "forwarded_kg": 522.37,
+            "processing_loss_kg": 78.36,
+            "cascaded_children": [
+              { "product_id": "dijfilet-id", "available_kg": 182.83, "sold_kg": 50.00, "net_available_kg": 132.83 },
+              { "product_id": "drumstick-id", "available_kg": 156.71, "sold_kg": 80.00, "net_available_kg": 76.71 },
+              { "product_id": "drumvlees-id", "available_kg": 104.47, "sold_kg": 0, "net_available_kg": 104.47 }
+            ]
+          }
+        ],
+        "total_sold_primary_kg": 0,
+        "total_forwarded_kg": 1160.41,
+        "total_cascaded_kg": 816.67,
+        "total_loss_kg": 343.74,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv3_child_sold": "filet-met-haas: 100 ≤ 184.14 ✓, dijfilet: 50 ≤ 182.83 ✓, drumstick: 80 ≤ 156.71 ✓"
+      }
+    },
+    {
+      "name": "loss_calculation_correct",
+      "description": "Verify that loss = forwarded × (1 - sum(child_yields)) for each parent",
+      "birds": 500,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 932.80,
+      "putten_sales": {
+        "borstkap-id": 50.00
+      },
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 219.21,
+            "sold_primary_kg": 50.00,
+            "forwarded_kg": 169.21,
+            "processing_loss_kg": 25.38,
+            "_loss_verification": "169.21 × (1 - 0.85) = 169.21 × 0.15 = 25.38 ✓"
+          },
+          {
+            "product_id": "zadel-id",
+            "primary_available_kg": 261.18,
+            "sold_primary_kg": 0,
+            "forwarded_kg": 261.18,
+            "processing_loss_kg": 39.18,
+            "_loss_verification": "261.18 × (1 - 0.85) = 261.18 × 0.15 = 39.18 ✓"
+          }
+        ],
+        "total_loss_kg": 164.24,
+        "mass_balance_check": true
+      },
+      "invariant_checks": {
+        "inv2_loss": "borstkap: 169.21 × 0.15 = 25.38 ✓, zadel: 261.18 × 0.15 = 39.18 ✓, vleugel: 99.81 × 1.0 = 99.81 ✓"
+      }
+    },
+    {
+      "name": "global_invariant_holds",
+      "description": "Verify sum(SoldP) + sum(SoldChild) + sum(Loss) ≤ G with mixed scenario",
+      "birds": 2000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 3731.20,
+      "putten_sales": {
+        "borstkap-id": 300.00,
+        "zadel-id": 500.00,
+        "vleugel-id": 100.00
+      },
+      "nijkerk_sales": {
+        "filet-met-haas-id": 80.00,
+        "drumstick-id": 60.00
+      },
+      "expected": {
+        "total_sold_primary_kg": 900.00,
+        "total_cascaded_kg": 1193.34,
+        "total_loss_kg": 227.51,
+        "mass_balance_check": true,
+        "_global_check": "900.00 + 1193.34 + 227.51 = 2320.85 ≤ 3731.20 ✓"
+      }
+    },
+    {
+      "name": "empty_orders_full_availability",
+      "description": "No orders at all — maximum availability everywhere",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {},
+      "nijkerk_sales": {},
+      "expected": {
+        "total_sold_primary_kg": 0,
+        "mass_balance_check": true,
+        "_note": "Same as full_cascade_no_putten_sales — all primary available = full forwarding"
+      }
+    },
+    {
+      "name": "unknown_product_in_orders_ignored",
+      "description": "Order references a product not in yield profiles — should be ignored",
+      "birds": 1000,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 1865.60,
+      "putten_sales": {
+        "unknown-product-id": 500.00,
+        "borstkap-id": 100.00
+      },
+      "nijkerk_sales": {},
+      "expected": {
+        "primary_products": [
+          {
+            "product_id": "borstkap-id",
+            "primary_available_kg": 438.42,
+            "sold_primary_kg": 100.00,
+            "forwarded_kg": 338.42
+          }
+        ],
+        "_note": "unknown-product-id order is ignored, does not affect mass balance",
+        "mass_balance_check": true
+      }
+    },
+    {
+      "name": "negative_griller_kg_treated_as_zero",
+      "description": "Negative input — engine should treat as 0",
+      "birds": -100,
+      "avg_weight_kg": 2.65,
+      "griller_yield_pct": 0.704,
+      "griller_kg": 0,
+      "putten_sales": {},
+      "nijkerk_sales": {},
+      "expected": {
+        "total_sold_primary_kg": 0,
+        "total_forwarded_kg": 0,
+        "total_cascaded_kg": 0,
+        "total_loss_kg": 0,
+        "mass_balance_check": true,
+        "_note": "Negative input clamped to 0"
+      }
+    }
+  ]
+}

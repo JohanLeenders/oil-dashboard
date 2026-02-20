@@ -1,0 +1,97 @@
+{
+  "_comment": "Cascade chains: parent → child for Nijkerk processing. All yield_pct values are 0.0-1.0 (fraction of forwarded parent kg). Sum of child yields per parent ≤ 1.0; remainder = processing loss (vel, trim, bone).",
+  "chains": [
+    {
+      "_parent": "Borstkap → Nijkerk fileren",
+      "_child_yield_sum": 0.85,
+      "_loss_pct": 0.15,
+      "children": [
+        {
+          "parent_product_sku": "OH-BORSTKAP-001",
+          "parent_product_description": "Borstkap (primair snijdeel)",
+          "child_product_sku": "OH-FILET-HAAS-001",
+          "child_product_description": "OH Filet half met haas",
+          "source_location": "putten",
+          "target_location": "nijkerk",
+          "yield_pct": 0.420,
+          "sort_order": 1,
+          "yield_source": "ESTIMATED",
+          "yield_note": "~42% of forwarded borstkap becomes filet met haas. Largest output from filleting."
+        },
+        {
+          "parent_product_sku": "OH-BORSTKAP-001",
+          "parent_product_description": "Borstkap (primair snijdeel)",
+          "child_product_sku": "OH-FILET-HALF-001",
+          "child_product_description": "Filet Helft zonder Vel+Haas",
+          "source_location": "putten",
+          "target_location": "nijkerk",
+          "yield_pct": 0.350,
+          "sort_order": 2,
+          "yield_source": "ESTIMATED",
+          "yield_note": "~35% of forwarded borstkap becomes filet zonder haas. Second largest output."
+        },
+        {
+          "parent_product_sku": "OH-BORSTKAP-001",
+          "parent_product_description": "Borstkap (primair snijdeel)",
+          "child_product_sku": "OH-HAAS-VAC-001",
+          "child_product_description": "Kippenhaasje",
+          "source_location": "putten",
+          "target_location": "nijkerk",
+          "yield_pct": 0.080,
+          "sort_order": 3,
+          "yield_source": "ESTIMATED",
+          "yield_note": "~8% of forwarded borstkap becomes haasjes (inner fillet/tenderloin). Small but high-value."
+        }
+      ]
+    },
+    {
+      "_parent": "Zadel → Nijkerk ontbenen",
+      "_child_yield_sum": 0.85,
+      "_loss_pct": 0.15,
+      "children": [
+        {
+          "parent_product_sku": "OH-ZADEL-001",
+          "parent_product_description": "Zadel (primair snijdeel)",
+          "child_product_sku": "OH-DIJ-VAC-001",
+          "child_product_description": "Dijvlees Vacuüm",
+          "source_location": "putten",
+          "target_location": "nijkerk",
+          "yield_pct": 0.350,
+          "sort_order": 1,
+          "yield_source": "ESTIMATED",
+          "yield_note": "~35% of forwarded zadel becomes dijfilet. Largest deboning output."
+        },
+        {
+          "parent_product_sku": "OH-ZADEL-001",
+          "parent_product_description": "Zadel (primair snijdeel)",
+          "child_product_sku": "OH-DRUM-001",
+          "child_product_description": "Drumstick",
+          "source_location": "putten",
+          "target_location": "nijkerk",
+          "yield_pct": 0.300,
+          "sort_order": 2,
+          "yield_source": "ESTIMATED",
+          "yield_note": "~30% of forwarded zadel becomes drumsticks. Separated at knee joint."
+        },
+        {
+          "parent_product_sku": "OH-ZADEL-001",
+          "parent_product_description": "Zadel (primair snijdeel)",
+          "child_product_sku": "OH-DRUMVL-001",
+          "child_product_description": "Drumvlees",
+          "source_location": "putten",
+          "target_location": "nijkerk",
+          "yield_pct": 0.200,
+          "sort_order": 3,
+          "yield_source": "ESTIMATED",
+          "yield_note": "~20% of forwarded zadel becomes drumvlees (deboned drumstick meat). ~62.5% yield from drumstick."
+        }
+      ]
+    }
+  ],
+  "_invariant_check": {
+    "borstkap_child_yield_sum": "0.42 + 0.35 + 0.08 = 0.85 ≤ 1.0 ✓",
+    "borstkap_loss": "1.0 - 0.85 = 0.15 (15% vel/trim/bone)",
+    "zadel_child_yield_sum": "0.35 + 0.30 + 0.20 = 0.85 ≤ 1.0 ✓",
+    "zadel_loss": "1.0 - 0.85 = 0.15 (15% bone/cartilage/trim)"
+  }
+}

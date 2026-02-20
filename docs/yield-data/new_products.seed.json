@@ -1,0 +1,47 @@
+[
+  {
+    "sku_code": "OH-BORSTKAP-001",
+    "storteboom_plu": null,
+    "description": "Borstkap (primair snijdeel)",
+    "internal_name": "Borstkap Putten",
+    "category": "filet",
+    "anatomical_part": "breast_cap",
+    "target_yield_min": null,
+    "target_yield_max": null,
+    "is_saleable": true,
+    "default_market_price_per_kg": 7.50,
+    "packaging_type": "Bulk",
+    "standard_weight_kg": null,
+    "notes": "Primair snijdeel van griller — bone-in borstkap. Kan verkocht worden op Putten of doorgestuurd naar Nijkerk voor fileren."
+  },
+  {
+    "sku_code": "OH-ZADEL-001",
+    "storteboom_plu": null,
+    "description": "Zadel (primair snijdeel)",
+    "internal_name": "Zadel Putten",
+    "category": "dij",
+    "anatomical_part": "leg_quarter",
+    "target_yield_min": null,
+    "target_yield_max": null,
+    "is_saleable": true,
+    "default_market_price_per_kg": 5.00,
+    "packaging_type": "Bulk",
+    "standard_weight_kg": null,
+    "notes": "Primair snijdeel van griller — heel zadel (dij+drumstick, bone-in). Kan verkocht worden op Putten of doorgestuurd naar Nijkerk voor ontbenen."
+  },
+  {
+    "sku_code": "OH-FILET-HAAS-001",
+    "storteboom_plu": null,
+    "description": "OH Filet half met haas",
+    "internal_name": "Filet Met Haas Nijkerk",
+    "category": "filet",
+    "anatomical_part": "breast_cap",
+    "target_yield_min": null,
+    "target_yield_max": null,
+    "is_saleable": true,
+    "default_market_price_per_kg": 10.50,
+    "packaging_type": "Bulk 15kg",
+    "standard_weight_kg": 15.00,
+    "notes": "Cascade-product Nijkerk — filet helft met haas (inner fillet), geproduceerd uit doorgestuurde borstkap."
+  }
+]
