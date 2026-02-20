@@ -16,7 +16,7 @@ export default function EstimateVsActual() {
           Schatting vs. werkelijk
         </h3>
         <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Schatting vs. werkelijk — Wordt toegevoegd in een volgende fase
+          Schatting vs. werkelijk — Beschikbaar in Fase 2 (werkelijke batch yields koppeling)
         </p>
       </div>
     </div>
