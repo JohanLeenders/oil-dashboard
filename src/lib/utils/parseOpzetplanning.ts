@@ -43,14 +43,32 @@ export function parseOpzetplanning(
     const block = rondeBlocks[i];
     const rondeNum = rondeHeaders[i]?.[1] ?? `${i + 1}`;
 
-    // Parse stalrijen: zoek patronen als "1  MA  29-12-2025  2.000  ...  MA  23-2-2026  56  1.980  757 S"
-    const stalRegex = /(\d+)\s+\w{2}\s+[\d-]+\s+[\d.]+\s+(?:\w{2}\s+)?([\d]+-[\d]+-[\d]+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([A-Z]+)/g;
+    // Parse stalrijen — supports TWO formats:
+    //
+    // Format A (spatie-gescheiden, van pdfjs-dist):
+    //   1 MA 20-4-2026 16.000 MA 15-6-2026 56 15.840 757 S ORHO MORR FORFA
+    //
+    // Format B (aaneengeplakt, van pdf-parse v1):
+    //   MA20-4-202616.000115-6-20265615.840MAORHO757 SMORRFORFA
+    //   Structuur: {dag2}{opzetdatum}{opzetaantal}{stalnr}{slachtdatum}{lft2}{slachtaantal}{dag2}{concept}{ras}...
+    //
+    // We try Format A first (more precise), then Format B as fallback.
+
+    // Format A: spatie-gescheiden stalrijen
+    const stalRegexA = /(\d+)\s+\w{2}\s+[\d-]+\s+[\d.]+\s+(?:\w{2}\s+)?([\d]+-[\d]+-[\d]+)\s+(\d+)\s+([\d.]+)\s+(\d+)\s+([A-Z]+)/g;
+
+    // Format B: aaneengeplakt — {dag2}{opzetdatum}{opzetaantal met punt}{stalnr 1 digit}{slachtdatum}{lft 2 digits}{slachtaantal met punt}
+    // Voorbeeld: MA20-4-202616.000115-6-20265615.840MAORHO757 SMORRFORFA
+    //            ^^----------^^^^^^^^-^---------^^-----
+    //            dag opzetdat  aantal st slachtdt lft slachtaantal
+    const stalRegexB = /[A-Z]{2}(\d{1,2}-\d{1,2}-\d{4})(\d{1,2}\.\d{3})(\d)(\d{1,2}-\d{1,2}-\d{4})(\d{2})(\d{1,2}\.\d{3})/g;
 
     let slaughterDate: string | null = null;
     const stallen: { stal: number; birds: number; lft: number; ras: string }[] = [];
 
+    // Try Format A first
     let match;
-    while ((match = stalRegex.exec(block)) !== null) {
+    while ((match = stalRegexA.exec(block)) !== null) {
       const stalNum = parseInt(match[1]);
       const dateStr = match[2]; // "23-2-2026" format
       const lft = parseInt(match[3]);
@@ -68,6 +86,27 @@ export function parseOpzetplanning(
       }
 
       stallen.push({ stal: stalNum, birds, lft, ras: `${rasNum} ${rasType}` });
+    }
+
+    // Fallback to Format B if Format A found nothing
+    if (stallen.length === 0) {
+      while ((match = stalRegexB.exec(block)) !== null) {
+        // match[1]=opzetdatum, match[2]=opzetaantal, match[3]=stalnr, match[4]=slachtdatum, match[5]=lft, match[6]=slachtaantal
+        const stalNum = parseInt(match[3]);
+        const dateStr = match[4]; // "15-6-2026"
+        const lft = parseInt(match[5]);
+        const birds = Math.round(parseFloat(match[6].replace('.', ''))); // "15.840" → 15840
+
+        const dateParts = dateStr.split('-');
+        if (dateParts.length === 3) {
+          const day = dateParts[0].padStart(2, '0');
+          const month = dateParts[1].padStart(2, '0');
+          const year = dateParts[2];
+          slaughterDate = `${year}-${month}-${day}`;
+        }
+
+        stallen.push({ stal: stalNum, birds, lft, ras: '' });
+      }
     }
 
     if (!slaughterDate || stallen.length === 0) continue;

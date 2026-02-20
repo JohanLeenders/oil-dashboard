@@ -47,12 +47,20 @@ export default function ImportSlaughterDays({ onImportComplete }: { onImportComp
       const text = await file.text();
       setPdfText(text);
     } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
-      // PDF — extract text client-side using pdf.js
+      // PDF — extract text via API route (100% server-side, no client bundling issues)
       setIsExtracting(true);
       try {
-        const { extractPdfText } = await import('@/lib/utils/extractPdfText');
-        const text = await extractPdfText(file);
-        setPdfText(text);
+        const formData = new FormData();
+        formData.append('file', file);
+        const response = await fetch('/api/extract-pdf', {
+          method: 'POST',
+          body: formData,
+        });
+        const data = await response.json();
+        if (!response.ok) {
+          throw new Error(data.error || 'PDF extractie mislukt');
+        }
+        setPdfText(data.text);
       } catch (err) {
         setUploadError(
           `PDF kon niet worden gelezen: ${err instanceof Error ? err.message : 'onbekende fout'}. Plak de tekst handmatig.`
