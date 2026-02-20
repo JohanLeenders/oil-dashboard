@@ -164,18 +164,6 @@ export default function SlaughterDetail({ slaughter }: SlaughterDetailProps) {
           </div>
         )}
       </div>
-
-      {/* Beschikbaarheid placeholder */}
-      <div className="bg-gray-50 dark:bg-gray-900 rounded-lg border border-dashed border-gray-300 dark:border-gray-700 p-6">
-        <div className="text-center">
-          <h3 className="text-sm font-semibold text-gray-900 dark:text-white">
-            Beschikbaarheid
-          </h3>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-            Beschikbaarheidsberekening wordt toegevoegd in Wave 3
-          </p>
-        </div>
-      </div>
     </div>
   );
 }
