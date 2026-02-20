@@ -65,14 +65,15 @@ export default async function SlaughterOrdersPage({ params }: PageProps) {
       <div>
         <Link
           href="/oil/orders"
-          className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+          className="text-sm transition-colors"
+          style={{ color: 'var(--color-oil-orange)' }}
         >
           &larr; Terug naar orders
         </Link>
-        <h1 className="mt-2 text-2xl font-bold text-gray-900 dark:text-white">
+        <h1 className="mt-2 text-2xl font-brand tracking-tight" style={{ color: 'var(--color-text-main)' }}>
           Orders — {formatDate(slaughter.slaughter_date)}
         </h1>
-        <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+        <p className="mt-1 text-sm font-mono tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
           Week {slaughter.week_number} &middot;{' '}
           {slaughter.expected_birds.toLocaleString('nl-NL')} dieren verwacht
           {slaughter.slaughter_location && (

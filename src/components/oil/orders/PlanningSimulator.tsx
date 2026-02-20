@@ -9,13 +9,15 @@
  *   - Auto-recalculates cascaded availability on every change
  *   - Shows Putten primary + Nijkerk secondary products
  *   - Save/load scenarios
+ *   - Wave 9 (UX-2): Impact Zone — delta tracking, flash feedback, impact summary
  */
 
-import { useState, useMemo, useCallback } from 'react';
+import { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import {
   computeSimulatedAvailability,
   DEFAULT_WHOLE_BIRD_CLASSES,
   type WholeBirdPull,
+  type SimulatedAvailability,
 } from '@/lib/engine/availability/simulator';
 import type { LocationYieldProfile, ProductYieldChain } from '@/lib/engine/availability/cascading';
 import type { SimulatorYieldConfig } from '@/lib/actions/availability';
@@ -36,6 +38,93 @@ function formatKg(value: number): string {
 
 function formatNum(value: number, decimals = 2): string {
   return value.toLocaleString('nl-NL', { maximumFractionDigits: decimals });
+}
+
+// ---------------------------------------------------------------------------
+// Delta tracking for Impact Zone (UX-2)
+// ---------------------------------------------------------------------------
+
+interface ProductDelta {
+  product_id: string;
+  product_description: string;
+  previous_kg: number;
+  current_kg: number;
+  delta_kg: number;
+  delta_pct: number; // percentage change relative to previous
+}
+
+/** Build delta map by comparing previous and current simulation results */
+function computeDeltas(
+  prev: SimulatedAvailability | null,
+  curr: SimulatedAvailability
+): Map<string, ProductDelta> {
+  const deltas = new Map<string, ProductDelta>();
+  if (!prev) return deltas;
+
+  // Build previous kg map (primary + secondary)
+  const prevKg = new Map<string, { kg: number; desc: string }>();
+  for (const p of prev.cascaded.primary_products) {
+    prevKg.set(p.product_id, { kg: p.primary_available_kg, desc: p.product_description });
+  }
+  for (const c of prev.cascaded.secondary_products) {
+    prevKg.set(c.product_id, { kg: c.available_kg, desc: c.product_description });
+  }
+
+  // Compare current primary products
+  for (const p of curr.cascaded.primary_products) {
+    const prev_entry = prevKg.get(p.product_id);
+    const prev_kg = prev_entry?.kg ?? 0;
+    const delta_kg = p.primary_available_kg - prev_kg;
+    const delta_pct = prev_kg > 0 ? (delta_kg / prev_kg) * 100 : 0;
+    deltas.set(p.product_id, {
+      product_id: p.product_id,
+      product_description: p.product_description,
+      previous_kg: prev_kg,
+      current_kg: p.primary_available_kg,
+      delta_kg,
+      delta_pct,
+    });
+  }
+
+  // Compare current secondary products
+  for (const c of curr.cascaded.secondary_products) {
+    const prev_entry = prevKg.get(c.product_id);
+    const prev_kg = prev_entry?.kg ?? 0;
+    const delta_kg = c.available_kg - prev_kg;
+    const delta_pct = prev_kg > 0 ? (delta_kg / prev_kg) * 100 : 0;
+    deltas.set(c.product_id, {
+      product_id: c.product_id,
+      product_description: c.product_description,
+      previous_kg: prev_kg,
+      current_kg: c.available_kg,
+      delta_kg,
+      delta_pct,
+    });
+  }
+
+  return deltas;
+}
+
+/** Build a short summary of the most significant deltas */
+function buildImpactSummary(deltas: Map<string, ProductDelta>, totalPulled: number): string[] {
+  const parts: string[] = [];
+
+  // Sort by absolute delta_kg descending, take top 3 significant changes
+  const significantDeltas = [...deltas.values()]
+    .filter((d) => Math.abs(d.delta_pct) > 5 && Math.abs(d.delta_kg) > 1)
+    .sort((a, b) => Math.abs(b.delta_kg) - Math.abs(a.delta_kg))
+    .slice(0, 3);
+
+  for (const d of significantDeltas) {
+    const sign = d.delta_kg > 0 ? '+' : '';
+    parts.push(`${sign}${formatKg(d.delta_kg)} kg ${d.product_description.toLowerCase()}`);
+  }
+
+  if (totalPulled > 0) {
+    parts.push(`${totalPulled} hele hoenen eruit`);
+  }
+
+  return parts;
 }
 
 interface PlanningSimulatorProps {
@@ -85,6 +174,35 @@ export default function PlanningSimulator({
         yield_chains: yieldConfig.yield_chains,
       }),
     [birds, liveWeightKg, grillerYieldPct, wholeBirdPulls, yieldConfig]
+  );
+
+  // ── Impact Zone (UX-2): Delta tracking ──
+  const previousSimRef = useRef<SimulatedAvailability | null>(null);
+  const [flashKey, setFlashKey] = useState(0);
+  const [deltas, setDeltas] = useState<Map<string, ProductDelta>>(new Map());
+  const [impactParts, setImpactParts] = useState<string[]>([]);
+
+  // When simulation changes, compute deltas against previous and trigger flash
+  useEffect(() => {
+    const prev = previousSimRef.current;
+    if (prev) {
+      const newDeltas = computeDeltas(prev, simulation);
+      setDeltas(newDeltas);
+      setImpactParts(buildImpactSummary(newDeltas, simulation.total_whole_birds_pulled));
+      // Increment flash key to restart CSS animations
+      setFlashKey((k) => k + 1);
+    }
+    previousSimRef.current = simulation;
+  }, [simulation]);
+
+  /** Get flash CSS class for a product row based on its delta */
+  const getFlashClass = useCallback(
+    (productId: string): string => {
+      const d = deltas.get(productId);
+      if (!d || Math.abs(d.delta_pct) <= 10) return '';
+      return d.delta_kg < 0 ? 'flash-red' : 'flash-green';
+    },
+    [deltas]
   );
 
   const handlePullCountChange = useCallback(
@@ -147,18 +265,24 @@ export default function PlanningSimulator({
       <div className="space-y-3">
         <div className="grid grid-cols-2 gap-3">
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
               Aantal kippen
             </label>
             <input
               type="number"
               value={birds}
               onChange={(e) => setBirds(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 tabular-nums"
+              className="w-full px-2.5 py-1.5 text-sm font-mono tabular-nums"
+              style={{
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-subtle)',
+                borderRadius: '8px',
+                color: 'var(--color-text-main)',
+              }}
             />
           </div>
           <div>
-            <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
               Levend gew. (kg)
             </label>
             <input
@@ -166,13 +290,19 @@ export default function PlanningSimulator({
               value={liveWeightKg}
               onChange={(e) => setLiveWeightKg(Number(e.target.value) || 0)}
               step="0.1"
-              className="w-full px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 tabular-nums"
+              className="w-full px-2.5 py-1.5 text-sm font-mono tabular-nums"
+              style={{
+                background: 'var(--color-bg-elevated)',
+                border: '1px solid var(--color-border-subtle)',
+                borderRadius: '8px',
+                color: 'var(--color-text-main)',
+              }}
             />
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-gray-600 dark:text-gray-400 mb-1">
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
             Griller rendement (%)
           </label>
           <input
@@ -182,22 +312,35 @@ export default function PlanningSimulator({
             step="0.1"
             min="0"
             max="100"
-            className="w-28 px-2.5 py-1.5 text-sm border border-gray-300 dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 tabular-nums"
+            className="w-28 px-2.5 py-1.5 text-sm font-mono tabular-nums"
+            style={{
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: '8px',
+              color: 'var(--color-text-main)',
+            }}
           />
         </div>
 
         {/* Computed summary */}
-        <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-3">
+        <div
+          className="rounded-lg p-3"
+          style={{
+            background: 'rgba(246, 126, 32, 0.1)',
+            border: '1px solid rgba(246, 126, 32, 0.3)',
+            borderRadius: 'var(--radius-card)',
+          }}
+        >
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-xs font-medium text-amber-700 dark:text-amber-400 uppercase tracking-wider">
+              <div className="text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-oil-orange)' }}>
                 Griller totaal
               </div>
-              <div className="text-xl font-bold text-amber-900 dark:text-amber-200 tabular-nums">
+              <div className="text-xl font-bold font-mono tabular-nums" style={{ color: 'var(--color-text-main)' }}>
                 {formatKg(simulation.original_griller_kg)} kg
               </div>
             </div>
-            <div className="text-right text-xs text-amber-600 dark:text-amber-400 space-y-0.5">
+            <div className="text-right text-xs font-mono tabular-nums space-y-0.5" style={{ color: 'var(--color-oil-orange)' }}>
               <div>Gem. levend: {formatNum(simulation.avg_live_weight_kg)} kg</div>
               <div>
                 Gem. griller: {formatNum(simulation.avg_live_weight_kg * (grillerYieldPct / 100))} kg
@@ -209,7 +352,7 @@ export default function PlanningSimulator({
 
       {/* ── Hele hoenen eruit ── */}
       <div>
-        <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">
+        <h4 className="text-xs font-semibold uppercase tracking-wider mb-2" style={{ color: 'var(--color-text-dim)' }}>
           Hele hoenen eruit
         </h4>
         <div className="space-y-1.5">
@@ -221,7 +364,7 @@ export default function PlanningSimulator({
                 key={cls.label}
                 className="flex items-center gap-2 text-sm"
               >
-                <span className="w-20 text-xs text-gray-600 dark:text-gray-400 shrink-0">
+                <span className="w-20 text-xs shrink-0" style={{ color: 'var(--color-text-muted)' }}>
                   {cls.label}
                 </span>
                 <input
@@ -231,11 +374,17 @@ export default function PlanningSimulator({
                     handlePullCountChange(cls.label, Number(e.target.value) || 0)
                   }
                   min="0"
-                  className="w-20 px-2 py-1 text-xs border border-gray-300 dark:border-gray-600 rounded bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 tabular-nums text-right"
+                  className="w-20 px-2 py-1 text-xs font-mono tabular-nums text-right"
+                  style={{
+                    background: 'var(--color-bg-elevated)',
+                    border: '1px solid var(--color-border-subtle)',
+                    borderRadius: '6px',
+                    color: 'var(--color-text-main)',
+                  }}
                 />
-                <span className="text-xs text-gray-400 dark:text-gray-500">st</span>
-                <span className="ml-auto text-xs tabular-nums text-gray-500 dark:text-gray-400">
-                  {totalKg > 0 ? `${formatKg(totalKg)} kg` : '–'}
+                <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>st</span>
+                <span className="ml-auto text-xs font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
+                  {totalKg > 0 ? `${formatKg(totalKg)} kg` : '\u2013'}
                 </span>
               </div>
             );
@@ -245,27 +394,61 @@ export default function PlanningSimulator({
 
       {/* ── Na aftrek summary ── */}
       {hasPulls && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 space-y-1">
+        <div
+          className="rounded-lg p-3 space-y-1"
+          style={{
+            background: 'var(--color-bg-elevated)',
+            border: '1px solid var(--color-border-subtle)',
+            borderRadius: 'var(--radius-card)',
+          }}
+        >
           <div className="flex justify-between text-xs">
-            <span className="text-blue-700 dark:text-blue-400">
-              Hele hoenen eruit
-            </span>
-            <span className="tabular-nums font-medium text-blue-900 dark:text-blue-200">
+            <span style={{ color: 'var(--color-text-muted)' }}>Hele hoenen eruit</span>
+            <span className="font-mono tabular-nums font-medium" style={{ color: 'var(--color-text-main)' }}>
               {simulation.total_whole_birds_pulled} st &middot; {formatKg(simulation.total_whole_bird_kg)} kg
             </span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-blue-700 dark:text-blue-400">Resterend</span>
-            <span className="tabular-nums font-semibold text-blue-900 dark:text-blue-200">
+            <span style={{ color: 'var(--color-text-muted)' }}>Resterend</span>
+            <span className="font-mono tabular-nums font-semibold" style={{ color: 'var(--color-text-main)' }}>
               {formatKg(simulation.remaining_griller_kg)} kg
             </span>
           </div>
           <div className="flex justify-between text-xs">
-            <span className="text-blue-700 dark:text-blue-400">Nieuw gem. gewicht</span>
-            <span className="tabular-nums text-blue-900 dark:text-blue-200">
+            <span style={{ color: 'var(--color-text-muted)' }}>Nieuw gem. gewicht</span>
+            <span className="font-mono tabular-nums" style={{ color: 'var(--color-text-main)' }}>
               {formatNum(simulation.adjusted_avg_griller_weight_kg)} kg griller
             </span>
           </div>
+        </div>
+      )}
+
+      {/* ── Impact Zone Banner (UX-2, C6c) ── */}
+      {impactParts.length > 0 && (
+        <div
+          key={`impact-${flashKey}`}
+          className="rounded-lg px-3 py-2 text-xs font-mono"
+          style={{
+            background: 'rgba(246, 126, 32, 0.1)',
+            border: '1px solid var(--color-oil-orange)',
+          }}
+        >
+          <span style={{ color: 'var(--color-oil-orange)' }}>&#9889; Impact: </span>
+          {impactParts.map((part, i) => {
+            const isNegative = part.startsWith('-') || part.startsWith('\u2212');
+            const isPositive = part.startsWith('+');
+            const color = isNegative
+              ? 'var(--color-data-red)'
+              : isPositive
+                ? 'var(--color-data-green)'
+                : 'var(--color-text-muted)';
+            return (
+              <span key={i}>
+                {i > 0 && <span style={{ color: 'var(--color-text-dim)' }}> / </span>}
+                <span style={{ color }}>{part}</span>
+              </span>
+            );
+          })}
         </div>
       )}
 
@@ -273,34 +456,56 @@ export default function PlanningSimulator({
       {primaryMain.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-1.5">
-            <div className="w-2 h-2 rounded-full bg-blue-500" />
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-oil-orange)' }} />
+            <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
               Putten — Dag 0
             </h4>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-card)' }}>
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-900/50">
-                  <th className="text-left py-1.5 px-3 font-medium text-gray-500 dark:text-gray-400">
+                <tr style={{ background: 'var(--color-bg-elevated)' }}>
+                  <th className="text-left py-1.5 px-3 font-medium" style={{ color: 'var(--color-text-dim)' }}>
                     Product
                   </th>
-                  <th className="text-right py-1.5 px-3 font-medium text-gray-500 dark:text-gray-400">
+                  <th className="text-right py-1.5 px-3 font-medium" style={{ color: 'var(--color-text-dim)' }}>
                     Kg
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {primaryMain.map((p) => (
-                  <tr key={p.product_id}>
-                    <td className="py-1.5 px-3 text-gray-900 dark:text-gray-100">
-                      {p.product_description}
-                    </td>
-                    <td className="py-1.5 px-3 text-right tabular-nums text-gray-900 dark:text-gray-100 font-medium">
-                      {formatKg(p.primary_available_kg)}
-                    </td>
-                  </tr>
-                ))}
+                {primaryMain.map((p) => {
+                  const flash = getFlashClass(p.product_id);
+                  const delta = deltas.get(p.product_id);
+                  return (
+                    <tr
+                      key={`${p.product_id}-${flashKey}`}
+                      className={flash}
+                      style={{ border: '1px solid transparent' }}
+                    >
+                      <td className="py-1.5 px-3" style={{ color: 'var(--color-text-main)' }}>
+                        {p.product_description}
+                      </td>
+                      <td className="py-1.5 px-3 text-right font-mono tabular-nums font-medium">
+                        <span style={{ color: 'var(--color-text-main)' }}>
+                          {formatKg(p.primary_available_kg)}
+                        </span>
+                        {delta && Math.abs(delta.delta_kg) > 1 && (
+                          <span
+                            className="ml-1.5 text-[10px]"
+                            style={{
+                              color: delta.delta_kg < 0
+                                ? 'var(--color-data-red)'
+                                : 'var(--color-data-green)',
+                            }}
+                          >
+                            {delta.delta_kg > 0 ? '+' : ''}{formatKg(delta.delta_kg)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -312,33 +517,55 @@ export default function PlanningSimulator({
         <div>
           <div className="flex items-center gap-2 mb-1.5">
             <div className="w-2 h-2 rounded-full bg-purple-500" />
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <h4 className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
               Nijkerk — Dag +1
             </h4>
           </div>
-          <div className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+          <div className="overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-card)' }}>
             <table className="w-full text-xs">
               <thead>
-                <tr className="bg-gray-50 dark:bg-gray-900/50">
-                  <th className="text-left py-1.5 px-3 font-medium text-gray-500 dark:text-gray-400">
+                <tr style={{ background: 'var(--color-bg-elevated)' }}>
+                  <th className="text-left py-1.5 px-3 font-medium" style={{ color: 'var(--color-text-dim)' }}>
                     Product
                   </th>
-                  <th className="text-right py-1.5 px-3 font-medium text-gray-500 dark:text-gray-400">
+                  <th className="text-right py-1.5 px-3 font-medium" style={{ color: 'var(--color-text-dim)' }}>
                     Kg
                   </th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-                {secondaryMain.map((c) => (
-                  <tr key={c.product_id}>
-                    <td className="py-1.5 px-3 text-gray-900 dark:text-gray-100">
-                      {c.product_description}
-                    </td>
-                    <td className="py-1.5 px-3 text-right tabular-nums text-gray-900 dark:text-gray-100 font-medium">
-                      {formatKg(c.available_kg)}
-                    </td>
-                  </tr>
-                ))}
+                {secondaryMain.map((c) => {
+                  const flash = getFlashClass(c.product_id);
+                  const delta = deltas.get(c.product_id);
+                  return (
+                    <tr
+                      key={`${c.product_id}-${flashKey}`}
+                      className={flash}
+                      style={{ border: '1px solid transparent' }}
+                    >
+                      <td className="py-1.5 px-3" style={{ color: 'var(--color-text-main)' }}>
+                        {c.product_description}
+                      </td>
+                      <td className="py-1.5 px-3 text-right font-mono tabular-nums font-medium">
+                        <span style={{ color: 'var(--color-text-main)' }}>
+                          {formatKg(c.available_kg)}
+                        </span>
+                        {delta && Math.abs(delta.delta_kg) > 1 && (
+                          <span
+                            className="ml-1.5 text-[10px]"
+                            style={{
+                              color: delta.delta_kg < 0
+                                ? 'var(--color-data-red)'
+                                : 'var(--color-data-green)',
+                            }}
+                          >
+                            {delta.delta_kg > 0 ? '+' : ''}{formatKg(delta.delta_kg)}
+                          </span>
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -351,20 +578,26 @@ export default function PlanningSimulator({
           <button
             type="button"
             onClick={() => setOrgansOpen(!organsOpen)}
-            className="w-full flex items-center justify-between gap-2 py-2 px-3 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg hover:bg-gray-100 dark:hover:bg-gray-750 transition-colors"
+            className="w-full flex items-center justify-between gap-2 py-2 px-3 rounded-lg transition-colors"
+            style={{
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: 'var(--radius-card)',
+            }}
           >
             <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full bg-gray-400" />
-              <span className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-text-dim)' }} />
+              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Organen &amp; rest
               </span>
             </div>
             <div className="flex items-center gap-3">
-              <span className="text-xs tabular-nums text-gray-500 dark:text-gray-400">
+              <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
                 {formatKg(organTotalKg)} kg
               </span>
               <svg
-                className={`w-3 h-3 text-gray-400 transition-transform ${organsOpen ? 'rotate-180' : ''}`}
+                className={`w-3 h-3 transition-transform ${organsOpen ? 'rotate-180' : ''}`}
+                style={{ color: 'var(--color-text-dim)' }}
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -375,25 +608,25 @@ export default function PlanningSimulator({
             </div>
           </button>
           {organsOpen && (
-            <div className="mt-1.5 border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden">
+            <div className="mt-1.5 overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-card)' }}>
               <table className="w-full text-xs">
-                <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
+                <tbody>
                   {primaryOrgans.map((p) => (
                     <tr key={p.product_id}>
-                      <td className="py-1.5 px-3 text-gray-900 dark:text-gray-100">
+                      <td className="py-1.5 px-3" style={{ color: 'var(--color-text-main)' }}>
                         {p.product_description}
                       </td>
-                      <td className="py-1.5 px-3 text-right tabular-nums text-gray-600 dark:text-gray-400">
+                      <td className="py-1.5 px-3 text-right font-mono tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
                         {formatKg(p.primary_available_kg)} kg
                       </td>
                     </tr>
                   ))}
                   {secondaryOrgans.map((c) => (
                     <tr key={c.product_id}>
-                      <td className="py-1.5 px-3 text-gray-900 dark:text-gray-100">
+                      <td className="py-1.5 px-3" style={{ color: 'var(--color-text-main)' }}>
                         {c.product_description}
                       </td>
-                      <td className="py-1.5 px-3 text-right tabular-nums text-gray-600 dark:text-gray-400">
+                      <td className="py-1.5 px-3 text-right font-mono tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
                         {formatKg(c.available_kg)} kg
                       </td>
                     </tr>
@@ -410,14 +643,20 @@ export default function PlanningSimulator({
         <button
           type="button"
           onClick={() => setShowSaveDialog(true)}
-          className="w-full px-3 py-2 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded-md transition-colors"
+          className="w-full px-3 py-2 text-xs font-medium text-white rounded-lg transition-colors"
+          style={{ background: 'var(--color-data-green)', borderRadius: '8px' }}
         >
           Scenario opslaan
         </button>
         <button
           type="button"
           onClick={() => setShowScenarios(!showScenarios)}
-          className="w-full px-3 py-2 text-xs font-medium text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700 rounded-md transition-colors"
+          className="w-full px-3 py-2 text-xs font-medium rounded-lg transition-colors"
+          style={{
+            color: 'var(--color-text-muted)',
+            border: '1px solid var(--color-border-subtle)',
+            borderRadius: '8px',
+          }}
         >
           {showScenarios ? 'Verberg scenario\'s' : 'Opgeslagen scenario\'s'}
         </button>

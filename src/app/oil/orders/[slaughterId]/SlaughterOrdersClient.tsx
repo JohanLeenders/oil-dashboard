@@ -27,6 +27,7 @@ import AvailabilityPanel from '@/components/oil/orders/AvailabilityPanel';
 import FullAvailabilityButton from '@/components/oil/orders/FullAvailabilityButton';
 import PlanningSimulator from '@/components/oil/orders/PlanningSimulator';
 import DeliveryInfoEditor from '@/components/oil/orders/DeliveryInfoEditor';
+import IntelligencePanel from '@/components/oil/orders/IntelligencePanel';
 
 interface OrderWithCustomer extends CustomerOrder {
   customer_name: string;
@@ -123,12 +124,15 @@ export default function SlaughterOrdersClient({
 
   return (
     <div className="space-y-6">
+      {/* Intelligence Panel — slaughter day overview with cascade flow */}
+      <IntelligencePanel availability={availability} orders={initialOrders} />
+
       {/* Split-view: Orders left, Availability/Simulator right */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left: Orders (2/3 width on desktop) */}
         <div className="lg:col-span-2 space-y-6">
           {/* Section 1: Order List */}
-          <section>
+          <section data-section="order-list">
             <div className="flex items-center justify-between mb-3">
               <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
                 Klantorders
@@ -240,11 +244,13 @@ export default function SlaughterOrdersClient({
 
       {/* Section 4: Delivery Info (collapsible) */}
       {customerIdsWithOrders.length > 0 && (
-        <DeliveryInfoEditor
-          customerIds={customerIdsWithOrders}
-          customerNames={customerNameMap}
-          initialData={deliveryInfo}
-        />
+        <div data-section="delivery-info">
+          <DeliveryInfoEditor
+            customerIds={customerIdsWithOrders}
+            customerNames={customerNameMap}
+            initialData={deliveryInfo}
+          />
+        </div>
       )}
 
       {/* Section 5: Snapshots */}
@@ -256,12 +262,20 @@ export default function SlaughterOrdersClient({
         />
       </section>
 
-      {/* Section 6: Excel Export */}
+      {/* Section 6: Excel Export — Launch Sequence (UX-4) */}
       <section className="flex justify-end">
         <ExportButton
           slaughterId={slaughterId}
           slaughterDate={slaughterDate ?? ''}
           mester={mester}
+          orderStatuses={initialOrders.map((o) => o.status)}
+          deliveryInfoComplete={
+            customerIdsWithOrders.length > 0
+              ? customerIdsWithOrders.every((cid) =>
+                  deliveryInfo.some((d) => d.customer_id === cid && d.delivery_address)
+                )
+              : true
+          }
         />
       </section>
     </div>

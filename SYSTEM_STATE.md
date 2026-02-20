@@ -1,8 +1,8 @@
 # OIL System State - Logboek
 
 **Project:** Oranjehoen Intelligence Layer (OIL)
-**Laatste Update:** 2026-02-20 (Wave 8 — Storteboom Bestelschema Export & Artikelnummers)
-**Huidige Fase:** Order Module Phase 2 — Wave 8 Complete
+**Laatste Update:** 2026-02-20 (Wave 9 — Mission Control Design System & UX Polish)
+**Huidige Fase:** Order Module Phase 2 — Wave 9 Complete
 
 ---
 
@@ -181,6 +181,14 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
 - [x] `OrderLineEditor` - Wave 7: Inline editing (Enter/Escape/Tab)
 - [x] `DeliveryInfoEditor` - Wave 8: Collapsible bezorginfo tabel per klant
 - [x] `ExportButton` - Wave 8: Storteboom bestelschema Excel export + simulator toggle
+- [x] `OilCard` - Wave 9: Glassmorphism card wrapper (backdrop-blur, 12px radius)
+- [x] `KpiTile` - Wave 9: Clickable KPI card with color variants + trends
+- [x] `DataBadge` - Wave 9: Status badge (green/orange/red/gold/muted)
+- [x] `OilModal` - Wave 9: Full-screen modal with backdrop blur + size variants
+- [x] `Sidebar` - Wave 9: Collapsible nav with localStorage persistence
+- [x] `DashboardKpiGrid` - Wave 9: Dashboard KPI tiles with drill-down modals
+- [x] `OrderStatusTiles` - Wave 9: Order status overview on dashboard
+- [x] `ExportPreflightChecklist` - Wave 9: Pre-flight validation checklist UI
 - [ ] `OpportunityCostModal` - Detail modal (TODO)
 
 ### Data Fetching (Server Actions)
@@ -292,6 +300,43 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
   - `DeliveryInfoEditor` in SlaughterOrdersClient, mester prop doorgesluisd
 - ✅ **B5: QA Gate** — 698 tests, build clean, 10 protected files unchanged
 - ✅ Backward-compatible legacy wrappers voor bestaande integration tests
+
+### 2026-02-20 - Wave 9 (Mission Control Design System & UX Polish)
+- ✅ **C1: Design Tokens & Global Styles** — CSS custom properties (colors, typography, shape)
+  - Background #09090b, glassmorphism `.oil-card`, 12px radius, 1px hairlines
+  - Font loading: Inter (body), JetBrains Mono (data), Playfair Display (brand)
+  - Dark mode as permanent only mode (no toggle)
+- ✅ **C2: OilCard, KpiTile, DataBadge** — Reusable UI components
+  - OilCard: glassmorphism wrapper (backdrop-blur, padding variants)
+  - KpiTile: clickable KPI card (color variants, trends, onClick)
+  - DataBadge: status badge (green/orange/red/gold/muted)
+- ✅ **C3: Sidebar Navigation** — Progressive disclosure sidebar
+  - 3 collapsible groups (Operationeel, Data, Beheer)
+  - localStorage persistence for collapse state
+  - Responsive (collapses on mobile)
+  - Active route orange highlight
+- ✅ **C4: Order Status Visualization** — Status badges + calendar progress bars
+  - DataBadge integration for order statuses (concept/ingediend/bevestigd/geannuleerd)
+  - Availability progress bars on slaughter calendar
+- ✅ **C5: Intelligence Panel (UX-3)** — Putten/Nijkerk cascade flow
+  - Orange flow connector between locations
+  - KPI tiles at top with monospace values
+- ✅ **C6: Simulator Impact Zone (UX-2)** — Real-time delta feedback
+  - Product rows flash red/green on >10% change
+  - Impact summary banner with delta breakdown
+  - Delta tracking via useRef + useEffect
+- ✅ **C7: Export Launch Sequence (UX-4)** — Pre-flight validation
+  - ExportPreflightChecklist with green/red/orange indicators
+  - Export button disabled until error checks pass, orange glow when ready
+  - Failed checks are clickable links (scroll to section)
+- ✅ **C8: Drill-down Modals & Component Migration (UX-5)**
+  - OilModal: full-screen overlay, backdrop blur 20px, 4 size variants
+  - DashboardKpiGrid: 4 clickable KPI tiles → modal drill-down
+  - AvailabilityPanel + PlanningSimulator: full OIL token migration
+  - Heading hierarchy: brand serif for titles, Inter for body
+- ✅ **C9: QA Gate** — 698 tests, build clean, 10 protected files unchanged
+  - Visual verification: 30+ checklist items passed
+  - Decision: GO
 
 ---
 
