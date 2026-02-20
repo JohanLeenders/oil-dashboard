@@ -1114,3 +1114,38 @@ export interface ProcessingStep {
   description: string;
   parameters?: Record<string, unknown>;
 }
+
+// ============================================================================
+// WAVE 8 TYPES — Storteboom Bestelschema Export
+// ============================================================================
+
+/**
+ * Wave 8: Article numbers per product per location (vacuum / niet-vacuum)
+ * Table: product_article_numbers
+ */
+export interface ProductArticleNumber {
+  id: string;
+  product_id: string;
+  location: 'putten' | 'nijkerk';
+  article_type: 'vacuum' | 'niet_vacuum';
+  article_number: string;
+  packaging_size: string | null;
+  created_at: string;
+}
+
+/**
+ * Wave 8: Customer delivery information
+ * Table: customer_delivery_info
+ */
+export interface CustomerDeliveryInfo {
+  id: string;
+  customer_id: string;
+  delivery_address: string | null;
+  transport_provider: string | null;
+  transport_by_koops: boolean;
+  putten_delivery_day: string | null;
+  nijkerk_delivery_day: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}

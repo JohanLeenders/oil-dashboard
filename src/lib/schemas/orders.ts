@@ -89,3 +89,14 @@ export const getSnapshotsForSlaughterSchema = z.object({
 export const getSlaughterDetailSchema = z.object({
   id: uuidSchema,
 });
+
+// ============================================================================
+// updateOrderLine
+// ============================================================================
+
+export const updateOrderLineSchema = z.object({
+  lineId: uuidSchema,
+  quantityKg: z.number().positive().max(100_000),
+});
+
+export type UpdateOrderLineInput = z.infer<typeof updateOrderLineSchema>;

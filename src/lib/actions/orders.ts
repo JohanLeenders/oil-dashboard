@@ -16,6 +16,7 @@ import type {
   CustomerOrder,
   OrderLine,
   OrderSchemaSnapshot,
+  OrderSchemaAvailability,
 } from '@/types/database';
 import { buildOrderSchema } from '@/lib/engine/orders';
 import type { BuildOrderSchemaInput } from '@/lib/engine/orders';
@@ -23,6 +24,7 @@ import {
   createCustomerOrderSchema,
   addOrderLineSchema,
   removeOrderLineSchema,
+  updateOrderLineSchema,
   createDraftSnapshotSchema,
   finalizeSnapshotSchema,
   getOrdersForSlaughterSchema,
@@ -361,6 +363,37 @@ export async function removeOrderLine(lineId: string): Promise<void> {
 }
 
 /**
+ * Update quantity on an existing order line
+ */
+export async function updateOrderLine(
+  lineId: string,
+  quantityKg: number
+): Promise<void> {
+  const parsed = updateOrderLineSchema.parse({ lineId, quantityKg });
+  const supabase = await createClient();
+
+  // Get order_id for total recalculation
+  const { data: lineData, error: fetchError } = await supabase
+    .from('order_lines')
+    .select('order_id')
+    .eq('id', parsed.lineId)
+    .single();
+
+  if (fetchError) throw new Error(`Failed to fetch order line: ${fetchError.message}`);
+
+  // Update the quantity
+  const { error: updateError } = await supabase
+    .from('order_lines')
+    .update({ quantity_kg: parsed.quantityKg })
+    .eq('id', parsed.lineId);
+
+  if (updateError) throw new Error(`Failed to update order line: ${updateError.message}`);
+
+  // Recalculate parent order totals
+  await recalculateOrderTotals(lineData.order_id);
+}
+
+/**
  * Herbereken total_kg en total_lines op een customer_order
  */
 async function recalculateOrderTotals(orderId: string): Promise<void> {
@@ -444,8 +477,8 @@ export async function createDraftSnapshot(
     });
   }
 
-  // Wave 2 stub: availability is empty
-  const availability: never[] = [];
+  // Availability data for schema (empty until connected to cascade engine)
+  const availability: OrderSchemaAvailability[] = [];
 
   // Build schema via engine
   const schemaData = buildOrderSchema(slaughterId, orderInputs, availability);

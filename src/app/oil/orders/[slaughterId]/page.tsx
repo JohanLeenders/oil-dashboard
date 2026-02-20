@@ -17,6 +17,8 @@ import {
   getProductsForSelect,
   getSnapshotsForSlaughter,
 } from '@/lib/actions/orders';
+import { getCascadedAvailabilityForSlaughter, getSimulatorYieldConfig } from '@/lib/actions/availability';
+import { getDeliveryInfoForCustomers } from '@/lib/actions/delivery-info';
 import SlaughterOrdersClient from './SlaughterOrdersClient';
 
 interface PageProps {
@@ -35,17 +37,27 @@ function formatDate(dateStr: string): string {
 export default async function SlaughterOrdersPage({ params }: PageProps) {
   const { slaughterId } = await params;
 
-  const [slaughter, orders, customers, products, snapshots] = await Promise.all([
+  const [slaughter, orders, customers, products, snapshots, availability, simulatorYieldConfig] = await Promise.all([
     getSlaughterDetailForOrders(slaughterId),
     getOrdersForSlaughter(slaughterId),
     getCustomersForSelect(),
     getProductsForSelect(),
     getSnapshotsForSlaughter(slaughterId),
+    getCascadedAvailabilityForSlaughter(slaughterId),
+    getSimulatorYieldConfig(slaughterId),
   ]);
 
   if (!slaughter) {
     notFound();
   }
+
+  // Derive mester name from breakdown
+  const mesterBreakdown = (slaughter.mester_breakdown ?? []) as Array<{ mester: string }>;
+  const mester = mesterBreakdown.length > 0 ? mesterBreakdown[0].mester : undefined;
+
+  // Fetch delivery info for customers with orders
+  const customerIdsWithOrders = [...new Set(orders.map((o) => o.customer_id))];
+  const deliveryInfo = await getDeliveryInfoForCustomers(customerIdsWithOrders);
 
   return (
     <div className="space-y-6">
@@ -77,6 +89,10 @@ export default async function SlaughterOrdersPage({ params }: PageProps) {
         products={products}
         initialSnapshots={snapshots}
         slaughterDate={slaughter.slaughter_date}
+        mester={mester}
+        availability={availability}
+        simulatorYieldConfig={simulatorYieldConfig}
+        deliveryInfo={deliveryInfo}
       />
     </div>
   );

@@ -34,19 +34,35 @@ export default function ImportSlaughterDays({ onImportComplete }: { onImportComp
   const [isLoading, setIsLoading] = useState(false);
   const [pasteMode, setPasteMode] = useState(false);
 
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const [isExtracting, setIsExtracting] = useState(false);
+
   const handleFileUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    // Gebruik FileReader om PDF text te lezen
-    // Voor echte PDF parsing zou je pdf.js nodig hebben, maar de opzetplanningen
-    // kunnen ook als tekst worden geplakt (copy-paste uit PDF viewer)
+    setUploadError(null);
+
     if (file.type === 'text/plain' || file.name.endsWith('.txt')) {
       const text = await file.text();
       setPdfText(text);
+    } else if (file.type === 'application/pdf' || file.name.endsWith('.pdf')) {
+      // PDF — extract text client-side using pdf.js
+      setIsExtracting(true);
+      try {
+        const { extractPdfText } = await import('@/lib/utils/extractPdfText');
+        const text = await extractPdfText(file);
+        setPdfText(text);
+      } catch (err) {
+        setUploadError(
+          `PDF kon niet worden gelezen: ${err instanceof Error ? err.message : 'onbekende fout'}. Plak de tekst handmatig.`
+        );
+        setPasteMode(true);
+      } finally {
+        setIsExtracting(false);
+      }
     } else {
-      // PDF — vraag gebruiker om tekst te plakken
-      setPasteMode(true);
+      setUploadError('Onbekend bestandstype. Upload een .pdf of .txt bestand.');
     }
   }, []);
 
@@ -102,6 +118,7 @@ export default function ImportSlaughterDays({ onImportComplete }: { onImportComp
     setParsedDays([]);
     setResult(null);
     setPasteMode(false);
+    setUploadError(null);
   }, []);
 
   if (!isOpen) {
@@ -141,9 +158,40 @@ export default function ImportSlaughterDays({ onImportComplete }: { onImportComp
       {step === 'upload' && (
         <div className="space-y-4">
           <p className="text-sm text-gray-600 dark:text-gray-400">
-            Plak de tekst uit een opzetplanning PDF (Storteboom/mester). De parser herkent automatisch
-            rondenummers, stallen, opzetaantallen en vermoedelijke slachtdatums.
+            Upload een opzetplanning PDF of plak de tekst handmatig (Storteboom/mester). De parser herkent
+            automatisch rondenummers, stallen, opzetaantallen en vermoedelijke slachtdatums.
           </p>
+
+          {/* PDF / bestand uploaden */}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+              Upload opzetplanning (PDF of TXT)
+            </label>
+            <input
+              type="file"
+              accept=".pdf,.txt,.text"
+              onChange={handleFileUpload}
+              disabled={isExtracting}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-green-50 file:text-green-700 hover:file:bg-green-100 dark:file:bg-green-900/30 dark:file:text-green-400 disabled:opacity-50"
+            />
+            {isExtracting && (
+              <p className="mt-1 text-sm text-blue-600 dark:text-blue-400 flex items-center gap-2">
+                <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                PDF wordt gelezen...
+              </p>
+            )}
+            {uploadError && (
+              <p className="mt-1 text-sm text-red-600 dark:text-red-400">{uploadError}</p>
+            )}
+            {pdfText && !isExtracting && (
+              <p className="mt-1 text-sm text-green-600 dark:text-green-400">
+                ✓ Tekst geëxtraheerd ({pdfText.split('\n').length} regels)
+              </p>
+            )}
+          </div>
 
           {/* Locatie naam */}
           <div>
@@ -174,28 +222,17 @@ export default function ImportSlaughterDays({ onImportComplete }: { onImportComp
             <span className="ml-2 text-xs text-gray-500">757 S (Hubbard): ~2.65 kg | RRG: ~2.80 kg</span>
           </div>
 
-          {/* Tekst plakken */}
+          {/* Tekst plakken (of bewerken na PDF upload) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              Plak opzetplanning tekst *
+              {pdfText ? 'Geëxtraheerde tekst (bewerkbaar)' : 'Of plak opzetplanning tekst handmatig'}
             </label>
             <textarea
               value={pdfText}
               onChange={e => setPdfText(e.target.value)}
-              rows={12}
+              rows={8}
               placeholder={`Plak hier de tekst uit de opzetplanning PDF...\n\nVoorbeeld:\nRondenummer: 18 (na 20 dagen leegstand)\n1  MA  29-12-2025  2.000  MA  23-2-2026  56  1.980  757 S  ORHO  MORPUT  FORFA\n2  MA  29-12-2025  3.600  MA  23-2-2026  56  3.564  757 S  ORHO  MORPUT  FORFA`}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-xs font-mono focus:ring-2 focus:ring-green-500 focus:border-transparent dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-          </div>
-
-          {/* Of upload txt bestand */}
-          <div className="text-sm text-gray-500">
-            Of upload een .txt bestand:
-            <input
-              type="file"
-              accept=".txt,.text"
-              onChange={handleFileUpload}
-              className="ml-2 text-sm"
             />
           </div>
 
