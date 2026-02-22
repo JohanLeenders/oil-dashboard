@@ -100,3 +100,29 @@ export const updateOrderLineSchema = z.object({
 });
 
 export type UpdateOrderLineInput = z.infer<typeof updateOrderLineSchema>;
+
+// ============================================================================
+// createOrderWithLines
+// ============================================================================
+
+export const createOrderWithLinesSchema = z.object({
+  slaughterId: uuidSchema,
+  customerId: uuidSchema,
+  notes: z.string().max(2000).optional(),
+  lines: z.array(z.object({
+    productId: uuidSchema,
+    quantityKg: z.number().positive().max(100_000),
+  })).min(1, 'Voeg minimaal één orderregel toe'),
+});
+
+export type CreateOrderWithLinesInput = z.infer<typeof createOrderWithLinesSchema>;
+
+// ============================================================================
+// deleteOrder
+// ============================================================================
+
+export const deleteOrderSchema = z.object({
+  orderId: uuidSchema,
+});
+
+export type DeleteOrderInput = z.infer<typeof deleteOrderSchema>;

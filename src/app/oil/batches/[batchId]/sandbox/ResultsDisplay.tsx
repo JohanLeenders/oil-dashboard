@@ -38,29 +38,29 @@ export function ResultsDisplay({
   return (
     <div className="space-y-4">
       {/* Scenario Waterfall */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.scenarioWaterfall}</h4>
+      <div className="oil-card p-4">
+        <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-main)' }}>{RESULTS.scenarioWaterfall}</h4>
         <div className="space-y-2 text-sm">
           <div className="flex justify-between">
-            <span className="text-gray-600">{BASELINE.l0}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l0}</span>
             <span className="font-medium">
               {fmtEur(scenario.l0_landed_cost.landed_cost_eur)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">{BASELINE.l1}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l1}</span>
             <span className="font-medium">
               {fmtEur(scenario.l1_joint_cost_pool.joint_cost_pool_eur)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">{BASELINE.l2}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l2}</span>
             <span className="font-medium">
               {fmtEur(scenario.l2_net_joint_cost.net_joint_cost_eur)}
             </span>
           </div>
           <div className="flex justify-between">
-            <span className="text-gray-600">{BASELINE.l3}</span>
+            <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l3}</span>
             <span className="font-medium">
               {fmtK(scenario.l3_svaso_allocation.k_factor)}
             </span>
@@ -74,13 +74,13 @@ export function ResultsDisplay({
       </div>
 
       {/* Deltas */}
-      <div className="bg-white border border-blue-200 rounded-lg p-4">
-        <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.deltaAnalysis}</h4>
+      <div className="oil-card p-4" style={{ borderColor: 'var(--color-border-subtle)' }}>
+        <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-main)' }}>{RESULTS.deltaAnalysis}</h4>
         <div className="space-y-3">
           {/* L0 Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{BASELINE.l0}</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l0}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l0_landed_cost_delta_eur)}`}>
                   {fmtDeltaEur(deltas.l0_landed_cost_delta_eur)}
@@ -95,7 +95,7 @@ export function ResultsDisplay({
           {/* L1 Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{BASELINE.l1}</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l1}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l1_joint_cost_pool_delta_eur)}`}>
                   {fmtDeltaEur(deltas.l1_joint_cost_pool_delta_eur)}
@@ -110,7 +110,7 @@ export function ResultsDisplay({
           {/* L2 Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{BASELINE.l2}</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l2}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l2_net_joint_cost_delta_eur)}`}>
                   {fmtDeltaEur(deltas.l2_net_joint_cost_delta_eur)}
@@ -125,7 +125,7 @@ export function ResultsDisplay({
           {/* k-factor Delta */}
           <div>
             <div className="flex justify-between items-center">
-              <span className="text-sm text-gray-600">{RESULTS.kFactorEfficiency}</span>
+              <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{RESULTS.kFactorEfficiency}</span>
               <div className="text-right">
                 <span className={`text-sm font-medium ${getDeltaColorClass(deltas.l3_k_factor_delta)}`}>
                   {fmtDeltaEur(deltas.l3_k_factor_delta)}
@@ -138,24 +138,24 @@ export function ResultsDisplay({
 
       {/* L3 Allocation Deltas */}
       {deltas.l3_allocations && deltas.l3_allocations.length > 0 && (
-        <div className="bg-white border border-gray-200 rounded-lg p-4">
-          <h4 className="text-sm font-semibold text-gray-900 mb-3">{RESULTS.svasoShifts}</h4>
+        <div className="oil-card p-4">
+          <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-main)' }}>{RESULTS.svasoShifts}</h4>
           <div className="space-y-2">
             {deltas.l3_allocations.map((alloc) => (
-              <div key={alloc.part_code} className="border-b border-gray-100 pb-2 last:border-0">
+              <div key={alloc.part_code} className="border-b pb-2 last:border-0" style={{ borderColor: 'var(--color-border-subtle)' }}>
                 <div className="flex justify-between items-start mb-1">
-                  <span className="text-sm font-medium text-gray-700">{partName(alloc.part_code)}</span>
+                  <span className="text-sm font-medium" style={{ color: 'var(--color-text-main)' }}>{partName(alloc.part_code)}</span>
                   <span className={`text-xs font-medium ${getDeltaColorClass(alloc.delta_pp)}`}>
                     {fmtDeltaPp(alloc.delta_pp)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs text-gray-600">
+                <div className="flex justify-between items-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   <span>{RESULTS.allocation}:</span>
                   <span>
                     {fmtPct(alloc.baseline_allocation_pct)} → {fmtPct(alloc.scenario_allocation_pct)}
                   </span>
                 </div>
-                <div className="flex justify-between items-center text-xs text-gray-600">
+                <div className="flex justify-between items-center text-xs" style={{ color: 'var(--color-text-muted)' }}>
                   <span>{RESULTS.costPerKg}:</span>
                   <div className="text-right">
                     <span>{fmtEur(alloc.baseline_cost_per_kg)} → {fmtEur(alloc.scenario_cost_per_kg)}</span>
@@ -197,8 +197,8 @@ export function ResultsDisplay({
       </div>
 
       {/* Metadata */}
-      <div className="bg-gray-50 border border-gray-200 rounded-lg p-3">
-        <p className="text-xs text-gray-600">
+      <div className="oil-card p-3">
+        <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>
           {RESULTS.computed}: {new Date(meta.computed_at).toLocaleString('nl-NL')} |
           {RESULTS.engine}: {meta.engine_version}
         </p>

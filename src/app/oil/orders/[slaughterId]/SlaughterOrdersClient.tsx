@@ -11,13 +11,13 @@
  * - Refreshes data via router.refresh() after mutations
  */
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import type { CustomerOrder, OrderSchemaSnapshot, CustomerDeliveryInfo } from '@/types/database';
 import { getOrderLines } from '@/lib/actions/orders';
 import type { OrderLine } from '@/types/database';
 import type { CascadedAvailability } from '@/lib/engine/availability/cascading';
-import type { SimulatorYieldConfig } from '@/lib/actions/availability';
+import type { SimulatorYieldConfig, AvailabilityWithWholeChicken } from '@/lib/actions/availability';
 import OrderList from '@/components/oil/orders/OrderList';
 import OrderEntryForm from '@/components/oil/orders/OrderEntryForm';
 import OrderLineEditor from '@/components/oil/orders/OrderLineEditor';
@@ -28,9 +28,13 @@ import FullAvailabilityButton from '@/components/oil/orders/FullAvailabilityButt
 import PlanningSimulator from '@/components/oil/orders/PlanningSimulator';
 import DeliveryInfoEditor from '@/components/oil/orders/DeliveryInfoEditor';
 import IntelligencePanel from '@/components/oil/orders/IntelligencePanel';
+import CoProductInsight from '@/components/oil/orders/CoProductInsight';
 
 interface OrderWithCustomer extends CustomerOrder {
   customer_name: string;
+  line_summary: string;
+  chicken_equivalent: number;
+  line_categories: string[];
 }
 
 interface OrderLineWithProduct extends OrderLine {
@@ -43,11 +47,11 @@ interface SlaughterOrdersClientProps {
   slaughterId: string;
   initialOrders: OrderWithCustomer[];
   customers: { id: string; name: string }[];
-  products: { id: string; name: string }[];
+  products: { id: string; name: string; category: string | null }[];
   initialSnapshots: OrderSchemaSnapshot[];
   slaughterDate?: string;
   mester?: string;
-  availability: CascadedAvailability;
+  availability: AvailabilityWithWholeChicken;
   simulatorYieldConfig: SimulatorYieldConfig;
   deliveryInfo: (CustomerDeliveryInfo & { customer_name: string })[];
 }
@@ -70,6 +74,27 @@ export default function SlaughterOrdersClient({
   const [orderLines, setOrderLines] = useState<OrderLineWithProduct[]>([]);
   const [loadingLines, setLoadingLines] = useState(false);
   const [activeTab, setActiveTab] = useState<RightPanelTab>('availability');
+
+  // Editable avg bird weight (client-side override, does NOT modify DB)
+  const defaultAvgWeight = simulatorYieldConfig.expected_birds > 0
+    ? simulatorYieldConfig.expected_live_weight_kg / simulatorYieldConfig.expected_birds
+    : 2.5;
+  const [avgBirdWeightKg, setAvgBirdWeightKg] = useState(defaultAvgWeight);
+
+  // Wave 12: Identify orders that trigger Putten co-production (zadel opensnijden).
+  // An order triggers co-production when any of its line categories matches
+  // a Putten-cut child category (computed server-side in availability).
+  const coProductOrderIds = useMemo(() => {
+    const triggerCats = new Set(availability.putten_cut_trigger_categories);
+    if (triggerCats.size === 0) return new Set<string>();
+    return new Set(
+      initialOrders
+        .filter((o) => o.line_categories.some((cat) => triggerCats.has(cat)))
+        .map((o) => o.id)
+    );
+  }, [initialOrders, availability.putten_cut_trigger_categories]);
+
+  const selectedOrderHasCoProduct = selectedOrderId != null && coProductOrderIds.has(selectedOrderId);
 
   const refreshPage = useCallback(() => {
     router.refresh();
@@ -124,6 +149,33 @@ export default function SlaughterOrdersClient({
 
   return (
     <div className="space-y-6">
+      {/* Editable avg bird weight bar */}
+      <div className="oil-card p-3 flex items-center gap-6 text-sm">
+        <div className="flex items-center gap-2">
+          <span style={{ color: 'var(--color-text-dim)' }}>Gem. levend gewicht:</span>
+          <input
+            type="number"
+            step="0.01"
+            min="0.5"
+            max="5.0"
+            value={avgBirdWeightKg.toFixed(2)}
+            onChange={(e) => {
+              const v = parseFloat(e.target.value);
+              if (!isNaN(v) && v > 0) setAvgBirdWeightKg(v);
+            }}
+            className="w-20 rounded px-2 py-1 text-sm font-mono tabular-nums text-right focus:ring-1 focus:ring-orange-500"
+            style={{ background: 'var(--color-bg-elevated)', border: '1px solid var(--color-border-subtle)', color: 'var(--color-text-main)' }}
+          />
+          <span style={{ color: 'var(--color-text-dim)' }}>kg/dier</span>
+        </div>
+        <div style={{ color: 'var(--color-text-dim)' }}>
+          Griller: <span className="font-mono tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+            {(simulatorYieldConfig.expected_birds * avgBirdWeightKg * 0.704).toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg
+          </span>
+          <span className="ml-1">(70,4% yield)</span>
+        </div>
+      </div>
+
       {/* Intelligence Panel — slaughter day overview with cascade flow */}
       <IntelligencePanel availability={availability} orders={initialOrders} />
 
@@ -134,14 +186,15 @@ export default function SlaughterOrdersClient({
           {/* Section 1: Order List */}
           <section data-section="order-list">
             <div className="flex items-center justify-between mb-3">
-              <h2 className="text-lg font-semibold text-gray-900 dark:text-white">
+              <h2 className="text-lg font-semibold" style={{ color: 'var(--color-text-main)' }}>
                 Klantorders
               </h2>
               {!showNewOrderForm && (
                 <button
                   type="button"
                   onClick={() => setShowNewOrderForm(true)}
-                  className="px-3 py-1.5 text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 rounded-md transition-colors"
+                  className="px-3 py-1.5 text-sm font-medium text-white rounded-md transition-colors"
+                  style={{ background: 'var(--color-oil-orange)' }}
                 >
                   Nieuwe order
                 </button>
@@ -152,6 +205,12 @@ export default function SlaughterOrdersClient({
               orders={initialOrders}
               onSelectOrder={handleSelectOrder}
               selectedOrderId={selectedOrderId}
+              coProductOrderIds={coProductOrderIds}
+              onOrderDeleted={() => {
+                setSelectedOrderId(null);
+                setOrderLines([]);
+                refreshPage();
+              }}
             />
           </section>
 
@@ -161,17 +220,21 @@ export default function SlaughterOrdersClient({
               <OrderEntryForm
                 slaughterId={slaughterId}
                 customers={customers}
+                products={products}
                 onOrderCreated={handleOrderCreated}
                 onCancel={() => setShowNewOrderForm(false)}
+                avgBirdWeightKg={avgBirdWeightKg}
+                yieldProfiles={simulatorYieldConfig.yield_profiles}
+                yieldChains={simulatorYieldConfig.yield_chains}
               />
             </section>
           )}
 
           {/* Section 3: Order Lines (expandable, when an order is selected) */}
           {selectedOrderId && selectedOrder && (
-            <section className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4 space-y-3">
+            <section className="oil-card p-4 space-y-3">
               <div className="flex items-center justify-between">
-                <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+                <h3 className="text-sm font-semibold" style={{ color: 'var(--color-text-main)' }}>
                   Orderregels — {selectedOrder.customer_name}
                 </h3>
                 <FullAvailabilityButton
@@ -182,7 +245,7 @@ export default function SlaughterOrdersClient({
               </div>
 
               {loadingLines ? (
-                <div className="py-4 text-center text-sm text-gray-500 dark:text-gray-400 animate-pulse">
+                <div className="py-4 text-center text-sm animate-pulse" style={{ color: 'var(--color-text-muted)' }}>
                   Laden...
                 </div>
               ) : (
@@ -191,7 +254,15 @@ export default function SlaughterOrdersClient({
                   lines={orderLines}
                   products={products}
                   onLinesChanged={handleLinesChanged}
+                  avgBirdWeightKg={avgBirdWeightKg}
+                  yieldProfiles={simulatorYieldConfig.yield_profiles}
+                  yieldChains={simulatorYieldConfig.yield_chains}
                 />
+              )}
+
+              {/* Co-product inzicht — direct onder de orderregels van déze klant */}
+              {selectedOrderHasCoProduct && (
+                <CoProductInsight availability={availability} />
               )}
             </section>
           )}
@@ -199,28 +270,30 @@ export default function SlaughterOrdersClient({
 
         {/* Right: Tabbed panel (1/3 width on desktop) */}
         <div className="lg:col-span-1">
-          <section className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 sticky top-4">
+          <section className="oil-card sticky top-4" style={{ overflow: 'hidden' }}>
             {/* Tab bar */}
-            <div className="flex border-b border-gray-200 dark:border-gray-700">
+            <div className="flex" style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
               <button
                 type="button"
                 onClick={() => setActiveTab('availability')}
-                className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === 'availability'
-                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
+                className="flex-1 px-3 py-2.5 text-sm font-medium transition-colors"
+                style={{
+                  color: activeTab === 'availability' ? 'var(--color-oil-orange)' : 'var(--color-text-muted)',
+                  borderBottom: activeTab === 'availability' ? '2px solid var(--color-oil-orange)' : '2px solid transparent',
+                  background: activeTab === 'availability' ? 'rgba(246, 126, 32, 0.05)' : undefined,
+                }}
               >
                 Beschikbaarheid
               </button>
               <button
                 type="button"
                 onClick={() => setActiveTab('simulator')}
-                className={`flex-1 px-3 py-2.5 text-sm font-medium transition-colors ${
-                  activeTab === 'simulator'
-                    ? 'text-blue-600 dark:text-blue-400 border-b-2 border-blue-600 dark:border-blue-400 bg-blue-50/50 dark:bg-blue-900/10'
-                    : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300'
-                }`}
+                className="flex-1 px-3 py-2.5 text-sm font-medium transition-colors"
+                style={{
+                  color: activeTab === 'simulator' ? 'var(--color-oil-orange)' : 'var(--color-text-muted)',
+                  borderBottom: activeTab === 'simulator' ? '2px solid var(--color-oil-orange)' : '2px solid transparent',
+                  background: activeTab === 'simulator' ? 'rgba(246, 126, 32, 0.05)' : undefined,
+                }}
               >
                 Simulator
               </button>
@@ -235,6 +308,7 @@ export default function SlaughterOrdersClient({
                 <PlanningSimulator
                   slaughterId={slaughterId}
                   yieldConfig={simulatorYieldConfig}
+                  avgBirdWeightKg={avgBirdWeightKg}
                 />
               )}
             </div>
@@ -249,12 +323,13 @@ export default function SlaughterOrdersClient({
             customerIds={customerIdsWithOrders}
             customerNames={customerNameMap}
             initialData={deliveryInfo}
+            slaughterDate={slaughterDate}
           />
         </div>
       )}
 
       {/* Section 5: Snapshots */}
-      <section className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-4">
+      <section className="oil-card p-4">
         <SnapshotPanel
           slaughterId={slaughterId}
           snapshots={initialSnapshots}

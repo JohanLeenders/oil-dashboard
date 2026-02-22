@@ -156,20 +156,65 @@ export async function importSlaughterDays(
 /**
  * Verwijder alle slachtkalender entries
  * DELETE FROM slaughter_calendar
+ *
+ * Cascade: verwijdert eerst alle afhankelijke rijen in de juiste volgorde:
+ *   1. order_lines (FK → customer_orders)
+ *   2. customer_orders (FK → slaughter_calendar)
+ *   3. order_schema_snapshots (FK → slaughter_calendar)
+ *   4. slaughter_calendar
  */
 export async function clearSlaughterCalendar(): Promise<{ deleted: number; error: string | null }> {
   const supabase = await createClient();
 
-  // Count first
+  // Count slaughter entries first
   const { count } = await supabase
     .from('slaughter_calendar')
     .select('*', { count: 'exact', head: true });
 
-  // Delete all
+  // 1. Get all order IDs linked to slaughter entries
+  const { data: orders } = await supabase
+    .from('customer_orders')
+    .select('id');
+
+  if (orders && orders.length > 0) {
+    const orderIds = orders.map((o) => o.id);
+
+    // 2. Delete all order_lines for those orders
+    const { error: linesErr } = await supabase
+      .from('order_lines')
+      .delete()
+      .in('order_id', orderIds);
+
+    if (linesErr) {
+      return { deleted: 0, error: `Orderregels verwijderen mislukt: ${linesErr.message}` };
+    }
+
+    // 3. Delete all customer_orders
+    const { error: ordersErr } = await supabase
+      .from('customer_orders')
+      .delete()
+      .in('id', orderIds);
+
+    if (ordersErr) {
+      return { deleted: 0, error: `Orders verwijderen mislukt: ${ordersErr.message}` };
+    }
+  }
+
+  // 4. Delete all snapshots
+  const { error: snapshotsErr } = await supabase
+    .from('order_schema_snapshots')
+    .delete()
+    .neq('id', '00000000-0000-0000-0000-000000000000');
+
+  if (snapshotsErr) {
+    return { deleted: 0, error: `Snapshots verwijderen mislukt: ${snapshotsErr.message}` };
+  }
+
+  // 5. Delete all slaughter calendar entries
   const { error } = await supabase
     .from('slaughter_calendar')
     .delete()
-    .neq('id', '00000000-0000-0000-0000-000000000000'); // delete all rows
+    .neq('id', '00000000-0000-0000-0000-000000000000');
 
   if (error) {
     return { deleted: 0, error: error.message };

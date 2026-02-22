@@ -3,10 +3,18 @@
  *
  * Pure function — no database access, no async, no side effects.
  *
- * Computes a two-tier availability model:
- *   1. Primary products are derived from griller weight via location yield profiles.
- *   2. Unsold primary kg are "forwarded" and cascaded into secondary (child) products
- *      via product yield chains.
+ * Computes a three-tier availability model:
+ *   1. Primary products (parent pools) are derived from griller weight via location yield profiles.
+ *   2. Parent pools with Putten→Putten chains get forced co-production routing:
+ *      orders on Putten-children determine how much parent is cut (producing ALL children).
+ *   3. Remaining (uncut) parent kg are forwarded and cascaded into secondary (Nijkerk) products
+ *      via Putten→Nijkerk yield chains.
+ *
+ * Wave 12: Zadel model — parent-pool routing with forced co-production.
+ *   - Putten→Putten chains: coupled cut-children (dij anatomisch + drumstick + loss)
+ *   - required_cut_kg = max(order_i / child_yield_i) — one cut produces all children
+ *   - co_product_free_kg = produced - sold per child
+ *   - forwarded_to_nijkerk = remaining - required_cut_kg
  */
 
 // ---------------------------------------------------------------------------
@@ -29,6 +37,40 @@ export interface ProductYieldChain {
   child_product_id: string;
   child_product_description: string;
   yield_pct: number; // 0.0 - 1.0
+  /** Optional: source location code. 'LOC_PUTTEN' → 'LOC_PUTTEN' = Putten cut chain */
+  source_location_id?: string;
+  /** Optional: target location code. 'LOC_PUTTEN' → 'LOC_NIJKERK' = Nijkerk cascade chain */
+  target_location_id?: string;
+}
+
+/** A Putten→Putten co-product child (forced co-production) */
+export interface CoProductChild {
+  product_id: string;
+  product_description: string;
+  /** Total kg produced by cutting parent (= required_cut_kg × child_yield) */
+  produced_kg: number;
+  /** Kg sold from Putten orders */
+  sold_kg: number;
+  /** Unsold co-product = produced - sold (free stock) */
+  co_product_free_kg: number;
+  /** Kg that could not be fulfilled (order > produced) */
+  unfulfilled_kg: number;
+  /** The yield of this child from the parent (0.0–1.0) */
+  yield_pct: number;
+  /** Whether this is a loss product (category = 'verlies') */
+  is_loss: boolean;
+}
+
+/** Putten cut insight for a parent pool */
+export interface PuttenCutInsight {
+  /** How much parent kg must be cut to fulfill Putten orders */
+  required_cut_kg: number;
+  /** Co-product children produced by the cut */
+  children: CoProductChild[];
+  /** Total kg lost during Putten cutting */
+  cut_loss_kg: number;
+  /** Kg forwarded to Nijkerk (remaining after cut) */
+  forwarded_to_nijkerk_kg: number;
 }
 
 export interface CascadedProduct {
@@ -40,6 +82,8 @@ export interface CascadedProduct {
   forwarded_kg: number;
   cascaded_children: CascadedChild[];
   processing_loss_kg: number;
+  /** Wave 12: Putten cut insight (only present for parent pools with Putten→Putten chains) */
+  putten_cut?: PuttenCutInsight;
 }
 
 export interface CascadedChild {
@@ -70,6 +114,25 @@ function sumOrdersForProduct(orders: OrderLine[], productId: string): number {
   return orders
     .filter((o) => o.product_id === productId)
     .reduce((sum, o) => sum + o.quantity_kg, 0);
+}
+
+/**
+ * Check if a chain is a Putten→Putten chain (same source & target location).
+ * Falls back to false if location info is not provided (backward compat).
+ */
+function isPuttenCutChain(chain: ProductYieldChain): boolean {
+  if (!chain.source_location_id || !chain.target_location_id) return false;
+  return chain.source_location_id === chain.target_location_id;
+}
+
+/**
+ * Check if a chain is a Putten→Nijkerk cascade chain (different locations).
+ * Falls back to true if location info is not provided (backward compat:
+ * all chains without location info are treated as Nijkerk cascade chains).
+ */
+function isNijkerkCascadeChain(chain: ProductYieldChain): boolean {
+  if (!chain.source_location_id || !chain.target_location_id) return true;
+  return chain.source_location_id !== chain.target_location_id;
 }
 
 // ---------------------------------------------------------------------------
@@ -107,12 +170,12 @@ export function computeCascadedAvailability(input: {
     };
   }
 
-  // 2-5. Process each primary product
+  // 2-5. Process each primary product (parent pool)
   const primaryProducts: CascadedProduct[] = yield_profiles.map((profile) => {
     // 2. Primary availability
     const primary_available_kg = griller_kg * profile.yield_percentage;
 
-    // 3. Subtract primary orders
+    // 3. Subtract primary orders (direct sales of the parent itself, if sellable)
     const raw_sold = sumOrdersForProduct(
       existing_orders_primary,
       profile.product_id,
@@ -120,26 +183,135 @@ export function computeCascadedAvailability(input: {
     const oversubscribed_kg = Math.max(0, raw_sold - primary_available_kg);
     const sold_primary_kg = Math.min(raw_sold, primary_available_kg);
 
-    // 4. Forwarded
-    const forwarded_kg = primary_available_kg - sold_primary_kg;
+    // 4. Remaining after direct parent sales
+    const remaining = primary_available_kg - sold_primary_kg;
 
-    // 5. Cascade chains
+    // 5. Check for Putten→Putten chains (co-production routing)
+    const allChainsForParent = yield_chains.filter(
+      (c) => c.parent_product_id === profile.product_id,
+    );
+    const puttenCutChains = allChainsForParent.filter(isPuttenCutChain);
+    const nijkerkCascadeChains = allChainsForParent.filter(isNijkerkCascadeChain);
+
+    let putten_cut: PuttenCutInsight | undefined;
+    let forwarded_kg: number;
     let cascaded_children: CascadedChild[] = [];
     let processing_loss_kg = 0;
 
-    if (forwarded_kg > 0) {
-      const chains = yield_chains.filter(
-        (c) => c.parent_product_id === profile.product_id,
+    if (puttenCutChains.length > 0 && remaining > 0) {
+      // ═══════════════════════════════════════════════════════════════════
+      // PARENT-POOL ROUTING: Forced co-production at Putten
+      // ═══════════════════════════════════════════════════════════════════
+
+      // Filter out loss children from the demand calculation
+      // (loss children have no orders — they are produced as waste)
+      const demandChains = puttenCutChains.filter(
+        (c) => !isLossProduct(c.child_product_description),
       );
 
-      if (chains.length > 0) {
-        const rawYieldSum = chains.reduce((s, c) => s + c.yield_pct, 0);
+      // a. Compute required_cut_kg = max(order_i / child_yield_i)
+      //    One cut produces ALL children; max() ensures enough for largest demand
+      let required_cut_kg = 0;
+      for (const chain of demandChains) {
+        const order_kg = sumOrdersForProduct(
+          existing_orders_primary,
+          chain.child_product_id,
+        );
+        if (order_kg > 0 && chain.yield_pct > 0) {
+          const required_for_child = order_kg / chain.yield_pct;
+          required_cut_kg = Math.max(required_cut_kg, required_for_child);
+        }
+      }
 
-        // Determine whether to normalize
+      // b. Cap: can't cut more than remaining parent kg
+      required_cut_kg = Math.min(required_cut_kg, remaining);
+
+      // c. Compute produced_kg per child, sold, co_product_free, unfulfilled
+      const puttenChildren: CoProductChild[] = puttenCutChains.map((chain) => {
+        const produced_kg = required_cut_kg * chain.yield_pct;
+        const is_loss = isLossProduct(chain.child_product_description);
+        const order_kg = is_loss
+          ? 0
+          : sumOrdersForProduct(existing_orders_primary, chain.child_product_id);
+        const sold_kg = Math.min(order_kg, produced_kg);
+        const co_product_free_kg = Math.max(0, produced_kg - sold_kg);
+        const unfulfilled_kg = Math.max(0, order_kg - sold_kg);
+
+        return {
+          product_id: chain.child_product_id,
+          product_description: chain.child_product_description,
+          produced_kg,
+          sold_kg,
+          co_product_free_kg,
+          unfulfilled_kg,
+          yield_pct: chain.yield_pct,
+          is_loss,
+        };
+      });
+
+      // d. Cut loss = produced loss children kg
+      const cut_loss_kg = puttenChildren
+        .filter((c) => c.is_loss)
+        .reduce((s, c) => s + c.produced_kg, 0);
+
+      // e. Forwarded to Nijkerk = remaining - required_cut_kg
+      const forwarded_to_nijkerk_kg = remaining - required_cut_kg;
+
+      putten_cut = {
+        required_cut_kg,
+        children: puttenChildren,
+        cut_loss_kg,
+        forwarded_to_nijkerk_kg,
+      };
+
+      // forwarded_kg for the CascadedProduct = what goes to Nijkerk
+      forwarded_kg = forwarded_to_nijkerk_kg;
+
+      // f. Cascade Nijkerk chains on forwarded_to_nijkerk ONLY
+      if (forwarded_to_nijkerk_kg > 0 && nijkerkCascadeChains.length > 0) {
+        const rawYieldSum = nijkerkCascadeChains.reduce(
+          (s, c) => s + c.yield_pct,
+          0,
+        );
         const needsNormalization = rawYieldSum > 1.0;
         const normalizationFactor = needsNormalization ? rawYieldSum : 1.0;
 
-        cascaded_children = chains.map((chain) => {
+        cascaded_children = nijkerkCascadeChains.map((chain) => {
+          const effectiveYield = chain.yield_pct / normalizationFactor;
+          const available_kg = forwarded_to_nijkerk_kg * effectiveYield;
+          return {
+            product_id: chain.child_product_id,
+            product_description: chain.child_product_description,
+            available_kg,
+            sold_kg: 0,
+            net_available_kg: available_kg,
+          };
+        });
+
+        if (needsNormalization) {
+          processing_loss_kg = 0;
+        } else {
+          processing_loss_kg = forwarded_to_nijkerk_kg * (1 - rawYieldSum);
+        }
+      }
+
+      // Add Putten cut loss to processing_loss_kg
+      processing_loss_kg += cut_loss_kg;
+    } else if (remaining > 0) {
+      // ═══════════════════════════════════════════════════════════════════
+      // NO PUTTEN CUT CHAINS — standard cascade (backward compatible)
+      // ═══════════════════════════════════════════════════════════════════
+      forwarded_kg = remaining;
+
+      if (nijkerkCascadeChains.length > 0) {
+        const rawYieldSum = nijkerkCascadeChains.reduce(
+          (s, c) => s + c.yield_pct,
+          0,
+        );
+        const needsNormalization = rawYieldSum > 1.0;
+        const normalizationFactor = needsNormalization ? rawYieldSum : 1.0;
+
+        cascaded_children = nijkerkCascadeChains.map((chain) => {
           const effectiveYield = chain.yield_pct / normalizationFactor;
           const available_kg = forwarded_kg * effectiveYield;
           return {
@@ -151,13 +323,15 @@ export function computeCascadedAvailability(input: {
           };
         });
 
-        // Loss: if normalized, loss = 0; otherwise loss = forwarded * (1 - sum)
         if (needsNormalization) {
           processing_loss_kg = 0;
         } else {
           processing_loss_kg = forwarded_kg * (1 - rawYieldSum);
         }
       }
+    } else {
+      // Nothing remaining — no forwarding, no cascade
+      forwarded_kg = 0;
     }
 
     return {
@@ -169,6 +343,7 @@ export function computeCascadedAvailability(input: {
       forwarded_kg,
       cascaded_children,
       processing_loss_kg,
+      putten_cut,
     };
   });
 
@@ -230,10 +405,17 @@ export function computeCascadedAvailability(input: {
   }
 
   // 7. Totals & mass balance
-  const total_sold_primary_kg = primaryProducts.reduce(
-    (s, p) => s + p.sold_primary_kg,
-    0,
-  );
+  //    sold_primary includes both direct parent sales AND Putten-cut child sales
+  let total_sold_primary_kg = 0;
+  for (const p of primaryProducts) {
+    total_sold_primary_kg += p.sold_primary_kg;
+    if (p.putten_cut) {
+      total_sold_primary_kg += p.putten_cut.children
+        .filter((c) => !c.is_loss)
+        .reduce((s, c) => s + c.sold_kg, 0);
+    }
+  }
+
   const total_forwarded_kg = primaryProducts.reduce(
     (s, p) => s + p.forwarded_kg,
     0,
@@ -262,4 +444,17 @@ export function computeCascadedAvailability(input: {
     total_loss_kg,
     mass_balance_check,
   };
+}
+
+// ---------------------------------------------------------------------------
+// Helpers (private)
+// ---------------------------------------------------------------------------
+
+/**
+ * Heuristic to identify loss products by description.
+ * Products with 'verlies' or 'loss' in description are treated as loss.
+ */
+function isLossProduct(description: string): boolean {
+  const lower = description.toLowerCase();
+  return lower.includes('verlies') || lower.includes('loss');
 }

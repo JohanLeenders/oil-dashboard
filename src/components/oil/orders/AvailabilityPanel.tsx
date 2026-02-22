@@ -5,25 +5,29 @@
  *
  * Layout:
  *   1. Griller summary bar (total kg from slaughter)
- *   2. Putten (Dag 0) — main products, then collapsible "Organen & rest"
+ *   2. Putten (Dag 0) — ALL products in one table (main + organs with separator)
  *   3. Nijkerk (Dag +1) — secondary products cascaded from unsold Putten parts
  *
- * "Organen & rest" groups: Levertjes, Hartjes, Maagjes, Nekken (+ Vel, Karkas if present)
+ * Wave 10: Organs shown inline with main Putten products (no longer collapsed)
  * Wave 9: OIL design tokens, monospace numbers
  */
 
-import { useState } from 'react';
-import type { CascadedAvailability, CascadedProduct, CascadedChild } from '@/lib/engine/availability/cascading';
+import { useState, useEffect, useRef } from 'react';
+import type { CascadedProduct, CascadedChild } from '@/lib/engine/availability/cascading';
+import type { AvailabilityWithWholeChicken } from '@/lib/actions/availability';
 
 interface AvailabilityPanelProps {
-  availability: CascadedAvailability;
+  availability: AvailabilityWithWholeChicken;
 }
 
-// Product descriptions that belong in the "Organen & rest" collapsible group
+// Product descriptions that belong in the "Organen & rest" group (shown after separator)
 const ORGAN_KEYWORDS = ['lever', 'hart', 'maag', 'nek', 'hals', 'vel', 'karkas'];
+// Products that should NEVER be classified as organs, even if they contain organ keywords
+const ORGAN_EXCEPTIONS = ['borstkap'];
 
 function isOrganProduct(description: string): boolean {
   const lower = description.toLowerCase();
+  if (ORGAN_EXCEPTIONS.some((ex) => lower.includes(ex))) return false;
   return ORGAN_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
@@ -118,10 +122,27 @@ function TableHeader({ columns }: { columns: string[] }) {
 // ── Main component ─────────────────────────────────────────────────────────
 
 export default function AvailabilityPanel({ availability }: AvailabilityPanelProps) {
-  const [organsOpen, setOrgansOpen] = useState(false);
-
   const hasPrimary = availability.primary_products.length > 0;
   const hasSecondary = availability.secondary_products.length > 0;
+
+  // Refresh indicator — detect when availability data changes
+  const [lastRefresh, setLastRefresh] = useState<Date>(new Date());
+  const [flash, setFlash] = useState(false);
+  const prevGrillerRef = useRef(availability.griller_kg);
+  const prevSoldRef = useRef(availability.total_sold_primary_kg);
+
+  useEffect(() => {
+    const grillerChanged = prevGrillerRef.current !== availability.griller_kg;
+    const soldChanged = prevSoldRef.current !== availability.total_sold_primary_kg;
+    if (grillerChanged || soldChanged) {
+      prevGrillerRef.current = availability.griller_kg;
+      prevSoldRef.current = availability.total_sold_primary_kg;
+      setLastRefresh(new Date());
+      setFlash(true);
+      const timer = setTimeout(() => setFlash(false), 1200);
+      return () => clearTimeout(timer);
+    }
+  }, [availability.griller_kg, availability.total_sold_primary_kg]);
 
   if (!hasPrimary && !hasSecondary) {
     return (
@@ -131,7 +152,7 @@ export default function AvailabilityPanel({ availability }: AvailabilityPanelPro
     );
   }
 
-  // Split primary products into main vs organs
+  // Split primary products into main cuts vs organs (for separator row)
   const mainProducts = availability.primary_products.filter(
     (p) => !isOrganProduct(p.product_description)
   );
@@ -139,7 +160,7 @@ export default function AvailabilityPanel({ availability }: AvailabilityPanelPro
     (p) => isOrganProduct(p.product_description)
   );
 
-  // Also pull organ-type products from secondary (e.g. Vel cascades from Nijkerk)
+  // Secondary products (Nijkerk cascade) — keep separate table
   const mainSecondary = availability.secondary_products.filter(
     (c) => !isOrganProduct(c.product_description)
   );
@@ -147,24 +168,26 @@ export default function AvailabilityPanel({ availability }: AvailabilityPanelPro
     (c) => isOrganProduct(c.product_description)
   );
 
-  const hasOrgans = organProducts.length > 0 || organSecondary.length > 0;
+  // Whole-bird deduction info (hele kip / naakt karkas uit verdeling gehaald)
+  const wholeChickenKg = availability.whole_chicken_order_kg ?? 0;
+  const originalGrillerKg = availability.original_griller_kg ?? availability.griller_kg;
 
-  // Organ totals for collapsed summary
-  const organTotalAvailable =
-    organProducts.reduce((s, p) => s + p.primary_available_kg, 0) +
-    organSecondary.reduce((s, c) => s + c.available_kg, 0);
-  const organTotalSold =
-    organProducts.reduce((s, p) => s + p.sold_primary_kg, 0) +
-    organSecondary.reduce((s, c) => s + c.sold_kg, 0);
-  const organTotalRemaining = organTotalAvailable - organTotalSold;
-
-  // Grand totals
+  // Grand totals (besteld = primary parts + secondary parts + whole birds)
   const totalPrimarySold = availability.total_sold_primary_kg;
   const totalSecondarySold = availability.secondary_products.reduce((s, c) => s + c.sold_kg, 0);
-  const totalSold = totalPrimarySold + totalSecondarySold;
+  const totalSold = totalPrimarySold + totalSecondarySold + wholeChickenKg;
+
+  const hasOrgans = organProducts.length > 0 || organSecondary.length > 0;
 
   return (
-    <div className="space-y-5">
+    <div
+      className="space-y-5"
+      style={{
+        transition: 'box-shadow 0.4s ease',
+        boxShadow: flash ? 'inset 0 0 0 2px rgba(246, 126, 32, 0.4)' : 'none',
+        borderRadius: 'var(--radius-card)',
+      }}
+    >
       {/* ── Griller Summary ── */}
       <div
         className="rounded-lg p-3"
@@ -180,18 +203,27 @@ export default function AvailabilityPanel({ availability }: AvailabilityPanelPro
               Griller totaal
             </div>
             <div className="text-2xl font-bold font-mono tabular-nums" style={{ color: 'var(--color-text-main)' }}>
-              {formatKg(availability.griller_kg)} kg
+              {formatKg(originalGrillerKg)} kg
             </div>
           </div>
           <div className="text-right text-xs font-mono tabular-nums" style={{ color: 'var(--color-oil-orange)' }}>
             <div>Besteld: {formatKg(totalSold)} kg</div>
-            <div>Rest: {formatKg(availability.griller_kg - totalSold)} kg</div>
+            <div>Rest: {formatKg(originalGrillerKg - totalSold)} kg</div>
           </div>
         </div>
+        {wholeChickenKg > 0 && (
+          <div
+            className="mt-2 pt-2 flex items-center justify-between text-xs font-mono tabular-nums"
+            style={{ borderTop: '1px solid rgba(246, 126, 32, 0.2)', color: 'var(--color-text-muted)' }}
+          >
+            <span>Hele kip uit verdeling: <strong style={{ color: 'var(--color-data-gold)' }}>−{formatKg(wholeChickenKg)} kg</strong></span>
+            <span>Te delen: <strong style={{ color: 'var(--color-text-main)' }}>{formatKg(availability.griller_kg)} kg</strong></span>
+          </div>
+        )}
       </div>
 
-      {/* ── Putten (Dag 0) — Main Products ── */}
-      {mainProducts.length > 0 && (
+      {/* ── Putten (Dag 0) — ALL products in one table ── */}
+      {(mainProducts.length > 0 || organProducts.length > 0) && (
         <div>
           <div className="flex items-center gap-2 mb-2">
             <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-oil-orange)' }} />
@@ -206,13 +238,33 @@ export default function AvailabilityPanel({ availability }: AvailabilityPanelPro
                 {mainProducts.map((p) => (
                   <PrimaryRow key={p.product_id} product={p} />
                 ))}
+                {/* Subtle separator between main cuts and organs */}
+                {hasOrgans && mainProducts.length > 0 && (
+                  <tr>
+                    <td colSpan={4} className="py-0">
+                      <div className="flex items-center gap-2 px-3 py-1.5">
+                        <div className="flex-1 h-px" style={{ background: 'var(--color-border-subtle)' }} />
+                        <span className="text-[10px] uppercase tracking-wider font-medium" style={{ color: 'var(--color-text-dim)' }}>
+                          Organen &amp; rest
+                        </span>
+                        <div className="flex-1 h-px" style={{ background: 'var(--color-border-subtle)' }} />
+                      </div>
+                    </td>
+                  </tr>
+                )}
+                {organProducts.map((p) => (
+                  <PrimaryRow key={p.product_id} product={p} />
+                ))}
+                {organSecondary.map((c) => (
+                  <SecondaryRow key={c.product_id} child={c} />
+                ))}
               </tbody>
             </table>
           </div>
         </div>
       )}
 
-      {/* ── Nijkerk (Dag +1) — Main Cascade Products ── */}
+      {/* ── Nijkerk (Dag +1) — Cascade Products ── */}
       {mainSecondary.length > 0 && (
         <div>
           <div className="flex items-center gap-2 mb-2">
@@ -237,59 +289,22 @@ export default function AvailabilityPanel({ availability }: AvailabilityPanelPro
         </div>
       )}
 
-      {/* ── Organen & rest (collapsible) ── */}
-      {hasOrgans && (
-        <div>
-          <button
-            type="button"
-            onClick={() => setOrgansOpen(!organsOpen)}
-            className="w-full flex items-center justify-between gap-2 py-2 px-3 rounded-lg transition-colors"
-            style={{
-              background: 'var(--color-bg-elevated)',
-              border: '1px solid var(--color-border-subtle)',
-              borderRadius: 'var(--radius-card)',
-            }}
-          >
-            <div className="flex items-center gap-2">
-              <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-text-dim)' }} />
-              <span className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
-                Organen &amp; rest
-              </span>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
-                {formatKg(organTotalRemaining)} kg rest
-              </span>
-              <svg
-                className={`w-4 h-4 transition-transform ${organsOpen ? 'rotate-180' : ''}`}
-                style={{ color: 'var(--color-text-dim)' }}
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
-              </svg>
-            </div>
-          </button>
-
-          {organsOpen && (
-            <div className="mt-2 overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)', borderRadius: 'var(--radius-card)' }}>
-              <table className="w-full text-sm">
-                <TableHeader columns={['Product', 'Beschikbaar', 'Besteld', 'Rest']} />
-                <tbody>
-                  {organProducts.map((p) => (
-                    <PrimaryRow key={p.product_id} product={p} />
-                  ))}
-                  {organSecondary.map((c) => (
-                    <SecondaryRow key={c.product_id} child={c} />
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </div>
-      )}
+      {/* ── Refresh timestamp ── */}
+      <div
+        className="flex items-center justify-end gap-1.5 pt-2"
+        style={{ borderTop: '1px solid var(--color-border-subtle)' }}
+      >
+        <div
+          className="w-1.5 h-1.5 rounded-full"
+          style={{
+            background: flash ? 'var(--color-oil-orange)' : 'var(--color-data-green)',
+            transition: 'background 0.4s ease',
+          }}
+        />
+        <span className="text-[10px] font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
+          Berekend {lastRefresh.toLocaleTimeString('nl-NL', { hour: '2-digit', minute: '2-digit', second: '2-digit' })}
+        </span>
+      </div>
     </div>
   );
 }

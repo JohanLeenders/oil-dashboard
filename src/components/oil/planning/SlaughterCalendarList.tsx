@@ -116,13 +116,22 @@ export default function SlaughterCalendarList({ items }: SlaughterCalendarListPr
                 <SlaughterStatusBadge status={item.status as SlaughterStatus} />
               </td>
               <td className="px-6 py-4 whitespace-nowrap text-right">
-                <Link
-                  href={`/oil/planning/${item.id}`}
-                  className="text-sm transition-colors"
-                  style={{ color: 'var(--color-oil-orange)' }}
-                >
-                  Details →
-                </Link>
+                <div className="flex items-center justify-end gap-3">
+                  <Link
+                    href={`/oil/orders/${item.id}`}
+                    className="text-sm font-medium transition-colors"
+                    style={{ color: 'var(--color-oil-orange)' }}
+                  >
+                    Orders →
+                  </Link>
+                  <Link
+                    href={`/oil/planning/${item.id}`}
+                    className="text-sm transition-colors"
+                    style={{ color: 'var(--color-text-muted)' }}
+                  >
+                    Details
+                  </Link>
+                </div>
               </td>
             </tr>
           ))}

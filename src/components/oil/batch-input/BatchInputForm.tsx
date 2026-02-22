@@ -85,9 +85,9 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
         <SectionHeader data={data} derived={derived} />
 
         {/* PROFIEL SELECTOR */}
-        <div className="bg-white rounded-lg border border-gray-200 dark:border-gray-700 p-4">
-          <label className="block text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Verwerkingsprofiel</label>
-          <div className="flex rounded-lg border border-gray-300 dark:border-gray-600 overflow-hidden">
+        <div className="oil-card p-4">
+          <label className="block text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-text-muted)' }}>Verwerkingsprofiel</label>
+          <div className="flex rounded-lg overflow-hidden" style={{ border: '1px solid var(--color-border-subtle)' }}>
             {BATCH_PROFILES.map(profile => (
               <button
                 key={profile.profile_id}
@@ -95,15 +95,19 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
                 onClick={() => update('batch_profile', profile.profile_id)}
                 className={`flex-1 px-4 py-2 text-sm font-medium transition-colors ${
                   data.batch_profile === profile.profile_id
-                    ? 'bg-blue-600 text-white'
-                    : 'bg-white text-gray-600 dark:text-gray-300 hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700'
+                    ? 'text-white'
+                    : 'hover:opacity-80'
                 }`}
+                style={data.batch_profile === profile.profile_id
+                  ? { background: 'var(--color-oil-orange)' }
+                  : { color: 'var(--color-text-muted)' }
+                }
               >
                 {profile.profile_name}
               </button>
             ))}
           </div>
-          <p className="text-xs text-gray-400 mt-1">
+          <p className="text-xs mt-1" style={{ color: 'var(--color-text-dim)' }}>
             {BATCH_PROFILES.find(p => p.profile_id === data.batch_profile)?.description ?? ''}
           </p>
         </div>
@@ -136,8 +140,8 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
             </div>
           </div>
 
-          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-            <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-3">Kosten aanvoer</h4>
+          <div className="mt-4 pt-4 border-t border-[var(--color-border-subtle)]">
+            <h4 className="text-xs font-semibold uppercase mb-3" style={{ color: 'var(--color-text-muted)' }}>Kosten aanvoer</h4>
             <div className="grid grid-cols-2 gap-4">
               <NumberField
                 label="Live cost"
@@ -167,12 +171,13 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
           </div>
 
           <div className="mt-4">
-            <label className="block text-xs text-gray-500 dark:text-gray-400 mb-2">Slachtkosten</label>
+            <label className="block text-xs mb-2" style={{ color: 'var(--color-text-muted)' }}>Slachtkosten</label>
             <div className="flex items-center gap-3">
               <select
                 value={data.slaughter_cost_mode}
                 onChange={(e) => update('slaughter_cost_mode', e.target.value as 'per_bird' | 'total')}
-                className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm"
+                className="rounded px-2 py-1.5 text-sm"
+                style={{ border: '1px solid var(--color-border-subtle)' }}
               >
                 <option value="per_bird">€/kip</option>
                 <option value="total">€ totaal</option>
@@ -206,8 +211,8 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
 
           {/* External processing fee (Cuno/Crisp/Picnic versnijdtoeslag) */}
           {showExternalFee && (
-            <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700">
-              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Versnijdtoeslag externe verwerker</h4>
+            <div className="mt-4 pt-4 border-t border-[var(--color-border-subtle)]">
+              <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-text-muted)' }}>Versnijdtoeslag externe verwerker</h4>
               <div className="grid grid-cols-2 gap-4">
                 <NumberField
                   label="Versnijdtoeslag"
@@ -309,14 +314,15 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
                 <button
                   type="button"
                   onClick={() => setShowShadowPrice(p => !p)}
-                  className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:text-gray-300 border border-gray-300 dark:border-gray-600 rounded px-2 py-1"
+                  className="text-xs hover:opacity-80 rounded px-2 py-1"
+                  style={{ color: 'var(--color-text-muted)', border: '1px solid var(--color-border-subtle)' }}
                 >
                   {showShadowPrice ? 'Verberg schaduwprijs' : 'Toon schaduwprijs'}
                 </button>
               </div>
 
               {/* Column headers */}
-              <div className={`grid ${showShadowPrice ? 'grid-cols-14' : 'grid-cols-12'} gap-2 text-xs text-gray-500 dark:text-gray-400 font-medium`}>
+              <div className={`grid ${showShadowPrice ? 'grid-cols-14' : 'grid-cols-12'} gap-2 text-xs font-medium`} style={{ color: 'var(--color-text-muted)' }}>
                 <span className="col-span-3">Product code</span>
                 <span className="col-span-2 text-right">Gewicht</span>
                 {showShadowPrice && <span className="col-span-2 text-right">Schaduwprijs</span>}
@@ -327,7 +333,7 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
               </div>
 
               {data.joint_products.map((jp, idx) => (
-                <div key={idx} className={`grid ${showShadowPrice ? 'grid-cols-14' : 'grid-cols-12'} gap-2 items-center rounded-lg px-2 py-1.5 ${idx % 2 === 0 ? 'bg-white' : 'bg-gray-50/60 dark:bg-gray-700/40'}`}>
+                <div key={idx} className={`grid ${showShadowPrice ? 'grid-cols-14' : 'grid-cols-12'} gap-2 items-center rounded-lg px-2 py-1.5`} style={idx % 2 === 1 ? { backgroundColor: 'var(--color-bg-elevated)' } : undefined}>
                   <div className="col-span-3">
                     <input
                       type="text"
@@ -340,9 +346,10 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
                         });
                       }}
                       placeholder="bijv. filet_supremes"
-                      className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm w-full"
+                      className="rounded px-2 py-1.5 text-sm w-full"
+                      style={{ border: '1px solid var(--color-border-subtle)' }}
                     />
-                    <span className="text-[10px] text-gray-400">{getPartNameDutch(jp.part_code)}</span>
+                    <span className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>{getPartNameDutch(jp.part_code)}</span>
                   </div>
                   <div className="col-span-2">
                     <NumberField
@@ -385,7 +392,7 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
                       step="0.01"
                     />
                   </div>
-                  <div className="col-span-2 text-right text-sm text-gray-600 dark:text-gray-300">
+                  <div className="col-span-2 text-right text-sm" style={{ color: 'var(--color-text-muted)' }}>
                     {formatEur(jp.weight_kg * jp.shadow_price_per_kg)}
                   </div>
                   <div className="col-span-1 text-right">
@@ -425,7 +432,7 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
           <FormSection title="5. Sub-cuts" level={4} color="indigo">
             {/* Borstkap sub-cuts */}
             <div className="mb-4">
-              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Borstkap → Sub-cuts</h4>
+              <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-text-muted)' }}>Borstkap → Sub-cuts</h4>
               <div className="grid grid-cols-3 gap-4">
                 <NumberField
                   label="Filet"
@@ -440,7 +447,7 @@ export function BatchInputForm({ initialData, onSave, onSaveAndRecalc }: Props) 
 
             {/* Bouten sub-cuts */}
             <div>
-              <h4 className="text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase mb-2">Bouten → Sub-cuts</h4>
+              <h4 className="text-xs font-semibold uppercase mb-2" style={{ color: 'var(--color-text-muted)' }}>Bouten → Sub-cuts</h4>
               <div className="grid grid-cols-2 gap-4">
                 <NumberField
                   label="Dijfilet"
@@ -519,19 +526,19 @@ function SectionHeader({ data, derived }: { data: BatchInputData; derived: Batch
     <div className={`p-4 rounded-xl border ${statusBg}`}>
       <div className="flex items-center justify-between">
         <div>
-          <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100 tracking-tight">
+          <h2 className="text-lg font-bold tracking-tight" style={{ color: 'var(--color-text-main)' }}>
             Batch {data.batch_ref}
           </h2>
-          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+          <p className="text-xs mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
             {data.date}
           </p>
         </div>
         <div className="text-right flex items-center gap-3">
           <div>
-            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <p className="text-xs font-semibold" style={{ color: 'var(--color-text-main)' }}>
               {statusLabel}
             </p>
-            <p className="text-[10px] text-gray-400">
+            <p className="text-[10px]" style={{ color: 'var(--color-text-dim)' }}>
               Afwijking: {derived.mass_balance_deviation_pct.toFixed(2)}%
             </p>
           </div>
@@ -573,10 +580,10 @@ function FormSection({ title, level, color, children }: FormSectionProps) {
   };
 
   return (
-    <div className={`rounded-xl border border-gray-200 border-l-4 dark:border-gray-700 ${bgClasses[color] || 'bg-white border-l-gray-400'} p-5`}>
-      <h3 className="text-sm font-semibold text-gray-900 dark:text-gray-100 mb-4 flex items-center gap-2">
+    <div className={`rounded-xl border border-l-4 ${bgClasses[color] || 'border-l-gray-400'} p-5`} style={{ borderColor: 'var(--color-border-subtle)' }}>
+      <h3 className="text-sm font-semibold mb-4 flex items-center gap-2" style={{ color: 'var(--color-text-main)' }}>
         {title}
-        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${badgeClasses[color] || 'bg-gray-100 text-gray-600 dark:text-gray-300'}`}>L{level}</span>
+        <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${badgeClasses[color] || ''}`} style={!badgeClasses[color] ? { backgroundColor: 'var(--color-bg-elevated)', color: 'var(--color-text-muted)' } : undefined}>L{level}</span>
       </h3>
       {children}
     </div>
@@ -603,9 +610,10 @@ function NumberField({ label, value, onChange, unit, optional, inline, step = '1
           step={step}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm w-28 text-right"
+          className="rounded px-2 py-1.5 text-sm w-28 text-right"
+          style={{ border: '1px solid var(--color-border-subtle)' }}
         />
-        <span className="text-xs text-gray-500 dark:text-gray-400">{unit}</span>
+        <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{unit}</span>
       </div>
     );
   }
@@ -613,9 +621,9 @@ function NumberField({ label, value, onChange, unit, optional, inline, step = '1
   return (
     <div>
       {label && (
-        <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
+        <label className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>
           {label}
-          {optional && <span className="text-gray-400 ml-1">(optioneel)</span>}
+          {optional && <span className="ml-1" style={{ color: 'var(--color-text-dim)' }}>(optioneel)</span>}
         </label>
       )}
       <div className="flex items-center gap-2">
@@ -625,9 +633,10 @@ function NumberField({ label, value, onChange, unit, optional, inline, step = '1
           step={step}
           value={value || ''}
           onChange={(e) => onChange(e.target.value)}
-          className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm w-full text-right"
+          className="rounded px-2 py-1.5 text-sm w-full text-right"
+          style={{ border: '1px solid var(--color-border-subtle)' }}
         />
-        <span className="text-xs text-gray-500 dark:text-gray-400 whitespace-nowrap">{unit}</span>
+        <span className="text-xs whitespace-nowrap" style={{ color: 'var(--color-text-muted)' }}>{unit}</span>
       </div>
     </div>
   );
@@ -643,8 +652,15 @@ interface ReadOnlyFieldProps {
 function ReadOnlyField({ label, value, highlight, className }: ReadOnlyFieldProps) {
   return (
     <div className={className}>
-      {label && <span className="block text-xs text-gray-500 dark:text-gray-400 mb-1">{label}</span>}
-      <span className={`text-sm font-medium ${highlight ? 'text-orange-600' : 'text-gray-700 dark:text-gray-300'} bg-gray-50 px-2 py-1.5 rounded dark:bg-gray-700 block text-right`}>
+      {label && <span className="block text-xs mb-1" style={{ color: 'var(--color-text-muted)' }}>{label}</span>}
+      <span
+        className={`text-sm font-medium px-2 py-1.5 rounded block text-right`}
+        style={{
+          color: highlight ? undefined : 'var(--color-text-main)',
+          backgroundColor: 'var(--color-bg-elevated)',
+          ...(highlight ? { color: 'rgb(234 88 12)' } : {}),
+        }}
+      >
         {value}
       </span>
     </div>

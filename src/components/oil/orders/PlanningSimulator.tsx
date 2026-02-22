@@ -26,9 +26,12 @@ import ScenarioListPanel from './ScenarioListPanel';
 
 // Product descriptions that belong in the "Organen & rest" collapsible group
 const ORGAN_KEYWORDS = ['lever', 'hart', 'maag', 'nek', 'hals', 'vel', 'karkas'];
+// Products that should NEVER be classified as organs, even if they contain organ keywords
+const ORGAN_EXCEPTIONS = ['borstkap'];
 
 function isOrganProduct(description: string): boolean {
   const lower = description.toLowerCase();
+  if (ORGAN_EXCEPTIONS.some((ex) => lower.includes(ex))) return false;
   return ORGAN_KEYWORDS.some((kw) => lower.includes(kw));
 }
 
@@ -130,16 +133,20 @@ function buildImpactSummary(deltas: Map<string, ProductDelta>, totalPulled: numb
 interface PlanningSimulatorProps {
   slaughterId: string;
   yieldConfig: SimulatorYieldConfig;
+  avgBirdWeightKg?: number;
 }
 
 export default function PlanningSimulator({
   slaughterId,
   yieldConfig,
+  avgBirdWeightKg = 2.5,
 }: PlanningSimulatorProps) {
   // Input state — initialised from slaughter data
   const [birds, setBirds] = useState(yieldConfig.expected_birds);
-  const [liveWeightKg, setLiveWeightKg] = useState(yieldConfig.expected_live_weight_kg);
   const [grillerYieldPct, setGrillerYieldPct] = useState(70.4); // percentage display
+
+  // Derived: live weight = birds × avg bird weight (syncs with top-level control)
+  const liveWeightKg = birds * avgBirdWeightKg;
 
   // Whole-bird pull counts per class
   const [pullCounts, setPullCounts] = useState<Record<string, number>>(
@@ -216,8 +223,7 @@ export default function PlanningSimulator({
   const handleLoadScenario = useCallback(
     (inputs: Record<string, unknown>) => {
       if (typeof inputs.input_birds === 'number') setBirds(inputs.input_birds);
-      if (typeof inputs.input_live_weight_kg === 'number')
-        setLiveWeightKg(inputs.input_live_weight_kg);
+      // liveWeightKg is now derived from birds × avgBirdWeightKg (no separate setter)
       if (typeof inputs.griller_yield_pct === 'number')
         setGrillerYieldPct(inputs.griller_yield_pct * 100);
 
@@ -263,41 +269,24 @@ export default function PlanningSimulator({
     <div className="space-y-4">
       {/* ── Input Section ── */}
       <div className="space-y-3">
-        <div className="grid grid-cols-2 gap-3">
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-              Aantal kippen
-            </label>
-            <input
-              type="number"
-              value={birds}
-              onChange={(e) => setBirds(Number(e.target.value) || 0)}
-              className="w-full px-2.5 py-1.5 text-sm font-mono tabular-nums"
-              style={{
-                background: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border-subtle)',
-                borderRadius: '8px',
-                color: 'var(--color-text-main)',
-              }}
-            />
-          </div>
-          <div>
-            <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
-              Levend gew. (kg)
-            </label>
-            <input
-              type="number"
-              value={liveWeightKg}
-              onChange={(e) => setLiveWeightKg(Number(e.target.value) || 0)}
-              step="0.1"
-              className="w-full px-2.5 py-1.5 text-sm font-mono tabular-nums"
-              style={{
-                background: 'var(--color-bg-elevated)',
-                border: '1px solid var(--color-border-subtle)',
-                borderRadius: '8px',
-                color: 'var(--color-text-main)',
-              }}
-            />
+        <div>
+          <label className="block text-xs font-medium mb-1" style={{ color: 'var(--color-text-muted)' }}>
+            Aantal kippen
+          </label>
+          <input
+            type="number"
+            value={birds}
+            onChange={(e) => setBirds(Number(e.target.value) || 0)}
+            className="w-full px-2.5 py-1.5 text-sm font-mono tabular-nums"
+            style={{
+              background: 'var(--color-bg-elevated)',
+              border: '1px solid var(--color-border-subtle)',
+              borderRadius: '8px',
+              color: 'var(--color-text-main)',
+            }}
+          />
+          <div className="mt-1 text-[10px] font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
+            = {liveWeightKg.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg levend ({formatNum(avgBirdWeightKg)} kg/dier)
           </div>
         </div>
 

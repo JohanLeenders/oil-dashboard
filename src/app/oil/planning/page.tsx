@@ -20,21 +20,22 @@ export default async function PlanningPage() {
     <div className="space-y-6">
       <div className="flex justify-between items-center">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
+          <h1 className="text-2xl font-brand tracking-tight" style={{ color: 'var(--color-text-main)' }}>
             Planning
           </h1>
-          <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
+          <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             Slachtkalender en beschikbaarheidsplanning
           </p>
         </div>
         <div className="flex items-center gap-4">
           <ImportSlaughterDays />
-          <span className="text-sm text-gray-500 dark:text-gray-400">
+          <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
             {items.length} slachtdag{items.length !== 1 ? 'en' : ''}
           </span>
           <Link
             href="/oil/orders"
-            className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400"
+            className="text-sm transition-colors"
+            style={{ color: 'var(--color-oil-orange)' }}
           >
             Naar orders &rarr;
           </Link>

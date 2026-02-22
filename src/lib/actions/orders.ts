@@ -20,11 +20,15 @@ import type {
 } from '@/types/database';
 import { buildOrderSchema } from '@/lib/engine/orders';
 import type { BuildOrderSchemaInput } from '@/lib/engine/orders';
+import { ANATOMICAL_NORMS } from '@/lib/engine/cherry-picker';
+import { DEFAULT_GRILLER_WEIGHT_KG } from '@/lib/engine/chicken-equivalent';
 import {
   createCustomerOrderSchema,
+  createOrderWithLinesSchema,
   addOrderLineSchema,
   removeOrderLineSchema,
   updateOrderLineSchema,
+  deleteOrderSchema,
   createDraftSnapshotSchema,
   finalizeSnapshotSchema,
   getOrdersForSlaughterSchema,
@@ -58,18 +62,19 @@ export async function getSlaughterDatesForOrders(): Promise<SlaughterCalendar[]>
 }
 
 /**
- * Haal orders op voor een specifieke slachtdatum
+ * Haal orders op voor een specifieke slachtdatum.
+ * Wave 10 D3: bevat ook line_summary (komma-gescheiden productregels).
  */
 export async function getOrdersForSlaughter(
   slaughterId: string
-): Promise<(CustomerOrder & { customer_name: string })[]> {
+): Promise<(CustomerOrder & { customer_name: string; line_summary: string; chicken_equivalent: number; line_categories: string[] })[]> {
   const parsed = getOrdersForSlaughterSchema.parse({ slaughterId });
   const supabase = await createClient();
   slaughterId = parsed.slaughterId;
 
   const { data, error } = await supabase
     .from('customer_orders')
-    .select('*, customers(name)')
+    .select('*, customers(name), order_lines(product_id, quantity_kg, products(description, category))')
     .eq('slaughter_id', slaughterId)
     .order('created_at', { ascending: false });
 
@@ -78,11 +83,53 @@ export async function getOrdersForSlaughter(
     throw new Error(`Failed to fetch orders: ${error.message}`);
   }
 
+  // Build norm lookup: category → ratio_pct (from ANATOMICAL_NORMS)
+  const normMap = new Map<string, number>(
+    ANATOMICAL_NORMS
+      .filter(n => n.category !== 'hele_kip')
+      .map(n => [n.category, n.ratio_pct])
+  );
+  const grillerWeight = DEFAULT_GRILLER_WEIGHT_KG;
+
   return (data || []).map((row) => {
     const typed = row as Record<string, unknown> & {
       customers?: { name: string } | null;
+      order_lines?: { product_id: string; quantity_kg: number; products?: { description: string; category: string | null } | null }[];
     };
     const customerName = typed.customers?.name ?? 'Onbekend';
+
+    // Build line summary + calculate chicken equivalent
+    const lines = typed.order_lines || [];
+    let maxChickensNeeded = 0;
+
+    const lineSummary = lines
+      .map((l) => {
+        const name = l.products?.description ?? '?';
+        const kg = l.quantity_kg.toLocaleString('nl-NL', { maximumFractionDigits: 1 });
+
+        // Chicken equivalent per line
+        const cat = l.products?.category;
+        if (cat === 'hele_kip') {
+          // Hele kip = 1 kip per griller gewicht
+          maxChickensNeeded = Math.max(maxChickensNeeded, l.quantity_kg / grillerWeight);
+        } else if (cat) {
+          const normPct = normMap.get(cat);
+          if (normPct && normPct > 0) {
+            const yieldPerChicken = (normPct / 100) * grillerWeight;
+            const chickensNeeded = l.quantity_kg / yieldPerChicken;
+            maxChickensNeeded = Math.max(maxChickensNeeded, chickensNeeded);
+          }
+        }
+
+        return `${name} ${kg}kg`;
+      })
+      .join(', ');
+
+    // Unique categories across all order lines (for co-product trigger detection)
+    const lineCategories = [...new Set(
+      lines.map((l) => l.products?.category).filter((c): c is string => c != null)
+    )];
+
     return {
       id: row.id,
       slaughter_id: row.slaughter_id,
@@ -98,7 +145,10 @@ export async function getOrdersForSlaughter(
       updated_at: row.updated_at,
       created_by: row.created_by,
       customer_name: customerName,
-    } as CustomerOrder & { customer_name: string };
+      line_summary: lineSummary,
+      chicken_equivalent: Math.round(maxChickensNeeded),
+      line_categories: lineCategories,
+    } as CustomerOrder & { customer_name: string; line_summary: string; chicken_equivalent: number; line_categories: string[] };
   });
 }
 
@@ -114,7 +164,7 @@ export async function getOrderLines(
 
   const { data, error } = await supabase
     .from('order_lines')
-    .select('*, products(name)')
+    .select('*, products(description)')
     .eq('order_id', orderId)
     .order('sort_order', { ascending: true });
 
@@ -125,9 +175,9 @@ export async function getOrderLines(
 
   return (data || []).map((row) => {
     const typed = row as Record<string, unknown> & {
-      products?: { name: string } | null;
+      products?: { description: string } | null;
     };
-    const productName = typed.products?.name ?? 'Onbekend product';
+    const productName = typed.products?.description ?? 'Onbekend product';
     return {
       id: row.id,
       order_id: row.order_id,
@@ -168,15 +218,16 @@ export async function getCustomersForSelect(): Promise<
 
 /**
  * Haal producten op voor selectie-dropdown
+ * Formaat: "[PLU] Beschrijving" zodat producten duidelijk te onderscheiden zijn
  */
 export async function getProductsForSelect(): Promise<
-  { id: string; name: string }[]
+  { id: string; name: string; category: string | null }[]
 > {
   const supabase = await createClient();
 
   const { data, error } = await supabase
     .from('products')
-    .select('id, name:description')
+    .select('id, description, storteboom_plu, category')
     .eq('is_active', true)
     .order('description', { ascending: true });
 
@@ -185,7 +236,12 @@ export async function getProductsForSelect(): Promise<
     throw new Error(`Failed to fetch products: ${error.message}`);
   }
 
-  return data || [];
+  // Format as "[PLU] Description" for clear identification
+  return (data || []).map((p) => ({
+    id: p.id,
+    name: p.storteboom_plu ? `[${p.storteboom_plu}] ${p.description}` : p.description,
+    category: p.category,
+  }));
 }
 
 /**
@@ -274,6 +330,104 @@ export async function createCustomerOrder(
   }
 
   return data;
+}
+
+/**
+ * Maak een order aan met meerdere regels in één keer.
+ * Wave 10 D3: direct producten invullen bij order aanmaken.
+ */
+export async function createOrderWithLines(
+  slaughterId: string,
+  customerId: string,
+  lines: { productId: string; quantityKg: number }[],
+  notes?: string
+): Promise<CustomerOrder> {
+  const parsed = createOrderWithLinesSchema.parse({ slaughterId, customerId, lines, notes });
+  const supabase = await createClient();
+
+  // Check if an active order already exists for this customer + slaughter.
+  // If so, append the new lines to the existing order instead of creating a new one.
+  const { data: existingOrder } = await supabase
+    .from('customer_orders')
+    .select('id')
+    .eq('slaughter_id', parsed.slaughterId)
+    .eq('customer_id', parsed.customerId)
+    .neq('status', 'cancelled')
+    .maybeSingle();
+
+  const orderId = existingOrder?.id;
+
+  let order: CustomerOrder;
+
+  if (orderId) {
+    // Append to existing order
+    const { data, error } = await supabase
+      .from('customer_orders')
+      .select()
+      .eq('id', orderId)
+      .single();
+    if (error) throw new Error(`Fout bij ophalen bestaande order: ${error.message}`);
+    order = data;
+
+    // Update notes if provided
+    if (parsed.notes) {
+      const currentNotes = order.notes || '';
+      const combined = currentNotes ? `${currentNotes}; ${parsed.notes}` : parsed.notes;
+      await supabase.from('customer_orders').update({ notes: combined }).eq('id', orderId);
+    }
+  } else {
+    // Create new order
+    const { data, error: orderError } = await supabase
+      .from('customer_orders')
+      .insert({
+        slaughter_id: parsed.slaughterId,
+        customer_id: parsed.customerId,
+        status: 'draft',
+        total_kg: 0,
+        total_lines: 0,
+        notes: parsed.notes || null,
+      })
+      .select()
+      .single();
+
+    if (orderError) {
+      console.error('Error creating order with lines:', orderError);
+      throw new Error(`Failed to create order: ${orderError.message}`);
+    }
+    order = data;
+  }
+
+  // Get current max sort_order for the order
+  const { data: existingLines } = await supabase
+    .from('order_lines')
+    .select('sort_order')
+    .eq('order_id', order.id)
+    .order('sort_order', { ascending: false })
+    .limit(1);
+
+  const startSortOrder = (existingLines?.[0]?.sort_order ?? -1) + 1;
+
+  // Insert all new lines
+  const lineInserts = parsed.lines.map((line, index) => ({
+    order_id: order.id,
+    product_id: line.productId,
+    quantity_kg: line.quantityKg,
+    sort_order: startSortOrder + index,
+  }));
+
+  const { error: linesError } = await supabase
+    .from('order_lines')
+    .insert(lineInserts);
+
+  if (linesError) {
+    console.error('Error inserting order lines:', linesError);
+    throw new Error(`Regels konden niet worden toegevoegd: ${linesError.message}`);
+  }
+
+  // Recalculate totals
+  await recalculateOrderTotals(order.id);
+
+  return order;
 }
 
 /**
@@ -391,6 +545,37 @@ export async function updateOrderLine(
 
   // Recalculate parent order totals
   await recalculateOrderTotals(lineData.order_id);
+}
+
+/**
+ * Verwijder een hele order inclusief alle bijbehorende orderregels.
+ * Verwijdert eerst de regels (FK constraint) en daarna de order zelf.
+ */
+export async function deleteOrder(orderId: string): Promise<void> {
+  const parsed = deleteOrderSchema.parse({ orderId });
+  const supabase = await createClient();
+
+  // Delete all order lines first (FK constraint)
+  const { error: linesError } = await supabase
+    .from('order_lines')
+    .delete()
+    .eq('order_id', parsed.orderId);
+
+  if (linesError) {
+    console.error('Error deleting order lines:', linesError);
+    throw new Error(`Orderregels konden niet worden verwijderd: ${linesError.message}`);
+  }
+
+  // Delete the order itself
+  const { error: orderError } = await supabase
+    .from('customer_orders')
+    .delete()
+    .eq('id', parsed.orderId);
+
+  if (orderError) {
+    console.error('Error deleting order:', orderError);
+    throw new Error(`Order kon niet worden verwijderd: ${orderError.message}`);
+  }
 }
 
 /**

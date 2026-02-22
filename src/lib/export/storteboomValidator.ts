@@ -113,7 +113,35 @@ export function validateStorteboomExport(
     }
   }
 
-  // 8. Klant totaal check: SOM(klant kg) per product
+  // 8. Utilization check: total ordered vs total available (Wave 10 D4)
+  // The user reported "Massabalans OK" at 25% utilization — that should NOT be OK.
+  const totalAvailableKg =
+    input.putten_products.reduce((s, p) => s + p.kg_from_slaughter, 0) +
+    input.nijkerk_products.reduce((s, p) => s + p.kg_from_slaughter, 0);
+
+  const totalOrderedKg =
+    input.customer_orders.reduce((total, co) => {
+      const puttenKg = co.putten_lines.reduce((s, l) => s + l.quantity_kg, 0);
+      const nijkerkKg = co.nijkerk_lines.reduce((s, l) => s + l.quantity_kg, 0);
+      return total + puttenKg + nijkerkKg;
+    }, 0);
+
+  if (totalAvailableKg > 0 && totalOrderedKg > 0) {
+    const utilizationPct = totalOrderedKg / totalAvailableKg;
+    if (utilizationPct < 0.50) {
+      errors.push(
+        `Massabalans: slechts ${(utilizationPct * 100).toFixed(0)}% benut (${totalOrderedKg.toFixed(0)} van ${totalAvailableKg.toFixed(0)} kg besteld — minimaal 50% vereist)`
+      );
+    } else if (utilizationPct < 0.80) {
+      warnings.push(
+        `Massabalans: ${(utilizationPct * 100).toFixed(0)}% benut (${totalOrderedKg.toFixed(0)} van ${totalAvailableKg.toFixed(0)} kg) — controleer of alle orders zijn ingevoerd`
+      );
+    }
+  } else if (totalAvailableKg > 0 && totalOrderedKg === 0) {
+    warnings.push('Geen orders ingevoerd — export bevat alleen beschikbaarheid');
+  }
+
+  // 9. Klant totaal check: SOM(klant kg) per product
   for (const prod of input.putten_products) {
     const perCustomer = input.customer_orders.map((co) => {
       return co.putten_lines

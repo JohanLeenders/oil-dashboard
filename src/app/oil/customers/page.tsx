@@ -26,14 +26,15 @@ export default async function CustomersPage() {
       {/* Header */}
       <div className="flex items-start justify-between">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Cherry-Picker Analyse</h2>
-          <p className="text-gray-600 dark:text-gray-600 mt-1">
+          <h2 className="text-2xl font-brand tracking-tight" style={{ color: 'var(--color-text-main)' }}>Cherry-Picker Analyse</h2>
+          <p className="mt-1 text-sm" style={{ color: 'var(--color-text-muted)' }}>
             Identificeer klanten met ongebalanceerde afname (filet &gt;28%)
           </p>
         </div>
         <Link
           href="/oil/customers/import"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 transition-colors shrink-0"
+          className="inline-flex items-center gap-2 px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors shrink-0"
+          style={{ background: 'var(--color-oil-orange)' }}
         >
           <span>📥</span>
           Import Klantprofiel
@@ -66,51 +67,51 @@ export default async function CustomersPage() {
       {/* Legend */}
       <div className="flex gap-6 text-sm">
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-red-500" />
-          <span className="text-gray-600 dark:text-gray-600">Cherry Picker (filet &gt;28%)</span>
+          <span className="w-3 h-3 rounded-full" style={{ background: 'var(--color-data-red)' }} />
+          <span style={{ color: 'var(--color-text-muted)' }}>Cherry Picker (filet &gt;28%)</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-yellow-500" />
-          <span className="text-gray-600 dark:text-gray-600">Score &lt;70</span>
+          <span className="w-3 h-3 rounded-full" style={{ background: 'var(--color-data-gold)' }} />
+          <span style={{ color: 'var(--color-text-muted)' }}>Score &lt;70</span>
         </div>
         <div className="flex items-center gap-2">
-          <span className="w-3 h-3 rounded-full bg-green-500" />
-          <span className="text-gray-600 dark:text-gray-600">Gebalanceerd</span>
+          <span className="w-3 h-3 rounded-full" style={{ background: 'var(--color-data-green)' }} />
+          <span style={{ color: 'var(--color-text-muted)' }}>Gebalanceerd</span>
         </div>
       </div>
 
       {/* Customer Table */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
-        <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50 dark:bg-gray-900">
-            <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+      <div className="oil-card overflow-hidden">
+        <table className="min-w-full">
+          <thead>
+            <tr style={{ borderBottom: '1px solid var(--color-border-subtle)' }}>
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Klant
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Omzet YTD
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+              <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Balance Score
               </th>
-              <th className="px-6 py-3 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+              <th className="px-6 py-3 text-center text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Status
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Filet %
               </th>
-              <th className="px-6 py-3 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+              <th className="px-6 py-3 text-right text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Opportunity Cost
               </th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">
+              <th className="px-6 py-3 text-left text-xs font-medium uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
                 Aanbeveling
               </th>
             </tr>
           </thead>
-          <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200">
+          <tbody>
             {customers.length === 0 ? (
               <tr>
-                <td colSpan={7} className="px-6 py-12 text-center text-gray-500 dark:text-gray-500">
+                <td colSpan={7} className="px-6 py-12 text-center" style={{ color: 'var(--color-text-muted)' }}>
                   Geen klanten gevonden. Run migraties en seed data.
                 </td>
               </tr>
@@ -124,9 +125,9 @@ export default async function CustomersPage() {
       </div>
 
       {/* Info Box */}
-      <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 text-sm">
-        <p className="font-medium text-blue-800">Detectie Logica</p>
-        <ul className="mt-2 text-blue-600 space-y-1">
+      <div className="oil-card p-4 text-sm" style={{ borderLeft: '3px solid var(--color-oil-orange)' }}>
+        <p className="font-medium" style={{ color: 'var(--color-text-main)' }}>Detectie Logica</p>
+        <ul className="mt-2 space-y-1" style={{ color: 'var(--color-text-muted)' }}>
           <li>• Cherry Picker: Klant neemt &gt;28% filet af (anatomisch 23.5% beschikbaar)</li>
           <li>• Minimum omzet voor analyse: €10.000 YTD</li>
           <li>• Balance Score: 100 = perfect gebalanceerd, 0 = extreme cherry picker</li>
@@ -148,32 +149,40 @@ function CustomerRow({
   const filetPct = filetBreakdown?.percentage_of_total || 0;
 
   const scoreColor = analysis.balance_score >= 80
-    ? 'text-green-600'
+    ? 'var(--color-data-green)'
     : analysis.balance_score >= 50
-      ? 'text-yellow-600'
-      : 'text-red-600';
+      ? 'var(--color-data-gold)'
+      : 'var(--color-data-red)';
 
   const scoreBg = analysis.balance_score >= 80
-    ? 'bg-green-100'
+    ? 'rgba(34, 197, 94, 0.12)'
     : analysis.balance_score >= 50
-      ? 'bg-yellow-100'
-      : 'bg-red-100';
+      ? 'rgba(234, 179, 8, 0.12)'
+      : 'rgba(225, 29, 72, 0.12)';
+
+  const filetColor = filetPct > 28 ? 'var(--color-data-red)' : filetPct > 23.5 ? 'var(--color-data-gold)' : 'var(--color-text-main)';
 
   return (
-    <tr className={`hover:bg-gray-50 dark:bg-gray-900 ${analysis.is_cherry_picker ? 'bg-red-50' : ''}`}>
+    <tr
+      className={`transition-colors ${analysis.is_cherry_picker ? '' : 'hover:bg-[var(--color-bg-elevated)]'}`}
+      style={{
+        borderBottom: '1px solid var(--color-border-subtle)',
+        background: analysis.is_cherry_picker ? 'rgba(225, 29, 72, 0.04)' : undefined,
+      }}
+    >
       <td className="px-6 py-4">
         <Link href={`/oil/customers/${customer.id}`} className="block group">
-          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 group-hover:text-blue-600">
+          <p className="text-sm font-medium transition-colors group-hover:opacity-80" style={{ color: 'var(--color-text-main)' }}>
             {customer.name}
           </p>
-          <p className="text-xs text-gray-500 dark:text-gray-500">{customer.customer_code}</p>
+          <p className="text-xs" style={{ color: 'var(--color-text-dim)' }}>{customer.customer_code}</p>
         </Link>
       </td>
-      <td className="px-6 py-4 text-sm text-gray-900 dark:text-gray-100 text-right">
+      <td className="px-6 py-4 text-sm text-right tabular-nums" style={{ color: 'var(--color-text-main)' }}>
         €{customer.total_revenue_ytd.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}
       </td>
       <td className="px-6 py-4 text-center">
-        <span className={`inline-flex items-center justify-center w-12 h-8 rounded-full text-sm font-bold ${scoreBg} ${scoreColor}`}>
+        <span className="inline-flex items-center justify-center w-12 h-8 rounded-full text-sm font-bold" style={{ background: scoreBg, color: scoreColor }}>
           {analysis.balance_score}
         </span>
       </td>
@@ -186,20 +195,16 @@ function CustomerRow({
           <StatusBadge status="green" label="OK" size="sm" />
         )}
       </td>
-      <td className={`px-6 py-4 text-sm text-right font-medium ${
-        filetPct > 28 ? 'text-red-600' : filetPct > 23.5 ? 'text-yellow-600' : 'text-gray-900 dark:text-gray-100'
-      }`}>
+      <td className="px-6 py-4 text-sm text-right font-medium tabular-nums" style={{ color: filetColor }}>
         {filetPct.toFixed(1)}%
-        {filetPct > 28 && <span className="text-xs text-red-500 ml-1">(max 28%)</span>}
+        {filetPct > 28 && <span className="text-xs ml-1" style={{ color: 'var(--color-data-red)', opacity: 0.7 }}>(max 28%)</span>}
       </td>
-      <td className={`px-6 py-4 text-sm text-right ${
-        analysis.opportunity_cost > 0 ? 'text-orange-600 font-medium' : 'text-gray-400 dark:text-gray-500'
-      }`}>
+      <td className="px-6 py-4 text-sm text-right tabular-nums" style={{ color: analysis.opportunity_cost > 0 ? 'var(--color-oil-orange)' : 'var(--color-text-dim)' }}>
         {analysis.opportunity_cost > 0
           ? `€${analysis.opportunity_cost.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}`
           : '-'}
       </td>
-      <td className="px-6 py-4 text-sm text-gray-600 dark:text-gray-600 max-w-xs">
+      <td className="px-6 py-4 text-sm max-w-xs" style={{ color: 'var(--color-text-muted)' }}>
         <p className="truncate" title={analysis.recommendation}>
           {analysis.recommendation}
         </p>
@@ -218,13 +223,9 @@ function StatCard({
   highlight?: boolean;
 }) {
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border p-4 ${
-      highlight ? 'border-orange-300' : 'border-gray-200 dark:border-gray-700'
-    }`}>
-      <p className="text-sm text-gray-500 dark:text-gray-500">{label}</p>
-      <p className={`text-2xl font-bold mt-1 ${
-        highlight ? 'text-orange-600' : 'text-gray-900 dark:text-gray-100'
-      }`}>
+    <div className="oil-card p-4" style={{ borderColor: highlight ? 'var(--color-oil-orange)' : undefined }}>
+      <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>{label}</p>
+      <p className="text-2xl font-bold mt-1" style={{ color: highlight ? 'var(--color-oil-orange)' : 'var(--color-text-main)' }}>
         {value}
       </p>
     </div>

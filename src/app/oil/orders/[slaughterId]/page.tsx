@@ -59,6 +59,40 @@ export default async function SlaughterOrdersPage({ params }: PageProps) {
   const customerIdsWithOrders = [...new Set(orders.map((o) => o.customer_id))];
   const deliveryInfo = await getDeliveryInfoForCustomers(customerIdsWithOrders);
 
+  // Wave 12: Enrich product labels with location (Putten / Nijkerk)
+  // We already have yield data — use it to classify products by location.
+  const puttenParentIds = new Set(simulatorYieldConfig.yield_profiles.map(p => p.product_id));
+  const puttenCutChildIds = new Set<string>();
+  const nijkerkChildIds = new Set<string>();
+  for (const chain of simulatorYieldConfig.yield_chains) {
+    if (chain.source_location_id && chain.target_location_id
+        && chain.source_location_id === chain.target_location_id) {
+      puttenCutChildIds.add(chain.child_product_id);
+    } else {
+      nijkerkChildIds.add(chain.child_product_id);
+    }
+  }
+
+  const enrichedProducts = products
+    .map(p => {
+      let loc = '';
+      let sortOrder = 2; // default: no location = last
+      if (puttenParentIds.has(p.id) || puttenCutChildIds.has(p.id)) {
+        loc = 'Putten';
+        sortOrder = 0;
+      } else if (nijkerkChildIds.has(p.id)) {
+        loc = 'Nijkerk';
+        sortOrder = 1;
+      }
+      return {
+        ...p,
+        name: loc ? `${loc} › ${p.name}` : p.name,
+        _sortOrder: sortOrder,
+      };
+    })
+    .sort((a, b) => a._sortOrder - b._sortOrder || a.name.localeCompare(b.name, 'nl'))
+    .map(({ _sortOrder, ...rest }) => rest);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -87,7 +121,7 @@ export default async function SlaughterOrdersPage({ params }: PageProps) {
         slaughterId={slaughterId}
         initialOrders={orders}
         customers={customers}
-        products={products}
+        products={enrichedProducts}
         initialSnapshots={snapshots}
         slaughterDate={slaughter.slaughter_date}
         mester={mester}

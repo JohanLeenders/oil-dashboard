@@ -1,130 +1,95 @@
 'use client';
 
 /**
- * IntelligencePanel — Slaughter day overview with Putten→Nijkerk cascade flow (UX-3)
+ * IntelligencePanel — Compact slaughter day KPI bar (UX-3)
  *
- * Shows KPI tiles (total kg, sold kg, utilization %),
- * per-location progress bars with glowing orange cascade flow connector.
- * Uses ONLY existing CascadedAvailability data — no new engine logic.
+ * Shows key numbers in a single horizontal bar:
+ * Putten kg → cascade arrow → Nijkerk kg | Total | Orders count
  */
 
 import type { CascadedAvailability } from '@/lib/engine/availability/cascading';
 import type { CustomerOrder } from '@/types/database';
-import { KpiTile } from '@/components/oil/ui/KpiTile';
-import { AvailabilityProgressBar } from '@/components/oil/ui/AvailabilityProgressBar';
-
-interface OrderWithCustomer extends CustomerOrder {
-  customer_name: string;
-}
 
 interface IntelligencePanelProps {
   availability: CascadedAvailability;
-  orders: OrderWithCustomer[];
+  orders: (CustomerOrder & { customer_name: string; chicken_equivalent: number })[];
 }
 
 export default function IntelligencePanel({
   availability,
   orders,
 }: IntelligencePanelProps) {
-  // Compute totals from availability data
-  const puttenAvailable = availability.primary_products.reduce(
+  const puttenKg = availability.primary_products.reduce(
     (s, p) => s + p.primary_available_kg, 0
   );
-  const nijkerkAvailable = availability.secondary_products.reduce(
+  const nijkerkKg = availability.secondary_products.reduce(
     (s, p) => s + p.available_kg, 0
   );
-  const totalAvailable = puttenAvailable + nijkerkAvailable;
-
-  // Compute ordered kg from orders
+  const totalKg = puttenKg + nijkerkKg;
   const totalOrdered = orders.reduce((s, o) => s + o.total_kg, 0);
+  const benutPct = totalKg > 0 ? (totalOrdered / totalKg) * 100 : 0;
 
-  // Estimate Putten/Nijkerk ordered split (approximate: orders don't track location directly)
-  // Use a heuristic: assume Putten takes ~65% of ordered kg (typical primary product share)
-  const puttenOrdered = Math.min(totalOrdered * 0.65, puttenAvailable);
-  const nijkerkOrdered = totalOrdered - puttenOrdered;
-
-  const utilizationPct = totalAvailable > 0
-    ? Math.round((totalOrdered / totalAvailable) * 100)
-    : 0;
-
-  // Cascade flow: what Putten doesn't sell flows to Nijkerk
-  const puttenRest = Math.max(0, puttenAvailable - puttenOrdered);
-
-  const utilizationColor = utilizationPct >= 80 ? 'green' : utilizationPct >= 50 ? 'orange' : 'red';
+  const fmt = (v: number) => v.toLocaleString('nl-NL', { maximumFractionDigits: 0 });
 
   return (
-    <div className="oil-card p-4 space-y-4">
-      <h3 className="text-sm font-medium" style={{ color: 'var(--color-text-muted)' }}>
-        Slachtdag Overzicht
-      </h3>
-
-      {/* KPI tiles */}
-      <div className="grid grid-cols-3 gap-3">
-        <KpiTile
-          label="Totaal"
-          value={totalAvailable.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}
-          unit="kg"
-        />
-        <KpiTile
-          label="Verkocht"
-          value={totalOrdered.toLocaleString('nl-NL', { maximumFractionDigits: 0 })}
-          unit="kg"
-          color={utilizationColor as 'green' | 'orange' | 'red'}
-        />
-        <KpiTile
-          label="Benut"
-          value={`${utilizationPct}%`}
-          color={utilizationColor as 'green' | 'orange' | 'red'}
-        />
-      </div>
-
-      {/* Putten section */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
-            Putten (Dag 0)
-          </span>
-          <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
-            {puttenAvailable.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg
+    <div className="oil-card px-4 py-3">
+      <div className="flex items-center gap-4 flex-wrap text-xs">
+        {/* Putten */}
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full" style={{ background: 'var(--color-oil-orange)' }} />
+          <span style={{ color: 'var(--color-text-dim)' }}>Putten</span>
+          <span className="font-mono tabular-nums font-medium" style={{ color: 'var(--color-text-main)' }}>
+            {fmt(puttenKg)} kg
           </span>
         </div>
-        <AvailabilityProgressBar
-          availableKg={puttenAvailable}
-          orderedKg={puttenOrdered}
-          compact
-        />
-      </div>
 
-      {/* Cascade flow connector (UX-3) */}
-      <div className="flex items-center gap-2 pl-4">
-        <div
-          className="w-0.5 h-8 rounded-full"
-          style={{
-            background: 'var(--color-oil-orange)',
-            boxShadow: '0 0 8px var(--color-oil-orange)',
-          }}
-        />
-        <div className="flex items-center gap-1.5 text-xs font-mono tabular-nums" style={{ color: 'var(--color-oil-orange)' }}>
-          <span>→</span>
-          <span>{puttenRest.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg cascade</span>
-        </div>
-      </div>
+        {/* Cascade arrow */}
+        <span className="font-mono" style={{ color: 'var(--color-oil-orange)' }}>&rarr;</span>
 
-      {/* Nijkerk section */}
-      <div className="space-y-2">
-        <div className="flex items-center justify-between">
-          <span className="text-xs font-medium" style={{ color: 'var(--color-text-muted)' }}>
-            Nijkerk (Dag +1)
-          </span>
-          <span className="text-xs font-mono tabular-nums" style={{ color: 'var(--color-text-dim)' }}>
-            {nijkerkAvailable.toLocaleString('nl-NL', { maximumFractionDigits: 0 })} kg
+        {/* Nijkerk */}
+        <div className="flex items-center gap-1.5">
+          <div className="w-2 h-2 rounded-full bg-purple-500" />
+          <span style={{ color: 'var(--color-text-dim)' }}>Nijkerk</span>
+          <span className="font-mono tabular-nums font-medium" style={{ color: 'var(--color-text-main)' }}>
+            {fmt(nijkerkKg)} kg
           </span>
         </div>
-        <AvailabilityProgressBar
-          availableKg={nijkerkAvailable}
-          orderedKg={nijkerkOrdered}
-          compact
-        />
+
+        {/* Separator */}
+        <div className="w-px h-4" style={{ background: 'var(--color-border-subtle)' }} />
+
+        {/* Totaal beschikbaar */}
+        <div className="flex items-center gap-1.5">
+          <span style={{ color: 'var(--color-text-dim)' }}>Totaal</span>
+          <span className="font-mono tabular-nums font-semibold" style={{ color: 'var(--color-text-main)' }}>
+            {fmt(totalKg)} kg
+          </span>
+        </div>
+
+        {/* Separator */}
+        <div className="w-px h-4" style={{ background: 'var(--color-border-subtle)' }} />
+
+        {/* Besteld */}
+        <div className="flex items-center gap-1.5">
+          <span style={{ color: 'var(--color-text-dim)' }}>Besteld</span>
+          <span className="font-mono tabular-nums font-medium" style={{ color: totalOrdered > 0 ? 'var(--color-oil-orange)' : 'var(--color-text-dim)' }}>
+            {fmt(totalOrdered)} kg
+          </span>
+          {benutPct > 0 && (
+            <span className="font-mono tabular-nums" style={{
+              color: benutPct > 90 ? 'var(--color-data-red)' : benutPct > 50 ? 'var(--color-oil-orange)' : 'var(--color-text-dim)',
+            }}>
+              ({benutPct.toFixed(0)}%)
+            </span>
+          )}
+        </div>
+
+        {/* Orders count */}
+        <div className="flex items-center gap-1.5 ml-auto">
+          <span className="font-mono tabular-nums" style={{ color: 'var(--color-text-muted)' }}>
+            {orders.length} order{orders.length !== 1 ? 's' : ''}
+          </span>
+        </div>
       </div>
     </div>
   );

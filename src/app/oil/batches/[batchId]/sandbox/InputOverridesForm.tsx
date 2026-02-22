@@ -102,13 +102,13 @@ export function InputOverridesForm({
   };
 
   return (
-    <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-      <h4 className="text-sm font-semibold text-gray-900">{INPUTS.heading}</h4>
-      <p className="text-xs text-gray-500">{INPUTS.explanation}</p>
+    <div className="oil-card p-4 space-y-4">
+      <h4 className="text-sm font-semibold" style={{ color: 'var(--color-text-main)' }}>{INPUTS.heading}</h4>
+      <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{INPUTS.explanation}</p>
 
       {/* Live Price Override */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-1">
+        <label className="block text-sm font-medium mb-1" style={{ color: 'var(--color-text-main)' }}>
           {INPUTS.livePrice}
         </label>
         <input
@@ -117,9 +117,10 @@ export function InputOverridesForm({
           placeholder={baseline.live_price_per_kg.toFixed(2)}
           value={livePriceOverride ?? ''}
           onChange={(e) => onLivePriceChange(e.target.value ? parseFloat(e.target.value) : null)}
-          className="w-full px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-3 py-2 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          style={{ border: '1px solid var(--color-border-subtle)' }}
         />
-        <p className="text-xs text-gray-500 mt-1">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
           {INPUTS.livePriceHelper(baseline.live_price_per_kg.toFixed(2))}
         </p>
       </div>
@@ -127,18 +128,19 @@ export function InputOverridesForm({
       {/* Yield Overrides */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium" style={{ color: 'var(--color-text-main)' }}>
             {INPUTS.yieldHeading(yieldOverrides.length)}
           </label>
           <div className="flex items-center gap-2">
             {/* KG/% toggle */}
-            <div className="flex rounded-md border border-gray-300 text-xs">
+            <div className="flex rounded-md text-xs" style={{ border: '1px solid var(--color-border-subtle)' }}>
               <button
                 type="button"
                 onClick={() => setYieldMode('kg')}
                 className={`px-2 py-1 rounded-l-md transition-colors ${
-                  yieldMode === 'kg' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  yieldMode === 'kg' ? 'text-white' : 'hover:opacity-80'
                 }`}
+                style={yieldMode === 'kg' ? { background: 'var(--color-oil-orange)' } : { color: 'var(--color-text-muted)' }}
               >
                 {INPUTS.yieldToggleKg}
               </button>
@@ -146,8 +148,9 @@ export function InputOverridesForm({
                 type="button"
                 onClick={() => setYieldMode('pct')}
                 className={`px-2 py-1 rounded-r-md transition-colors ${
-                  yieldMode === 'pct' ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 hover:bg-gray-50'
+                  yieldMode === 'pct' ? 'text-white' : 'hover:opacity-80'
                 }`}
+                style={yieldMode === 'pct' ? { background: 'var(--color-oil-orange)' } : { color: 'var(--color-text-muted)' }}
               >
                 {INPUTS.yieldTogglePct}
               </button>
@@ -167,7 +170,7 @@ export function InputOverridesForm({
               const override = yieldOverrides.find((yo) => yo.part_code === jp.part_code);
               return (
                 <div key={jp.part_code} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600 w-24">{partName(jp.part_code)}:</span>
+                  <span className="text-xs w-24" style={{ color: 'var(--color-text-muted)' }}>{partName(jp.part_code)}:</span>
                   <input
                     type="number"
                     step="0.1"
@@ -184,13 +187,14 @@ export function InputOverridesForm({
                         onYieldOverridesChange(yieldOverrides.filter((yo) => yo.part_code !== jp.part_code));
                       }
                     }}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    style={{ border: '1px solid var(--color-border-subtle)' }}
                   />
-                  <span className="text-xs text-gray-500 w-6">{unitSuffix}</span>
+                  <span className="text-xs w-6" style={{ color: 'var(--color-text-muted)' }}>{unitSuffix}</span>
                 </div>
               );
             })}
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
               {yieldMode === 'kg'
                 ? INPUTS.yieldHelper(baseline.griller_weight_kg.toFixed(0))
                 : INPUTS.yieldModePctHelper(fmtKg(baseline.griller_weight_kg).replace(' kg', ''))}
@@ -236,7 +240,7 @@ export function InputOverridesForm({
       {/* Price Overrides (Shadow Prices) */}
       <div>
         <div className="flex items-center justify-between mb-2">
-          <label className="block text-sm font-medium text-gray-700">
+          <label className="block text-sm font-medium" style={{ color: 'var(--color-text-main)' }}>
             {INPUTS.priceHeading(priceOverrides.length)}
           </label>
           <button
@@ -253,7 +257,7 @@ export function InputOverridesForm({
               const override = priceOverrides.find((po) => po.part_code === jp.part_code);
               return (
                 <div key={jp.part_code} className="flex items-center gap-2">
-                  <span className="text-xs text-gray-600 w-24">{partName(jp.part_code)}:</span>
+                  <span className="text-xs w-24" style={{ color: 'var(--color-text-muted)' }}>{partName(jp.part_code)}:</span>
                   <input
                     type="number"
                     step="0.01"
@@ -269,13 +273,14 @@ export function InputOverridesForm({
                         onPriceOverridesChange(priceOverrides.filter((po) => po.part_code !== jp.part_code));
                       }
                     }}
-                    className="flex-1 px-2 py-1 border border-gray-300 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    className="flex-1 px-2 py-1 rounded text-xs focus:outline-none focus:ring-1 focus:ring-blue-500"
+                    style={{ border: '1px solid var(--color-border-subtle)' }}
                   />
-                  <span className="text-xs text-gray-500">€/kg</span>
+                  <span className="text-xs" style={{ color: 'var(--color-text-muted)' }}>€/kg</span>
                 </div>
               );
             })}
-            <p className="text-xs text-gray-500 mt-2">
+            <p className="text-xs mt-2" style={{ color: 'var(--color-text-muted)' }}>
               {INPUTS.priceHelper}
             </p>
           </div>

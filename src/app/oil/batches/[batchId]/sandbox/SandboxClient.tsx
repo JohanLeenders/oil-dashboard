@@ -253,58 +253,58 @@ export function SandboxClient({
   return (
     <div className="space-y-6">
       {/* Step 1: Baseline — ALWAYS visible */}
-      <div className="bg-white border border-gray-200 rounded-lg p-4 space-y-4">
-        <h3 className="text-lg font-semibold text-gray-900">
+      <div className="oil-card p-4 space-y-4">
+        <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-main)' }}>
           {BASELINE.heading}
         </h3>
-        <p className="text-xs text-gray-500 mt-1">{BASELINE.explanation}</p>
-        <p className="text-sm text-gray-600">
+        <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.explanation}</p>
+        <p className="text-sm" style={{ color: 'var(--color-text-muted)' }}>
           Batch {batchDetail.batch.batch_ref}
         </p>
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
           <div>
-            <p className="text-xs text-gray-500">{BASELINE.liveWeight}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.liveWeight}</p>
             <p className="text-sm font-medium">{fmtKg(baseline.live_weight_kg)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{BASELINE.grillerWeight}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.grillerWeight}</p>
             <p className="text-sm font-medium">{fmtKg(baseline.griller_weight_kg)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{BASELINE.birdCount}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.birdCount}</p>
             <p className="text-sm font-medium">{fmtInt(baseline.bird_count)}</p>
           </div>
           <div>
-            <p className="text-xs text-gray-500">{BASELINE.livePrice}</p>
+            <p className="text-xs" style={{ color: 'var(--color-text-muted)' }}>{BASELINE.livePrice}</p>
             <p className="text-sm font-medium">{fmtEur(baseline.live_price_per_kg)}/kg</p>
           </div>
         </div>
 
         {/* Baseline waterfall results */}
         {scenarioResult && scenarioResult.baseline && (
-          <div className="border-t border-gray-100 pt-4 mt-4">
-            <h4 className="text-sm font-semibold text-gray-900 mb-3">{BASELINE.baselineWaterfall}</h4>
+          <div className="border-t pt-4 mt-4" style={{ borderColor: 'var(--color-border-subtle)' }}>
+            <h4 className="text-sm font-semibold mb-3" style={{ color: 'var(--color-text-main)' }}>{BASELINE.baselineWaterfall}</h4>
             <div className="space-y-2 text-sm">
               <div className="flex justify-between">
-                <span className="text-gray-600">{BASELINE.l0}</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l0}</span>
                 <span className="font-medium">
                   {fmtEur(scenarioResult.baseline.l0_landed_cost.landed_cost_eur)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">{BASELINE.l1}</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l1}</span>
                 <span className="font-medium">
                   {fmtEur(scenarioResult.baseline.l1_joint_cost_pool.joint_cost_pool_eur)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">{BASELINE.l2}</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l2}</span>
                 <span className="font-medium">
                   {fmtEur(scenarioResult.baseline.l2_net_joint_cost.net_joint_cost_eur)}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-gray-600">{BASELINE.l3}</span>
+                <span style={{ color: 'var(--color-text-muted)' }}>{BASELINE.l3}</span>
                 <span className="font-medium">
                   {fmtK(scenarioResult.baseline.l3_svaso_allocation.k_factor)}
                 </span>
@@ -315,7 +315,7 @@ export function SandboxClient({
       </div>
 
       {/* Step 2: Scenario header */}
-      <h3 className="text-lg font-semibold text-gray-900">
+      <h3 className="text-lg font-semibold" style={{ color: 'var(--color-text-main)' }}>
         {BASELINE.scenarioPrefix(currentScenarioName)}
       </h3>
 
@@ -354,7 +354,8 @@ export function SandboxClient({
         <button
           onClick={handleRunScenario}
           disabled={isRunning}
-          className="flex-1 px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-lg hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          className="flex-1 px-4 py-2 text-white text-sm font-medium rounded-lg disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
+          style={{ background: 'var(--color-oil-orange)' }}
         >
           {isRunning ? BUTTONS.running : BUTTONS.runScenario}
         </button>

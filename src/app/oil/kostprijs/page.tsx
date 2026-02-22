@@ -50,14 +50,15 @@ export default function KostprijsOverviewPage() {
       {/* Header */}
       <div className="flex justify-between items-center">
         <div>
-          <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100 tracking-tight">Kostprijs</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-400 mt-0.5">
+          <h2 className="text-2xl font-brand tracking-tight" style={{ color: 'var(--color-text-main)' }}>Kostprijs</h2>
+          <p className="text-sm mt-0.5" style={{ color: 'var(--color-text-muted)' }}>
             Kostprijsberekeningen per profiel &mdash; 7-level waterval van levend tot NRV
           </p>
         </div>
         <Link
           href="/oil/kostprijs/nieuwe-berekening"
-          className="px-4 py-2 bg-oranje-500 text-white text-sm font-medium rounded-lg hover:bg-oranje-600 transition-colors shadow-sm"
+          className="px-4 py-2 text-white text-sm font-medium rounded-lg transition-colors"
+          style={{ background: 'var(--color-oil-orange)' }}
         >
           + Nieuwe berekening
         </Link>
@@ -76,8 +77,8 @@ export default function KostprijsOverviewPage() {
       ))}
 
       {/* Info footer */}
-      <div className="bg-gray-100/60 dark:bg-gray-800/60 rounded-xl p-4 text-xs text-gray-400">
-        <span className="font-semibold text-gray-500 dark:text-gray-300">Kostprijsmodel:</span>{' '}
+      <div className="oil-card p-4 text-xs" style={{ color: 'var(--color-text-dim)' }}>
+        <span className="font-semibold" style={{ color: 'var(--color-text-muted)' }}>Kostprijsmodel:</span>{' '}
         L0 Landed &rarr; L1 Joint Cost Pool &rarr; L2 By-product Credit &rarr; L3 SVASO &rarr; L4 Mini-SVASO &rarr; L5 ABC &rarr; L6 SKU &rarr; L7 NRV
       </div>
     </div>

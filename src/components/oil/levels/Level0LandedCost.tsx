@@ -26,24 +26,24 @@ export function Level0LandedCost({
     <div>
       <div className="grid grid-cols-2 md:grid-cols-3 gap-4 text-sm">
         <div className="space-y-0.5">
-          <span className="text-xs text-gray-400 uppercase tracking-wider">Live materiaal</span>
-          <p className="font-medium text-gray-900 dark:text-gray-100">{formatEur(liveMaterial)}</p>
+          <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>Live materiaal</span>
+          <p className="font-medium" style={{ color: 'var(--color-text-main)' }}>{formatEur(liveMaterial)}</p>
         </div>
         <div className="space-y-0.5">
-          <span className="text-xs text-gray-400 uppercase tracking-wider">Levend €/kg</span>
-          <p className="font-medium text-gray-900 dark:text-gray-100">{formatEurPerKg(input.live_price_per_kg)}</p>
+          <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>Levend €/kg</span>
+          <p className="font-medium" style={{ color: 'var(--color-text-main)' }}>{formatEurPerKg(input.live_price_per_kg)}</p>
         </div>
         <div className="space-y-0.5">
-          <span className="text-xs text-gray-400 uppercase tracking-wider">Totaal Inkoop</span>
+          <span className="text-xs uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>Totaal Inkoop</span>
           <p className="text-lg font-bold text-blue-700 dark:text-blue-400">{formatEur(result.landed_cost_eur)}</p>
         </div>
       </div>
 
       <div className="mt-3 flex flex-wrap items-center gap-3">
-        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded-md">
+        <span className="text-xs px-2 py-1 rounded-md" style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-elevated)' }}>
           Kostprijs/kg (levend): <strong>{formatEurPerKg(result.landed_cost_per_kg)}</strong>
         </span>
-        <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 px-2 py-1 rounded-md">
+        <span className="text-xs px-2 py-1 rounded-md" style={{ color: 'var(--color-text-muted)', backgroundColor: 'var(--color-bg-elevated)' }}>
           DOA: {input.doa_count} ({((input.doa_count / input.input_count) * 100).toFixed(1)}%)
         </span>
         {result.abnormal_doa_variance_eur > 0 && (
@@ -74,8 +74,8 @@ export function Level0LandedCost({
               }}
               className="border border-yellow-300 dark:text-gray-100 rounded px-2 py-1 text-sm w-32"
             />
-            <span className="text-sm text-gray-500 dark:text-gray-400">kg</span>
-            <span className="text-xs text-gray-400">
+            <span className="text-sm" style={{ color: 'var(--color-text-muted)' }}>kg</span>
+            <span className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
               (canon: {formatKg(grillerWeightKg)} = {((grillerWeightKg / result.usable_live_kg) * 100).toFixed(1)}%)
             </span>
           </div>
