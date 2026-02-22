@@ -3,9 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "predev": "cmd /c \"if exist .next rd /s /q .next\"",
     "dev": "next dev",
-    "prebuild": "cmd /c \"if exist .next rd /s /q .next\"",
     "build": "next build",
     "start": "next start",
     "lint": "eslint src --max-warnings 0",
