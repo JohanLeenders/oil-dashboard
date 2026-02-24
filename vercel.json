@@ -6,7 +6,7 @@
     },
     {
       "path": "/api/outreach/process-queue",
-      "schedule": "0 6 * * *"
+      "schedule": "13 9 * * 1"
     }
   ]
 }
