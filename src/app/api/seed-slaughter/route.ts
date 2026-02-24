@@ -6,11 +6,6 @@
 import { createClient } from '@supabase/supabase-js';
 import { NextResponse } from 'next/server';
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
-
 const KLEIN_HURKSVELD_DATA = [
   {
     slaughter_date: '2026-02-23',
@@ -111,6 +106,11 @@ const KLEIN_HURKSVELD_DATA = [
 ];
 
 export async function GET() {
+  // createClient inside handler to avoid build-time evaluation without env vars
+  const supabase = createClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  );
   // This is an anon client — RLS will block it.
   // Instead, use the service role or temporarily disable RLS.
   // For now, just try the insert and report the result.
