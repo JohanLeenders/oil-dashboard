@@ -5,6 +5,7 @@
 
 import type { OutreachCampaignWithTemplates } from '@/types/outreach';
 import { DataBadge } from '@/components/oil/ui/DataBadge';
+import { CampaignSendButton } from './CampaignSendButton';
 
 const CAMPAIGN_STATUS: Record<
   string,
@@ -105,6 +106,12 @@ export function CampaignCard({ campaign }: { campaign: OutreachCampaignWithTempl
           ))}
         </div>
       )}
+
+      {/* Manual dispatch */}
+      <CampaignSendButton
+        campaignId={campaign.id}
+        pendingCount={campaign.send_count - campaign.processed_count}
+      />
     </div>
   );
 }

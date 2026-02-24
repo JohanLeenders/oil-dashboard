@@ -1149,6 +1149,32 @@ export interface CustomerDeliveryInfo {
   putten_delivery_day: string | null;
   nijkerk_delivery_day: string | null;
   notes: string | null;
+  // Wave 10: Outreach contact channels
+  email: string | null;           // Primary outreach email
+  whatsapp_number: string | null; // E.164 format: +31612345678
   created_at: string;
   updated_at: string;
 }
+
+// ============================================================================
+// WAVE 10 — OUTREACH MODULE TABLE TYPES
+// Full domain types in src/types/outreach.ts
+// Re-exported here for Supabase query compatibility
+// ============================================================================
+
+export type {
+  OutreachChannel,
+  OutreachSendChannel,
+  OutreachMessageType,
+  OutreachCampaignStatus,
+  OutreachSendStatus,
+  OutreachEventType,
+  OutreachQueueStatus,
+  OutreachTemplate,
+  OutreachCampaign,
+  OutreachCampaignTemplate,
+  OutreachSend,
+  OutreachOutbox,
+  OutreachDeliveryEvent,
+  OutreachResponseQueue,
+} from './outreach';

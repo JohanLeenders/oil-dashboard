@@ -9,6 +9,7 @@
  */
 
 import { createClient } from '@/lib/supabase/server';
+import { dispatchSend } from '@/lib/outreach/dispatch';
 import type {
   OutreachTemplate,
   OutreachCampaign,
@@ -296,6 +297,45 @@ export async function getOutreachCustomers(): Promise<OutreachCustomer[]> {
       whatsapp_number: info?.whatsapp_number ?? null,
     };
   });
+}
+
+// =============================================================================
+// DISPATCH
+// =============================================================================
+
+/** Manually dispatch all pending sends for a campaign (UI "Verstuur nu" button) */
+export async function dispatchCampaignSends(
+  campaignId: string,
+): Promise<{ dispatched: number; failed: number; total: number }> {
+  const supabase = await createClient();
+
+  const { data: sends, error } = await supabase
+    .from('outreach_sends')
+    .select('*')
+    .eq('campaign_id', campaignId)
+    .eq('status', 'pending');
+
+  if (error) throw new Error(`Failed to fetch sends: ${error.message}`);
+
+  const pending = (sends ?? []) as OutreachSend[];
+  let dispatched = 0;
+  let failed = 0;
+
+  for (const send of pending) {
+    try {
+      const result = await dispatchSend(send);
+      await supabase
+        .from('outreach_sends')
+        .update({ status: 'processed', processed_at: new Date().toISOString() })
+        .eq('id', send.id);
+      if (result.success) dispatched++;
+      else failed++;
+    } catch {
+      failed++;
+    }
+  }
+
+  return { dispatched, failed, total: pending.length };
 }
 
 // =============================================================================
