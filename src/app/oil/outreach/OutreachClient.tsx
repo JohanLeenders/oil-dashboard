@@ -1,30 +1,56 @@
 'use client';
 
 /**
- * OutreachClient — Wave 10 Outreach tab shell
- * Three tabs: Campagnes / Templates / Klanten
- * Manages local template state for optimistic updates after create/edit.
+ * OutreachClient — Wave 10 + Wave 11 Outreach tab shell
+ * Tabs: Updates | Campagnes | Templates | Klanten
+ * Wave 11: "Updates" tab is now the primary view with the Update Engine.
  */
 
-import { useState } from 'react';
-import type { OutreachCampaignWithTemplates, OutreachTemplate } from '@/types/outreach';
+import { useState, useCallback, useEffect } from 'react';
+import type { OutreachCampaignWithTemplates, OutreachTemplate, OutreachUpdate, OutreachUpdateWithDetails } from '@/types/outreach';
 import type { OutreachCustomer } from '@/lib/actions/outreach';
 import { CampaignCard } from '@/components/outreach/CampaignCard';
 import { TemplateForm } from '@/components/outreach/TemplateForm';
+import { UpdateCard } from '@/components/outreach/UpdateCard';
+import { UpdateEditor } from '@/components/outreach/UpdateEditor';
 
-type Tab = 'campaigns' | 'templates' | 'customers';
+type Tab = 'updates' | 'campaigns' | 'templates' | 'customers';
 
 interface OutreachClientProps {
   campaigns: OutreachCampaignWithTemplates[];
   templates: OutreachTemplate[];
   customers: OutreachCustomer[];
+  updates: OutreachUpdateWithDetails[];
+  structuredTemplates: OutreachTemplate[];
 }
 
-export default function OutreachClient({ campaigns, templates, customers }: OutreachClientProps) {
-  const [activeTab, setActiveTab] = useState<Tab>('campaigns');
+export default function OutreachClient({
+  campaigns,
+  templates,
+  customers,
+  updates: initialUpdates,
+  structuredTemplates,
+}: OutreachClientProps) {
+  const [activeTab, setActiveTab] = useState<Tab>('updates');
   const [localTemplates, setLocalTemplates] = useState<OutreachTemplate[]>(templates);
+  const [localUpdates, setLocalUpdates] = useState<OutreachUpdateWithDetails[]>(initialUpdates);
   const [showNewForm, setShowNewForm] = useState(false);
   const [editTemplate, setEditTemplate] = useState<OutreachTemplate | null>(null);
+
+  // Update editor state
+  const [editingUpdateId, setEditingUpdateId] = useState<string | null>(null);
+  const [creatingNew, setCreatingNew] = useState(false);
+
+  // Team tracking: simple localStorage-persisted username
+  const [userName, setUserName] = useState('');
+  useEffect(() => {
+    const stored = localStorage.getItem('oil-outreach-username');
+    if (stored) setUserName(stored);
+  }, []);
+  function handleUserNameChange(name: string) {
+    setUserName(name);
+    localStorage.setItem('oil-outreach-username', name);
+  }
 
   function handleTemplateSuccess(t: OutreachTemplate) {
     setLocalTemplates((prev) => {
@@ -40,11 +66,54 @@ export default function OutreachClient({ campaigns, templates, customers }: Outr
     setEditTemplate(null);
   }
 
+  const handleUpdateSaved = useCallback((saved: OutreachUpdate) => {
+    setLocalUpdates((prev) => {
+      const idx = prev.findIndex((u) => u.id === saved.id);
+      if (idx >= 0) {
+        const next = [...prev];
+        next[idx] = { ...next[idx], ...saved };
+        return next;
+      }
+      // New update — add to top
+      return [{
+        ...saved,
+        template: null,
+        recipient_count: 0,
+        dispatched_count: 0,
+        delivered_count: 0,
+        failed_count: 0,
+      } as OutreachUpdateWithDetails, ...prev];
+    });
+  }, []);
+
+  function handleBackFromEditor() {
+    setEditingUpdateId(null);
+    setCreatingNew(false);
+  }
+
   const TABS: { key: Tab; label: string; count: number }[] = [
+    { key: 'updates',    label: 'Updates',    count: localUpdates.length },
     { key: 'campaigns',  label: 'Campagnes',  count: campaigns.length },
     { key: 'templates',  label: 'Templates',  count: localTemplates.length },
     { key: 'customers',  label: 'Klanten',    count: customers.length },
   ];
+
+  // ── If editing an update, show the editor full-width ──
+  if (editingUpdateId || creatingNew) {
+    const existingUpdate = editingUpdateId
+      ? (localUpdates.find((u) => u.id === editingUpdateId) as OutreachUpdate | undefined) ?? null
+      : null;
+
+    return (
+      <UpdateEditor
+        update={existingUpdate}
+        templates={structuredTemplates}
+        onBack={handleBackFromEditor}
+        onSaved={handleUpdateSaved}
+        userName={userName || undefined}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -71,6 +140,88 @@ export default function OutreachClient({ campaigns, templates, customers }: Outr
           </button>
         ))}
       </div>
+
+      {/* ── UPDATES TAB (Wave 11) ─────────────────────────────── */}
+      {activeTab === 'updates' && (
+        <div className="space-y-4">
+          {/* Performance overview + team */}
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <PerformanceStat
+              label="Concepten"
+              value={localUpdates.filter((u) => u.status === 'draft').length}
+              icon="📝"
+            />
+            <PerformanceStat
+              label="Klaar"
+              value={localUpdates.filter((u) => u.status === 'ready' || u.status === 'sending').length}
+              icon="📤"
+            />
+            <PerformanceStat
+              label="Verzonden"
+              value={localUpdates.filter((u) => u.status === 'sent').length}
+              icon="✅"
+              color="var(--color-data-green)"
+            />
+            <PerformanceStat
+              label="Afgeleverd"
+              value={localUpdates.reduce((sum, u) => sum + u.delivered_count, 0)}
+              icon="📬"
+              color="var(--color-data-green)"
+            />
+          </div>
+
+          {/* Team user name */}
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-2">
+              <label className="text-xs" style={{ color: 'var(--color-text-dim)' }}>
+                Naam:
+              </label>
+              <input
+                type="text"
+                value={userName}
+                onChange={(e) => handleUserNameChange(e.target.value)}
+                placeholder="Jouw naam..."
+                className="text-xs px-2 py-1 rounded-lg bg-transparent border"
+                style={{
+                  borderColor: 'var(--color-border-subtle)',
+                  color: 'var(--color-text-main)',
+                  width: '140px',
+                }}
+              />
+            </div>
+            <button
+              type="button"
+              onClick={() => setCreatingNew(true)}
+              className="px-4 py-2 text-sm font-medium text-white rounded-lg"
+              style={{ background: 'var(--color-oil-orange)' }}
+            >
+              + Nieuwe update
+            </button>
+          </div>
+
+          {localUpdates.length === 0 ? (
+            <div className="oil-card p-8 text-center">
+              <p className="text-3xl mb-2">✨</p>
+              <p className="text-sm font-medium" style={{ color: 'var(--color-text-main)' }}>
+                Nog geen updates
+              </p>
+              <p className="text-xs mt-1" style={{ color: 'var(--color-text-muted)' }}>
+                Maak je eerste premium update met de knop hierboven.
+              </p>
+            </div>
+          ) : (
+            <div className="grid gap-3">
+              {localUpdates.map((u) => (
+                <UpdateCard
+                  key={u.id}
+                  update={u}
+                  onEdit={(id) => setEditingUpdateId(id)}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* ── CAMPAIGNS TAB ─────────────────────────────────────── */}
       {activeTab === 'campaigns' && (
@@ -147,6 +298,14 @@ export default function OutreachClient({ campaigns, templates, customers }: Outr
                       </span>
                       <span className="badge badge-gray text-[10px]">{t.channel}</span>
                       <span className="badge badge-gray text-[10px]">{t.message_type}</span>
+                      {t.template_type && (
+                        <span
+                          className="text-[10px] px-2 py-0.5 rounded-full"
+                          style={{ background: 'rgba(249, 115, 22, 0.1)', color: 'var(--color-oil-orange)' }}
+                        >
+                          {t.template_type}
+                        </span>
+                      )}
                       {!t.is_active && (
                         <span className="badge badge-gray text-[10px]">inactief</span>
                       )}
@@ -242,6 +401,42 @@ export default function OutreachClient({ campaigns, templates, customers }: Outr
           </div>
         </div>
       )}
+    </div>
+  );
+}
+
+// ---------------------------------------------------------------------------
+// Helper components
+// ---------------------------------------------------------------------------
+
+function PerformanceStat({
+  label,
+  value,
+  icon,
+  color,
+}: {
+  label: string;
+  value: number;
+  icon: string;
+  color?: string;
+}) {
+  return (
+    <div className="oil-card p-4 flex items-center gap-3">
+      <span className="text-xl">{icon}</span>
+      <div>
+        <p
+          className="text-lg font-semibold"
+          style={{
+            color: color ?? 'var(--color-text-main)',
+            fontFamily: 'var(--font-mono, monospace)',
+          }}
+        >
+          {value}
+        </p>
+        <p className="text-[11px] uppercase tracking-wider" style={{ color: 'var(--color-text-dim)' }}>
+          {label}
+        </p>
+      </div>
     </div>
   );
 }

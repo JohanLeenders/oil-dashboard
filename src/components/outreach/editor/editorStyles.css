@@ -1,0 +1,206 @@
+/* =============================================================================
+   Tiptap Editor Styles — Oranjehoen Update Engine
+   Brand-locked: Inter for body, JetBrains Mono for data, Playfair Display for brand
+   Colors from OIL Design Tokens (globals.css)
+   ============================================================================= */
+
+/* Editor container */
+.tiptap-editor-wrapper {
+  background: var(--color-bg-card);
+  border: 1px solid var(--color-border-subtle);
+  border-radius: var(--radius-card);
+  overflow: hidden;
+  transition: border-color 0.15s ease;
+}
+
+.tiptap-editor-wrapper:focus-within {
+  border-color: var(--color-oil-orange);
+}
+
+/* Toolbar */
+.tiptap-toolbar {
+  display: flex;
+  gap: 2px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--color-border-subtle);
+  background: rgba(24, 24, 27, 0.5);
+  flex-wrap: wrap;
+}
+
+.tiptap-toolbar-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.1s ease;
+}
+
+.tiptap-toolbar-btn:hover {
+  background: var(--color-bg-elevated);
+  color: var(--color-text-main);
+}
+
+.tiptap-toolbar-btn.is-active {
+  background: rgba(249, 115, 22, 0.15);
+  color: var(--color-oil-orange);
+}
+
+.tiptap-toolbar-divider {
+  width: 1px;
+  height: 24px;
+  margin: 4px 6px;
+  background: var(--color-border-subtle);
+}
+
+/* The editable content area */
+.tiptap-content {
+  padding: 20px 24px;
+  min-height: 300px;
+  max-height: 600px;
+  overflow-y: auto;
+  outline: none;
+}
+
+/* Scrollbar styling */
+.tiptap-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.tiptap-content::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.tiptap-content::-webkit-scrollbar-thumb {
+  background: var(--color-border-subtle);
+  border-radius: 3px;
+}
+
+/* Typography — locked brand styles */
+.tiptap-content p {
+  color: var(--color-text-main);
+  font-size: 14px;
+  line-height: 1.65;
+  margin: 0 0 12px;
+}
+
+.tiptap-content h2 {
+  color: var(--color-text-main);
+  font-size: 18px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 24px 0 8px;
+}
+
+.tiptap-content h3 {
+  color: var(--color-text-main);
+  font-size: 15px;
+  font-weight: 600;
+  line-height: 1.3;
+  margin: 20px 0 6px;
+}
+
+/* First heading has no top margin */
+.tiptap-content > h2:first-child,
+.tiptap-content > h3:first-child {
+  margin-top: 0;
+}
+
+/* Bold & italic */
+.tiptap-content strong {
+  font-weight: 600;
+  color: var(--color-text-main);
+}
+
+.tiptap-content em {
+  font-style: italic;
+}
+
+/* Links */
+.tiptap-content a {
+  color: var(--color-oil-orange);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Lists */
+.tiptap-content ul,
+.tiptap-content ol {
+  padding-left: 20px;
+  margin: 0 0 12px;
+}
+
+.tiptap-content li {
+  color: var(--color-text-main);
+  font-size: 14px;
+  line-height: 1.65;
+  margin-bottom: 4px;
+}
+
+.tiptap-content ul li::marker {
+  color: var(--color-oil-orange);
+}
+
+.tiptap-content ol li::marker {
+  color: var(--color-text-dim);
+}
+
+/* Blockquote */
+.tiptap-content blockquote {
+  border-left: 3px solid var(--color-oil-orange);
+  padding-left: 16px;
+  margin: 12px 0;
+  color: var(--color-text-muted);
+  font-style: italic;
+}
+
+/* Horizontal rule */
+.tiptap-content hr {
+  border: none;
+  height: 1px;
+  background: var(--color-border-subtle);
+  margin: 20px 0;
+}
+
+/* Images */
+.tiptap-content img {
+  max-width: 100%;
+  border-radius: 8px;
+  margin: 12px 0;
+}
+
+/* Placeholder */
+.tiptap-content p.is-editor-empty:first-child::before {
+  content: attr(data-placeholder);
+  color: var(--color-text-dim);
+  pointer-events: none;
+  float: left;
+  height: 0;
+}
+
+/* Product block wrapper (from ProductBlock extension) */
+.product-block-wrapper {
+  margin: 8px 0;
+}
+
+/* Character count footer */
+.tiptap-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  border-top: 1px solid var(--color-border-subtle);
+  background: rgba(24, 24, 27, 0.3);
+}
+
+.tiptap-char-count {
+  font-size: 11px;
+  color: var(--color-text-dim);
+  font-family: var(--font-mono, 'JetBrains Mono', monospace);
+}

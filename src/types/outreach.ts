@@ -1,11 +1,17 @@
 /**
- * Outreach Module Types — Wave 10
+ * Outreach Module Types — Wave 10 + Wave 11 (Update Engine)
  *
- * Design notes:
+ * Wave 10 design notes:
  * - outreach_sends.status: 'pending' | 'processed' only (no delivery state here)
  * - Delivery state derived from outreach_delivery_events (latest event per outbox_id)
  * - Graph-ready: OutreachOutbox has nullable graph_message_id / graph_sender_upn
  * - week_key format: 'IYYY-IW-channel' e.g. '2026-09-whatsapp' (idempotent cron)
+ *
+ * Wave 11 additions:
+ * - OutreachUpdate: composed content pieces written in Tiptap editor
+ * - Structured templates with block_schema + default_content (Tiptap JSON)
+ * - Team tracking via simple text fields (no auth)
+ * - Performance stats via v_outreach_update_stats view
  */
 
 // =============================================================================
@@ -57,6 +63,10 @@ export interface OutreachTemplate {
   body_text: string | null;    // WhatsApp plain text — supports {{klant_naam}} etc.
   is_active: boolean;
   created_at: string;
+  // Wave 11: Structured template fields (nullable — old templates don't have these)
+  template_type: OutreachTemplateType | null;
+  block_schema: TiptapBlockSchema | null;
+  default_content: TiptapDocument | null;
 }
 
 export interface OutreachCampaign {
@@ -214,4 +224,161 @@ export interface OutreachCronResult {
   campaign_action: 'created' | 'skipped';
   sends_created: number;
   sends_skipped_duplicate: number;
+}
+
+// =============================================================================
+// WAVE 11: UPDATE ENGINE TYPES
+// =============================================================================
+
+/** Structured template types — determines block layout and branding */
+export type OutreachTemplateType =
+  | 'wekelijkse_update'
+  | 'batch_spotlight'
+  | 'persoonlijke_followup';
+
+/** Status flow for an update: draft → ready → sending → sent */
+export type OutreachUpdateStatus = 'draft' | 'ready' | 'sending' | 'sent';
+
+/** Target type: bulk (all/selected customers) or personal (1 customer) */
+export type OutreachTargetType = 'bulk' | 'personal';
+
+// =============================================================================
+// TIPTAP DOCUMENT TYPES
+// =============================================================================
+
+/**
+ * Tiptap JSON document structure.
+ * Stored in outreach_updates.content and outreach_templates.default_content.
+ */
+export interface TiptapDocument {
+  type: 'doc';
+  content: TiptapNode[];
+}
+
+/**
+ * A single node in the Tiptap JSON document tree.
+ * Supports paragraphs, headings, product blocks, images, etc.
+ */
+export interface TiptapNode {
+  type: string;
+  attrs?: Record<string, unknown>;
+  content?: TiptapNode[];
+  marks?: TiptapMark[];
+  text?: string;
+}
+
+export interface TiptapMark {
+  type: string;
+  attrs?: Record<string, unknown>;
+}
+
+/**
+ * Block schema: defines which blocks are allowed for a template type.
+ * Used by the editor to enforce structure.
+ */
+export interface TiptapBlockSchema {
+  /** Which block types are allowed in this template */
+  allowedBlocks: string[];
+  /** Which block types are required (must appear at least once) */
+  requiredBlocks?: string[];
+  /** Maximum number of product blocks allowed */
+  maxProductBlocks?: number;
+  /** Maximum number of image blocks allowed */
+  maxImageBlocks?: number;
+}
+
+// =============================================================================
+// PRODUCT BLOCK
+// =============================================================================
+
+/** Data for a product block in the editor */
+export interface ProductBlockData {
+  productName: string;
+  description?: string;
+  pricePerKg?: number;
+  unit?: string;            // e.g. 'kg', 'stuks', 'doos'
+  imageUrl?: string;        // Public Supabase Storage URL
+  /** If selected from DB: product ID for traceability */
+  productId?: string;
+  /** Whether this was manually entered or selected from database */
+  source: 'manual' | 'database';
+}
+
+// =============================================================================
+// OUTREACH UPDATE — Core entity
+// =============================================================================
+
+export interface OutreachUpdate {
+  id: string;
+  template_id: string | null;
+  title: string;
+  content: TiptapDocument;
+  rendered_html: string | null;
+  rendered_text: string | null;
+  status: OutreachUpdateStatus;
+  target_type: OutreachTargetType;
+  target_customer_id: string | null;
+  campaign_id: string | null;
+  // Team tracking
+  created_by: string | null;
+  modified_by: string | null;
+  sent_by: string | null;
+  // Locking
+  locked_by: string | null;
+  locked_at: string | null;
+  // Timestamps
+  created_at: string;
+  updated_at: string;
+  sent_at: string | null;
+}
+
+export interface OutreachUpdateRecipient {
+  id: string;
+  update_id: string;
+  customer_id: string;
+  channel: OutreachSendChannel;
+  send_id: string | null;     // Linked after dispatch
+  created_at: string;
+}
+
+/** Update with enriched data for the UI */
+export interface OutreachUpdateWithDetails extends OutreachUpdate {
+  template: OutreachTemplate | null;
+  recipient_count: number;
+  dispatched_count: number;
+  delivered_count: number;
+  failed_count: number;
+}
+
+/** Performance stats from v_outreach_update_stats */
+export interface OutreachUpdateStats {
+  update_id: string;
+  title: string;
+  status: OutreachUpdateStatus;
+  created_by: string | null;
+  sent_by: string | null;
+  created_at: string;
+  recipient_count: number;
+  dispatched_count: number;
+  delivered_count: number;
+  failed_count: number;
+}
+
+/** Input for creating a new update */
+export interface CreateUpdateInput {
+  template_id?: string;
+  title: string;
+  content: TiptapDocument;
+  target_type: OutreachTargetType;
+  created_by?: string;
+}
+
+/** Input for saving/updating an existing update */
+export interface SaveUpdateInput {
+  title?: string;
+  content?: TiptapDocument;
+  rendered_html?: string;
+  rendered_text?: string;
+  status?: OutreachUpdateStatus;
+  modified_by?: string;
 }

@@ -51,7 +51,17 @@ coverage/
 # Claude Code local state
 .claude/
 
+# MCP config (contains secrets)
+.mcp.json
+
 # Backup & temp files
 *.bak
 .fuse_hidden*
 nul
+tmp_*.json
+tmp_*.sql
+
+# Test tooling (not part of project)
+.playwright-mcp/
+cypress/
+cypress.config.ts

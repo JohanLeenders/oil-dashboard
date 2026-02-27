@@ -19,6 +19,11 @@ import type {
   OutreachOutbox,
   OutreachSend,
   OutreachChannel,
+  OutreachUpdate,
+  OutreachUpdateWithDetails,
+  CreateUpdateInput,
+  SaveUpdateInput,
+  TiptapDocument,
 } from '@/types/outreach';
 
 // =============================================================================
@@ -365,4 +370,198 @@ export async function getOutreachSendById(id: string): Promise<OutreachSend | nu
 
   if (error) throw new Error(`Failed to fetch send: ${error.message}`);
   return data as OutreachSend | null;
+}
+
+// =============================================================================
+// WAVE 11: UPDATE ENGINE — CRUD
+// =============================================================================
+
+/** List all updates ordered by updated_at desc, with recipient/delivery stats */
+export async function getUpdates(): Promise<OutreachUpdateWithDetails[]> {
+  const supabase = await createClient();
+
+  const { data: updates, error } = await supabase
+    .from('outreach_updates')
+    .select('*')
+    .order('updated_at', { ascending: false });
+
+  if (error) throw new Error(`Failed to fetch updates: ${error.message}`);
+  if (!updates?.length) return [];
+
+  const updateIds = updates.map((u) => (u as OutreachUpdate).id);
+
+  // Batch fetch: recipients, templates
+  const [recipRes, templateIds] = await Promise.all([
+    supabase.from('outreach_update_recipients').select('id, update_id, send_id').in('update_id', updateIds),
+    Promise.resolve(
+      [...new Set(updates.map((u) => (u as OutreachUpdate).template_id).filter(Boolean))] as string[],
+    ),
+  ]);
+
+  // Fetch templates for enrichment
+  const templatesRes = templateIds.length
+    ? await supabase.from('outreach_templates').select('*').in('id', templateIds)
+    : { data: [] };
+
+  const templateMap = new Map<string, OutreachTemplate>();
+  for (const t of (templatesRes.data ?? []) as OutreachTemplate[]) {
+    templateMap.set(t.id, t);
+  }
+
+  // Get send IDs for delivery stats
+  const recipients = (recipRes.data ?? []) as Array<{ id: string; update_id: string; send_id: string | null }>;
+  const sendIds = recipients.map((r) => r.send_id).filter(Boolean) as string[];
+
+  // Fetch delivery events for dispatched sends
+  let deliveredCount = new Map<string, number>();
+  let failedCount = new Map<string, number>();
+
+  if (sendIds.length > 0) {
+    const { data: outboxRows } = await supabase
+      .from('outreach_outbox')
+      .select('id, send_id')
+      .in('send_id', sendIds);
+
+    if (outboxRows?.length) {
+      const outboxIds = outboxRows.map((o) => (o as { id: string }).id);
+      const { data: events } = await supabase
+        .from('outreach_delivery_events')
+        .select('outbox_id, event_type, created_at')
+        .in('outbox_id', outboxIds)
+        .order('created_at', { ascending: false });
+
+      // Determine latest event per outbox
+      const latestByOutbox = new Map<string, string>();
+      for (const ev of (events ?? []) as Array<{ outbox_id: string; event_type: string }>) {
+        if (!latestByOutbox.has(ev.outbox_id)) {
+          latestByOutbox.set(ev.outbox_id, ev.event_type);
+        }
+      }
+
+      // Map back to send_id
+      const outboxToSend = new Map<string, string>();
+      for (const o of outboxRows as Array<{ id: string; send_id: string }>) {
+        outboxToSend.set(o.id, o.send_id);
+      }
+
+      for (const [obId, eventType] of latestByOutbox) {
+        const sId = outboxToSend.get(obId);
+        if (!sId) continue;
+        if (eventType === 'sent') deliveredCount.set(sId, (deliveredCount.get(sId) ?? 0) + 1);
+        if (eventType === 'failed') failedCount.set(sId, (failedCount.get(sId) ?? 0) + 1);
+      }
+    }
+  }
+
+  return updates.map((raw) => {
+    const u = raw as OutreachUpdate;
+    const recips = recipients.filter((r) => r.update_id === u.id);
+    const dispatchedSendIds = recips.map((r) => r.send_id).filter(Boolean) as string[];
+
+    return {
+      ...u,
+      template: u.template_id ? templateMap.get(u.template_id) ?? null : null,
+      recipient_count: recips.length,
+      dispatched_count: dispatchedSendIds.length,
+      delivered_count: dispatchedSendIds.reduce((sum, sid) => sum + (deliveredCount.get(sid) ?? 0), 0),
+      failed_count: dispatchedSendIds.reduce((sum, sid) => sum + (failedCount.get(sid) ?? 0), 0),
+    } as OutreachUpdateWithDetails;
+  });
+}
+
+/** Fetch a single update by ID */
+export async function getUpdate(id: string): Promise<OutreachUpdate | null> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('outreach_updates')
+    .select('*')
+    .eq('id', id)
+    .maybeSingle();
+
+  if (error) throw new Error(`Failed to fetch update: ${error.message}`);
+  return data as OutreachUpdate | null;
+}
+
+/** Create a new update (starts as draft) */
+export async function createUpdate(input: CreateUpdateInput): Promise<OutreachUpdate> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('outreach_updates')
+    .insert({
+      template_id: input.template_id ?? null,
+      title: input.title,
+      content: input.content as unknown as Record<string, unknown>,
+      status: 'draft',
+      target_type: input.target_type,
+      created_by: input.created_by ?? null,
+      modified_by: input.created_by ?? null,
+    })
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to create update: ${error.message}`);
+  return data as unknown as OutreachUpdate;
+}
+
+/** Save changes to an existing update */
+export async function saveUpdate(id: string, input: SaveUpdateInput): Promise<OutreachUpdate> {
+  const supabase = await createClient();
+
+  const updateData: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+  };
+
+  if (input.title !== undefined) updateData.title = input.title;
+  if (input.content !== undefined) updateData.content = input.content as unknown as Record<string, unknown>;
+  if (input.rendered_html !== undefined) updateData.rendered_html = input.rendered_html;
+  if (input.rendered_text !== undefined) updateData.rendered_text = input.rendered_text;
+  if (input.status !== undefined) updateData.status = input.status;
+  if (input.modified_by !== undefined) updateData.modified_by = input.modified_by;
+
+  const { data, error } = await supabase
+    .from('outreach_updates')
+    .update(updateData)
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error) throw new Error(`Failed to save update: ${error.message}`);
+  return data as unknown as OutreachUpdate;
+}
+
+/** Delete a draft update (only drafts can be deleted) */
+export async function deleteUpdate(id: string): Promise<void> {
+  const supabase = await createClient();
+
+  // Safety: only delete drafts
+  const { data: existing } = await supabase
+    .from('outreach_updates')
+    .select('status')
+    .eq('id', id)
+    .single();
+
+  if ((existing as { status: string } | null)?.status !== 'draft') {
+    throw new Error('Alleen concepten kunnen worden verwijderd');
+  }
+
+  const { error } = await supabase
+    .from('outreach_updates')
+    .delete()
+    .eq('id', id);
+
+  if (error) throw new Error(`Failed to delete update: ${error.message}`);
+}
+
+/** Get structured templates (Wave 11 — with template_type set) */
+export async function getStructuredTemplates(): Promise<OutreachTemplate[]> {
+  const supabase = await createClient();
+  const { data, error } = await supabase
+    .from('outreach_templates')
+    .select('*')
+    .not('template_type', 'is', null)
+    .eq('is_active', true)
+    .order('name');
+
+  if (error) throw new Error(`Failed to fetch structured templates: ${error.message}`);
+  return (data ?? []) as OutreachTemplate[];
 }
