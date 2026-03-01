@@ -1,8 +1,8 @@
 # OIL System State - Logboek
 
 **Project:** Oranjehoen Intelligence Layer (OIL)
-**Laatste Update:** 2026-02-20 (Wave 9 — Mission Control Design System & UX Polish)
-**Huidige Fase:** Order Module Phase 2 — Wave 9 Complete
+**Laatste Update:** 2026-02-27 (Wave 12 — Order Intake Module)
+**Huidige Fase:** Order Intake MVP — Wave 12 Complete
 
 ---
 
@@ -31,6 +31,8 @@
 | `product_yield_chains` | ✅ Klaar | 20260220120002_wave6_product_yield_chains.sql |
 | `product_article_numbers` | ✅ Klaar + Seed | 20260221100000_wave8_product_article_numbers.sql |
 | `customer_delivery_info` | ✅ Klaar | 20260221100002_wave8_customer_delivery_info.sql |
+| `inbound_messages` | ✅ Klaar | 20260227100000_wave12_order_intake.sql |
+| `order_intents` | ✅ Klaar | 20260227100000_wave12_order_intake.sql |
 
 ### Views
 | View | Status | Beschrijving |
@@ -70,6 +72,8 @@
 | orders/distributeByBirds.ts | `distributeByBirds()` | ✅ Wave 7 | ✅ Putten-only distribution |
 | export/orderSchemaExport.ts | `exportStorteboomBestelschema()` | ✅ Wave 8 | ✅ Storteboom-format Excel (8 secties) |
 | export/storteboomValidator.ts | `validateStorteboomExport()` | ✅ Wave 8 | ✅ Massabalans + artikelnummers + REST |
+| order-intake/classifier.ts | `classifyInboundMessage()` | ✅ Wave 12 | ✅ 20 tests, deterministic rule-based |
+| order-intake/formatForwardEmail.ts | `formatForwardEmail()` | ✅ Wave 12 | ✅ 17 tests, HTML + plain text |
 
 ### Server Actions (src/lib/actions/)
 
@@ -82,6 +86,17 @@
 | delivery-info.ts | `getDeliveryInfoForCustomers()` | ✅ Wave 8 |
 | delivery-info.ts | `upsertDeliveryInfo()` | ✅ Wave 8 |
 | export.ts | `buildStorteboomExportData()` | ✅ Wave 8 |
+| order-intake.ts | `getOrderIntents()` | ✅ Wave 12 |
+| order-intake.ts | `getOrderIntent()` | ✅ Wave 12 |
+| order-intake.ts | `createInboundMessage()` | ✅ Wave 12 |
+| order-intake.ts | `processInboundMessage()` | ✅ Wave 12 |
+| order-intake.ts | `updateIntentParseSuggestion()` | ✅ Wave 12 |
+| order-intake.ts | `rejectIntent()` | ✅ Wave 12 |
+| order-intake.ts | `acceptIntent()` | ✅ Wave 12 |
+| order-intake.ts | `acceptAndForwardIntent()` | ✅ Wave 12 |
+| order-intake.ts | `getForwardEmail()` | ✅ Wave 12 |
+| order-intake.ts | `getRecentCommunication()` | ✅ Wave 12 |
+| order-intake.ts | `getIntentCounts()` | ✅ Wave 12 |
 
 ### Unit Tests
 | Test File | Status | Coverage |
@@ -99,6 +114,8 @@
 | delivery-info.test.ts | ✅ Wave 8 | 3 tests — upsert + fetch |
 | storteboomExport.test.ts | ✅ Wave 8 | 18 tests — full Excel generation |
 | storteboomValidator.test.ts | ✅ Wave 8 | 5 tests — validation checks |
+| classifier.test.ts | ✅ Wave 12 | 20 tests — product+qty parsing, edge cases |
+| formatForwardEmail.test.ts | ✅ Wave 12 | 17 tests — email formatting, XSS escaping |
 
 ---
 
@@ -189,6 +206,9 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
 - [x] `DashboardKpiGrid` - Wave 9: Dashboard KPI tiles with drill-down modals
 - [x] `OrderStatusTiles` - Wave 9: Order status overview on dashboard
 - [x] `ExportPreflightChecklist` - Wave 9: Pre-flight validation checklist UI
+- [x] `IntentTable` - Wave 12: Order intake werkbak tabel (filter tabs, confidence bar)
+- [x] `IntentDetailDrawer` - Wave 12: Slide-in drawer met parse editor + forward/reject
+- [x] `ManualEntryForm` - Wave 12: Handmatig bericht invoeren + classifier
 - [ ] `OpportunityCostModal` - Detail modal (TODO)
 
 ### Data Fetching (Server Actions)
@@ -206,6 +226,7 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
 - [x] `/oil/planning` - Slachtkalender + import
 - [x] `/oil/orders` - Order overzicht per slachtdag
 - [x] `/oil/orders/[slaughterId]` - **Wave 8: Split-view + Storteboom export + bezorginfo**
+- [x] `/oil/order-intake` - **Wave 12: Order Intake werkbak (tabel + drawer + manual entry)**
 
 ---
 
@@ -338,6 +359,42 @@ In 005_effective_views.sql staan triggers (commented) om updates/deletes te blok
   - Visual verification: 30+ checklist items passed
   - Decision: GO
 
+### 2026-02-27 - Wave 12 (Order Intake Module)
+- ✅ **Slice 1: Database + Types**
+  - Migration: `20260227100000_wave12_order_intake.sql` — `inbound_messages` + `order_intents` tabellen
+  - IN/OUT domain separation: OUT = communicatie-log, IN = operationele werkbak
+  - RLS policies voor `authenticated`, `anon`, `service_role`
+  - Types: `InboundMessage`, `OrderIntent`, `OrderIntentWithCustomer`, `ClassificationResult`, `MetaWebhookPayload`
+  - NO `processed` boolean field (domain separation = klassificatie bepaalt IN/OUT)
+- ✅ **Slice 2: WhatsApp Webhook Transport**
+  - `GET /api/whatsapp/webhook` — Meta verify token handshake
+  - `POST /api/whatsapp/webhook` — Receives Meta Cloud API payloads, logs to `inbound_messages`
+  - Phone normalization: Dutch 06→+316, 0031→+31
+  - Customer matching via `customer_delivery_info.whatsapp_number`
+- ✅ **Slice 3: Classifier Engine + Tests**
+  - `classifyInboundMessage()` — deterministic, rule-based, no AI
+  - Product keyword whitelist (55 keywords incl. plurals)
+  - Qty+UOM regex + bare number+product fallback
+  - Longest-match-first with substring deduplication
+  - Confidence: 0.9 (exact), 0.7 (bare), 0.6 (fuzzy)
+  - 20 unit tests including edge cases
+  - Server actions: `processInboundMessage`, `getOrderIntents`, etc.
+  - Hooked into webhook: classifier runs on every inbound WhatsApp message
+- ✅ **Slice 4: Order Intake UI**
+  - Route: `/oil/order-intake` — Server Component + Client shell
+  - `IntentTable`: filter tabs (Alle/Nieuw/Review/Geaccepteerd/Doorgestuurd/Afgewezen), confidence bar, channel icons
+  - `IntentDetailDrawer`: slide-in panel, editable parse suggestion (product/qty/uom), accept/reject
+  - `ManualEntryForm`: channel selector, sender field, text area → classifier pipeline
+  - Sidebar updated with "Order Intake" nav item
+- ✅ **Slice 5: Forwarding with Provider Fallback**
+  - `formatForwardEmail()` — HTML + plain text email formatting (17 tests, XSS-safe)
+  - `acceptAndForwardIntent()` — provider-adaptive:
+    - If `ORDER_FORWARD_PA_URL` set → POST to PA webhook, status = 'forwarded'
+    - If not → status stays 'accepted', show manual fallback (copy subject/body + mailto link)
+  - Only sets 'forwarded' when actual send succeeds
+  - Manual fallback in drawer: copy buttons + "Open in email" mailto link
+- ✅ **QA Gate** — 844 tests (46 files), build clean, lint clean
+
 ---
 
 ## 8. Agent Skills
@@ -365,6 +422,9 @@ Bevat:
 2. **Exact Online integratie:** Nog niet geïmplementeerd (Phase 3)
 3. **Visx dependencies:** Controleer compatibiliteit met React 19
 4. **Append-only triggers:** Commented out voor development, uncomment in production
+5. **Meta Cloud API setup:** Vereist handmatige setup (WABA account, webhook URL, access token). Zie plan B stap 1.
+6. **Order Intake forwarding:** `ORDER_FORWARD_PA_URL` env var niet geconfigureerd → manual fallback actief. Configureer PA webhook voor automatisch doorsturen.
+7. **Customer matching WhatsApp:** Afhankelijk van `customer_delivery_info.whatsapp_number`. Niet-gematchte nummers tonen als "Onbekende afzender".
 
 ---
 
@@ -385,6 +445,7 @@ Bevat:
 | `20260221100000_wave8_product_article_numbers.sql` | Wave 8: artikelnummers tabel + RLS |
 | `20260221100001_wave8_seed_article_numbers.sql` | Wave 8: seed 28 art.nrs + 7 nieuwe producten |
 | `20260221100002_wave8_customer_delivery_info.sql` | Wave 8: bezorginfo tabel + RLS |
+| `20260227100000_wave12_order_intake.sql` | Wave 12: inbound_messages + order_intents + RLS |
 
 ---
 

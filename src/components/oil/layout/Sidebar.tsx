@@ -39,6 +39,7 @@ const NAV_GROUPS: NavGroup[] = [
       { href: '/oil/processing', label: 'Verwerking', icon: '◈' },
       { href: '/oil/exports', label: 'Exports', icon: '◈' },
       { href: '/oil/outreach', label: 'Outreach', icon: '◈' },
+      { href: '/oil/order-intake', label: 'Order Intake', icon: '◈' },
     ],
   },
   {

@@ -1199,5 +1199,59 @@ All 7 contracted sprints have been completed:
 
 ---
 
+## 2026-02-27 — Wave 12: Order Intake Module
+
+### Status: COMPLETED
+
+### Architecture
+- **IN/OUT Domain Separation**: `inbound_messages` (OUT = raw communication log) → `order_intents` (IN = operational workbench)
+- **Meta Cloud API**: Direct WhatsApp webhook (no Twilio, no Trengo)
+- **Classifier**: Deterministic rule-based (55 product keywords + qty/uom regex)
+- **Forwarding**: Provider-adaptive (PA webhook or manual fallback)
+
+### Changes (16 files)
+
+**Database:**
+- `supabase/migrations/20260227100000_wave12_order_intake.sql` — inbound_messages + order_intents + RLS
+
+**Types:**
+- `src/types/order-intake.ts` — Full type definitions incl. Meta webhook payload types
+
+**Engine:**
+- `src/lib/engine/order-intake/classifier.ts` — classifyInboundMessage() pure function
+- `src/lib/engine/order-intake/classifier.test.ts` — 20 tests
+- `src/lib/engine/order-intake/formatForwardEmail.ts` — email formatting (HTML + plain)
+- `src/lib/engine/order-intake/formatForwardEmail.test.ts` — 17 tests
+
+**Transport:**
+- `src/app/api/whatsapp/webhook/route.ts` — Meta Cloud API webhook (GET verify + POST inbound)
+- `src/lib/order-intake/normalize.ts` — Phone/email normalization (NL 06→+316)
+
+**Server Actions:**
+- `src/lib/actions/order-intake.ts` — 11 server actions (CRUD + forward + stats)
+
+**UI:**
+- `src/app/oil/order-intake/page.tsx` — Server Component
+- `src/app/oil/order-intake/OrderIntakeClient.tsx` — Client shell
+- `src/components/order-intake/IntentTable.tsx` — Filter tabs + table + confidence bar
+- `src/components/order-intake/IntentDetailDrawer.tsx` — Slide-in drawer with parse editor
+- `src/components/order-intake/ManualEntryForm.tsx` — Manual entry form
+
+**Navigation:**
+- `src/components/oil/layout/Sidebar.tsx` — Added "Order Intake" nav item
+
+### Verification
+- Tests: 844 passed (46 files) — +37 new tests
+- Build: SUCCESS (clean)
+- Lint: PASSED (no new warnings)
+
+### Env Vars Required
+- `WHATSAPP_VERIFY_TOKEN` — Meta webhook verification
+- `WHATSAPP_ACCESS_TOKEN` — Meta Cloud API token
+- `ORDER_FORWARD_PA_URL` — (optional) PA webhook URL
+- `ORDER_FORWARD_EMAIL` — (optional) defaults to bestellingen@oranjehoen.nl
+
+---
+
 ## [NEXT ENTRY WILL BE APPENDED HERE]
 

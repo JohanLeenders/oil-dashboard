@@ -31,6 +31,19 @@ Next.js 15 dashboard voor Oranjehoen (pluimvee-olieverwerking). Vercel deploy, S
 - Idempotente cron (`week_key` format `YYYY-WW-channel`)
 - Wave 10 = campaign-based, Wave 11 = rich editor (Tiptap) updates
 
+## Order Intake architectuur (Wave 12)
+- **IN/OUT domain separation**: `inbound_messages` (OUT = communicatie-log) → `order_intents` (IN = werkbak)
+- **Classifier**: deterministic, rule-based (product keywords + qty regex), geen AI
+- **WhatsApp inbound**: Meta Cloud API webhook → `/api/whatsapp/webhook` (GET verify + POST inbound)
+- **Forwarding**: provider-adaptive — `ORDER_FORWARD_PA_URL` env var → PA webhook, of manual fallback (copy + mailto)
+- **Env vars nodig**:
+  - `WHATSAPP_VERIFY_TOKEN` — voor Meta webhook verification
+  - `WHATSAPP_ACCESS_TOKEN` — Meta Cloud API token
+  - `ORDER_FORWARD_PA_URL` — (optioneel) Power Automate webhook voor auto-forward
+  - `ORDER_FORWARD_EMAIL` — (optioneel) default: bestellingen@oranjehoen.nl
+- **Normalisatie**: telefoon 06→+316, 0031→+31; email trim+lowercase
+- **Route**: `/oil/order-intake`
+
 ## Code conventies
 - Nederlands in UI-teksten, Engels in code/variabelen
 - Supabase RLS policies op alle tabellen

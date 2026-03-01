@@ -8,10 +8,20 @@
  * - Tijdlijn per onderdeel
  * - Tijdlijn per klant
  * - Annotaties (bijzondere batches / seizoenen)
+ *
+ * Extended with:
+ * - Technische slachtrendementen (Stage A: Putten) per mester
+ * - Drag & drop xlsx upload
+ * - Gewichtsverdeling histogrammen
  */
 
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
+import SlaughterTrendsPanel from '@/components/oil/trends/SlaughterTrendsPanel';
+import CorvoetPanel from '@/components/oil/trends/CorvoetPanel';
+import WeightHistogramPanel from '@/components/oil/trends/WeightHistogramPanel';
+import PartYieldTimelinePanel from '@/components/oil/trends/PartYieldTimelinePanel';
+import { getSlaughterReports, getAllReportLines, getCorvoetReports, getWeightHistograms } from '@/lib/actions/slaughter-reports';
 import {
   summarizeAllPartTrends,
   summarizeAllCustomerTrends,
@@ -129,6 +139,22 @@ function formatMoney(amount: number | null): string {
 export default async function TrendsPage() {
   const supabase = await createClient();
 
+  // Fetch slaughter report data (Stage A: Putten)
+  let slaughterReports: Awaited<ReturnType<typeof getSlaughterReports>> = [];
+  let slaughterLines: Awaited<ReturnType<typeof getAllReportLines>> = [];
+  let corvoetReports: Awaited<ReturnType<typeof getCorvoetReports>> = [];
+  let weightDistributions: Awaited<ReturnType<typeof getWeightHistograms>> = [];
+  try {
+    [slaughterReports, slaughterLines, corvoetReports, weightDistributions] = await Promise.all([
+      getSlaughterReports('slacht_putten'),
+      getAllReportLines('slacht_putten'),
+      getCorvoetReports(),
+      getWeightHistograms(),
+    ]);
+  } catch {
+    // Slaughter tables may not exist yet — silently ignore
+  }
+
   // Fetch part trend data (monthly only for cleaner view)
   const { data: partTrendData, error: partTrendError } = await supabase
     .from('v_part_trend_over_time')
@@ -223,12 +249,6 @@ export default async function TrendsPage() {
     batchesBySeason.set(batch.season, existing);
   }
 
-  // Calculate summary stats
-  const totalParts = partSummaries.length;
-  const partsWithUpTrend = partSummaries.filter(p => p.margin_trend === 'UP').length;
-  const partsWithDownTrend = partSummaries.filter(p => p.margin_trend === 'DOWN').length;
-  const totalCustomers = customerSummaries.length;
-  const customersWithUpTrend = customerSummaries.filter(c => c.margin_trend === 'UP').length;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -252,32 +272,55 @@ export default async function TrendsPage() {
         </div>
       </div>
 
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Onderdelen geanalyseerd</div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalParts}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">Laatste 12 maanden</div>
+      {/* Slaughter Trends (Stage A: Putten → Griller → Verwerking) — PRIMARY section */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Technische Slachtrendementen
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+            Stage A — Putten: levende kippen → griller → verwerking. Upload & trending per mester.
+          </p>
         </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Marge stijgend</div>
-          <div className="text-3xl font-bold text-green-600">{partsWithUpTrend}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">onderdelen</div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Marge dalend</div>
-          <div className="text-3xl font-bold text-red-600">{partsWithDownTrend}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">onderdelen</div>
-        </div>
-
-        <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6">
-          <div className="text-sm text-gray-500 dark:text-gray-500 mb-1">Klanten geanalyseerd</div>
-          <div className="text-3xl font-bold text-gray-900 dark:text-gray-100">{totalCustomers}</div>
-          <div className="text-sm text-gray-500 dark:text-gray-500 mt-1">{customersWithUpTrend} met stijgende marge</div>
+        <div className="p-6">
+          <SlaughterTrendsPanel
+            reports={slaughterReports}
+            reportLines={slaughterLines}
+          />
         </div>
       </div>
+
+      {/* Corvoet Fileer (Stage B: Borstkappen → Filet) */}
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Corvoet Fileerrendementen
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+            Stage B — Borstkappen → filet/haasjes. Massabalans per week.
+          </p>
+        </div>
+        <div className="p-6">
+          <CorvoetPanel reports={corvoetReports} />
+        </div>
+      </div>
+
+      {/* ── Gewichtsverdeling Histogrammen ── */}
+      {weightDistributions.length > 0 && (
+      <div className="bg-white dark:bg-transparent rounded-lg shadow dark:shadow-none border border-gray-200 dark:border-gray-700 overflow-hidden">
+        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+            Gewichtsverdeling Levend Gewicht
+          </h2>
+          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
+            Meyn kwaliteitsverdelingen per ronde + gewogen gemiddelde over alle rondes.
+          </p>
+        </div>
+        <div className="p-6">
+          <WeightHistogramPanel distributions={weightDistributions} />
+        </div>
+      </div>
+      )}
 
       {/* Error handling */}
       {(partTrendError || customerTrendError || batchHistoryError) && (
@@ -288,135 +331,25 @@ export default async function TrendsPage() {
         </div>
       )}
 
-      {/* Part Trends Section */}
-      <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
-        <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Tijdlijn per Onderdeel</h2>
-          <p className="text-sm text-gray-500 dark:text-gray-500 mt-1">
-            Historische trends per anatomisch onderdeel (maandelijks)
+      {/* Part Yield Timeline — rendement t.o.v. griller per onderdeel */}
+      {slaughterReports.length > 0 && slaughterLines.length > 0 && (
+      <div className="space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold text-gray-100">Tijdlijn per Onderdeel</h2>
+          <p className="text-sm text-gray-500 mt-1">
+            Rendement t.o.v. griller per slachtdag. Marge &amp; volume worden later aangevuld.
           </p>
         </div>
-
-        {partSummaries.length === 0 ? (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-500">
-            Geen trenddata beschikbaar. Controleer of er historische data is.
-          </div>
-        ) : (
-          <div className="p-6 space-y-6">
-            {/* Part Summary Cards */}
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {partSummaries.map((summary) => (
-                <div key={summary.part_code} className="border border-gray-200 dark:border-gray-700 rounded-lg p-4">
-                  <div className="font-medium text-gray-900 dark:text-gray-100 mb-2">
-                    {getPartNameDutch(summary.part_code)}
-                  </div>
-
-                  {/* Yield Trend */}
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-gray-500 dark:text-gray-500">Rendement</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getTrendColorClass(summary.yield_trend)}`}>
-                      {getTrendArrow(summary.yield_trend)} {getTrendLabel(summary.yield_trend)}
-                    </span>
-                  </div>
-
-                  {/* Margin Trend */}
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-gray-500 dark:text-gray-500">Marge</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getTrendColorClass(summary.margin_trend)}`}>
-                      {getTrendArrow(summary.margin_trend)} {getTrendLabel(summary.margin_trend)}
-                    </span>
-                  </div>
-
-                  {/* Volume Trend */}
-                  <div className="flex items-center justify-between text-sm mb-1">
-                    <span className="text-gray-500 dark:text-gray-500">Volume</span>
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium ${getTrendColorClass(summary.volume_trend)}`}>
-                      {getTrendArrow(summary.volume_trend)} {getTrendLabel(summary.volume_trend)}
-                    </span>
-                  </div>
-
-                  {/* Averages */}
-                  <div className="mt-3 pt-3 border-t border-gray-100 dark:border-gray-700">
-                    <div className="text-xs text-gray-500 dark:text-gray-500">
-                      Recent marge: {formatPercent(summary.avg_margin_recent)}
-                    </div>
-                    <div className="text-xs text-gray-500 dark:text-gray-500">
-                      Vorig: {formatPercent(summary.avg_margin_prior)}
-                    </div>
-                    <div className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                      {summary.periods_analyzed} periodes
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {/* Part Timeline Table */}
-            <div className="mt-6">
-              <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Detailweergave per Periode</h3>
-              <div className="overflow-x-auto">
-                <table className="w-full text-sm">
-                  <thead className="bg-gray-50 dark:bg-gray-900">
-                    <tr>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Onderdeel</th>
-                      <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Periode</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Rendement</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Marge %</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Volume (kg)</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Omzet</th>
-                      <th className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">DSI</th>
-                      <th className="px-3 py-2 text-center text-xs font-medium text-gray-500 dark:text-gray-500 uppercase">Status</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-gray-100">
-                    {Array.from(partTrendsByPart.entries()).flatMap(([partCode, rows]) =>
-                      rows.slice(0, 6).map((row, idx) => (
-                        <tr key={`${partCode}-${row.period_start}`} className={idx === 0 ? 'bg-blue-50' : 'hover:bg-gray-50 dark:bg-gray-900'}>
-                          <td className="px-3 py-2 font-medium text-gray-900 dark:text-gray-100">
-                            {idx === 0 ? getPartNameDutch(partCode) : ''}
-                          </td>
-                          <td className="px-3 py-2 text-gray-600 dark:text-gray-600">
-                            {formatPeriodLabel(row.period_type, row.period_number, row.period_year)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-900 dark:text-gray-100">
-                            {formatPercent(row.avg_yield_pct)}
-                          </td>
-                          <td className="px-3 py-2 text-right">
-                            <span className={row.avg_margin_pct !== null && row.avg_margin_pct < 0 ? 'text-red-600' : 'text-gray-900 dark:text-gray-100'}>
-                              {formatPercent(row.avg_margin_pct)}
-                            </span>
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-600">
-                            {formatNumber(row.total_sold_kg)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-600">
-                            {formatMoney(row.total_revenue_eur)}
-                          </td>
-                          <td className="px-3 py-2 text-right text-gray-600 dark:text-gray-600">
-                            {row.avg_dsi !== null ? `${row.avg_dsi.toFixed(1)}d` : '-'}
-                          </td>
-                          <td className="px-3 py-2 text-center">
-                            <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs ${
-                              row.data_status === 'COMPLETE' ? 'bg-green-100 text-green-800' :
-                              row.data_status === 'PARTIAL' ? 'bg-yellow-100 text-yellow-800' :
-                              'bg-gray-100 dark:bg-gray-900 text-gray-600 dark:text-gray-600'
-                            }`}>
-                              {row.data_status === 'COMPLETE' ? 'Volledig' :
-                               row.data_status === 'PARTIAL' ? 'Deels' : 'Geen data'}
-                            </span>
-                          </td>
-                        </tr>
-                      ))
-                    )}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-        )}
+        <PartYieldTimelinePanel
+          reports={slaughterReports}
+          lines={slaughterLines}
+          corvoetReports={corvoetReports}
+        />
       </div>
+      )}
 
-      {/* Customer Trends Section */}
+      {/* Customer Trends Section — only shown when data exists */}
+      {customerTrends.length > 0 && (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Tijdlijn per Klant</h2>
@@ -425,12 +358,7 @@ export default async function TrendsPage() {
           </p>
         </div>
 
-        {customerSummaries.length === 0 ? (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-500">
-            Geen klanttrenddata beschikbaar. Controleer of er verkoopdata is.
-          </div>
-        ) : (
-          <div className="p-6">
+        <div className="p-6">
             {/* Customer Summary Table */}
             <div className="overflow-x-auto">
               <table className="w-full text-sm">
@@ -560,10 +488,11 @@ export default async function TrendsPage() {
               </div>
             </div>
           </div>
-        )}
       </div>
+      )}
 
-      {/* Batch Annotations Section */}
+      {/* Batch Annotations Section — only shown when data exists */}
+      {batchHistory.length > 0 && (
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow mb-8">
         <div className="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
           <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">Annotaties</h2>
@@ -572,12 +501,7 @@ export default async function TrendsPage() {
           </p>
         </div>
 
-        {batchHistory.length === 0 ? (
-          <div className="p-6 text-center text-gray-500 dark:text-gray-500">
-            Geen batch-annotaties beschikbaar. Controleer of batch_history data bevat.
-          </div>
-        ) : (
-          <div className="p-6">
+        <div className="p-6">
             {/* Season Summary */}
             <div className="mb-6">
               <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Seizoensoverzicht</h3>
@@ -664,10 +588,11 @@ export default async function TrendsPage() {
               </div>
             </div>
           </div>
-        )}
       </div>
+      )}
 
-      {/* Reference Info */}
+      {/* Reference Info — only shown when commercial trend data exists */}
+      {(partTrends.length > 0 || customerTrends.length > 0) && (
       <div className="mt-8 text-sm text-gray-500 dark:text-gray-500">
         <h3 className="font-medium text-gray-700 dark:text-gray-600 mb-2">Referentie</h3>
         <ul className="space-y-1">
@@ -678,6 +603,7 @@ export default async function TrendsPage() {
           <li>• <strong>Let op: Alle trends zijn BESCHRIJVEND, niet voorspellend.</strong></li>
         </ul>
       </div>
+      )}
     </div>
   );
 }

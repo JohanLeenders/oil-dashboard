@@ -8,6 +8,11 @@
    ============================================================================ */
 
 :root {
+  /* Viewport auto-scale: design baseline = 1920px → 16px.
+     Scales down proportionally on smaller screens.
+     At 1200px → ~10px, at 1440px → 12px, at 1920px → 16px */
+  font-size: clamp(10px, 0.833vw, 16px);
+
   /* Surface */
   --color-bg-main: #09090b;
   --color-bg-card: rgba(24, 24, 27, 0.7);
